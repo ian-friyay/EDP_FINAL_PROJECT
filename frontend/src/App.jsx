@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import Layout from './components/Layout';
+import LandingPage from './components/LandingPage';
 import { Card, Row, Col, Badge, Table, Button } from 'react-bootstrap';
 
 // Sample Pages mapped to the SerbisYou Universal Database Schema
@@ -13,9 +14,14 @@ function DashboardPage() {
           <h2 className="fw-bold mb-1">Marketplace Dashboard</h2>
           <p className="text-muted mb-0">Welcome back, Juan! Here is your service marketplace overview.</p>
         </div>
-        <Badge bg="success" className="px-3 py-2 fs-6">
-          Online &amp; Active
-        </Badge>
+        <div className="d-flex gap-2 align-items-center">
+          <Button as={Link} to="/landing" variant="outline-primary" size="sm">
+            View Public Landing Page
+          </Button>
+          <Badge bg="success" className="px-3 py-2 fs-6">
+            Online &amp; Active
+          </Badge>
+        </div>
       </div>
 
       {/* Metrics Row */}
@@ -375,6 +381,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public Landing Page Route */}
+        <Route path="/landing" element={<LandingPage />} />
+
+        {/* Authenticated / App Shell Layout Routes */}
         <Route path="/" element={<Layout />}>
           <Route index element={<DashboardPage />} />
           <Route path="services" element={<ServicesPage />} />
