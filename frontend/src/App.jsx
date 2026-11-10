@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import LandingPage from './components/LandingPage';
 import TermsAndConditions from './components/TermsAndConditions';
 import GlobalLoader from './components/GlobalLoader';
+import ServicesGrid from './components/ServicesGrid';
 import { Card, Row, Col, Badge, Table, Button } from 'react-bootstrap';
 
 // Sample Pages mapped to the SerbisYou Universal Database Schema
@@ -156,64 +157,17 @@ function DashboardPage() {
 function ServicesPage() {
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-          <h2 className="fw-bold mb-1">Services &amp; Catalog</h2>
-          <p className="text-muted mb-0">Browse and manage services offered in SerbisYou.</p>
+          <h2 className="fw-bold mb-1">Services Marketplace</h2>
+          <p className="text-muted mb-0">Browse and book verified community services, or filter by category.</p>
         </div>
-        <Button variant="primary">Add New Service</Button>
+        <Button variant="primary" className="rounded-pill px-3 shadow-sm">
+          + Add New Service
+        </Button>
       </div>
 
-      <Row className="g-3">
-        <Col md={6} xl={4}>
-          <Card className="border-0 shadow-sm rounded-3 h-100">
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-start mb-2">
-                <Badge bg="primary">Home Maintenance</Badge>
-                <Badge bg="success">Active</Badge>
-              </div>
-              <h5 className="fw-bold text-dark">Aircon Cleaning &amp; Maintenance</h5>
-              <p className="text-muted small">Deep cleaning, chemical wash, and freon charging for all split/window types.</p>
-              <div className="d-flex justify-content-between align-items-center pt-3 border-top">
-                <div className="fw-bold fs-5 text-primary">₱800.00</div>
-                <small className="text-muted">ID: SRV-101</small>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={6} xl={4}>
-          <Card className="border-0 shadow-sm rounded-3 h-100">
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-start mb-2">
-                <Badge bg="secondary">Plumbing</Badge>
-                <Badge bg="success">Active</Badge>
-              </div>
-              <h5 className="fw-bold text-dark">Pipe Repair &amp; Installation</h5>
-              <p className="text-muted small">Emergency leak repairs, pipe fitting, sink unclogging and bathroom plumbing.</p>
-              <div className="d-flex justify-content-between align-items-center pt-3 border-top">
-                <div className="fw-bold fs-5 text-primary">₱1,200.00</div>
-                <small className="text-muted">ID: SRV-102</small>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={6} xl={4}>
-          <Card className="border-0 shadow-sm rounded-3 h-100">
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-start mb-2">
-                <Badge bg="info">Electrical</Badge>
-                <Badge bg="success">Active</Badge>
-              </div>
-              <h5 className="fw-bold text-dark">Residential Electrical Works</h5>
-              <p className="text-muted small">Circuit breaker maintenance, outlet replacement, wiring inspection.</p>
-              <div className="d-flex justify-content-between align-items-center pt-3 border-top">
-                <div className="fw-bold fs-5 text-primary">₱2,500.00</div>
-                <small className="text-muted">ID: SRV-103</small>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+      <ServicesGrid />
     </div>
   );
 }
