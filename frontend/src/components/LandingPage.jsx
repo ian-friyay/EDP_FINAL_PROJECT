@@ -359,7 +359,7 @@ export default function LandingPage() {
             <div className="d-flex gap-3 mt-2 mt-md-0">
               <span className="text-secondary">Privacy Policy</span>
               <span className="text-secondary">&bull;</span>
-              <span className="text-secondary">Terms of Service</span>
+              <Link to="/terms" className="text-secondary text-decoration-none">Terms of Service</Link>
               <span className="text-secondary">&bull;</span>
               <span className="text-secondary">Universal DB Schema v1.0</span>
             </div>

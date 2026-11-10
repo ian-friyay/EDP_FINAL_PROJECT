@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import Layout from './components/Layout';
 import LandingPage from './components/LandingPage';
+import TermsAndConditions from './components/TermsAndConditions';
 import GlobalLoader from './components/GlobalLoader';
 import { Card, Row, Col, Badge, Table, Button } from 'react-bootstrap';
 
@@ -410,8 +411,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Landing Page Route */}
+        {/* Public Routes */}
         <Route path="/landing" element={<LandingPage />} />
+        <Route path="/terms" element={<TermsAndConditions />} />
 
         {/* Authenticated / App Shell Layout Routes */}
         <Route path="/" element={<Layout />}>
