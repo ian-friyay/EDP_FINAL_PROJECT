@@ -6,18 +6,21 @@ const initialNotifications = [
     id: 1,
     title: 'New message received',
     description: 'Juan Cruz sent you a message.',
+    timestamp: '2 minutes ago',
     read: false,
   },
   {
     id: 2,
     title: 'Booking accepted',
     description: 'Your booking has been accepted by Maria Santos.',
+    timestamp: '1 hour ago',
     read: false,
   },
   {
     id: 3,
     title: 'Transaction completed',
     description: 'Transaction #3 has been marked as completed.',
+    timestamp: 'Yesterday',
     read: true,
   },
 ];
@@ -100,6 +103,9 @@ function NotificationsDropdown() {
                 <div>{notification.title}</div>
                 <small className="text-muted d-block text-wrap">
                   {notification.description}
+                </small>
+                <small className="text-muted d-block">
+                  {notification.timestamp}
                 </small>
               </div>
               {!notification.read && (
