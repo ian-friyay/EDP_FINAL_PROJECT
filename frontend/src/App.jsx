@@ -6,6 +6,7 @@ import TermsAndConditions from './components/TermsAndConditions';
 import GlobalLoader from './components/GlobalLoader';
 import ServicesGrid from './components/ServicesGrid';
 import MessagesPage from './pages/MessagesPage';
+import TransactionQRPage from './pages/TransactionQRPage';
 import { Card, Row, Col, Badge, Table, Button } from 'react-bootstrap';
 
 // Sample Pages mapped to the SerbisYou Universal Database Schema
@@ -209,7 +210,7 @@ function TransactionsPage() {
                 <td>₱40.00</td>
                 <td className="fw-bold text-primary">₱805.00</td>
                 <td><Badge bg="success">Accepted</Badge></td>
-                <td><Button size="sm" variant="outline-primary">View QR</Button></td>
+                <td><Button as={Link} to="/transactions/TX-1001/qr" size="sm" variant="outline-primary">View QR</Button></td>
               </tr>
               <tr>
                 <td className="font-monospace fw-bold">TX-1002</td>
@@ -221,7 +222,7 @@ function TransactionsPage() {
                 <td>₱60.00</td>
                 <td className="fw-bold text-primary">₱1,205.00</td>
                 <td><Badge bg="warning" text="dark">Pending</Badge></td>
-                <td><Button size="sm" variant="outline-primary">View QR</Button></td>
+                <td><Button as={Link} to="/transactions/TX-1002/qr" size="sm" variant="outline-primary">View QR</Button></td>
               </tr>
               <tr>
                 <td className="font-monospace fw-bold">TX-1003</td>
@@ -319,6 +320,7 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="services" element={<ServicesPage />} />
           <Route path="transactions" element={<TransactionsPage />} />
+          <Route path="transactions/:transactionId/qr" element={<TransactionQRPage />} />
           <Route path="messages" element={<MessagesPage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>
