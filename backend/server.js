@@ -1,12 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 const supabase = require('./db'); // Imports your Supabase connection
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use('/api/admin', adminRoutes);
 
 // Test Route
 app.get('/', (req, res) => {
