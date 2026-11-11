@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Row, Col, ListGroup, Form, Button, Card, Badge } from 'react-bootstrap';
+import socket from '../socket';
 
 const CURRENT_USER_ID = 'MMC-0001';
 
@@ -126,6 +127,11 @@ function ChatInterface() {
   const [input, setInput] = useState('');
   const [search, setSearch] = useState('');
   const messagesEndRef = useRef(null);
+  const activeUserIdRef = useRef(activeUserId);
+
+  useEffect(() => {
+    activeUserIdRef.current = activeUserId;
+  }, [activeUserId]);
 
   const activeConversation = conversations.find(
     (conversation) => conversation.user_id === activeUserId
@@ -161,6 +167,62 @@ function ChatInterface() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeMessages]);
 
+  useEffect(() => {
+    const registerUser = () => {
+      socket.emit('register', CURRENT_USER_ID);
+    };
+
+    const handleReceiveMessage = (message) => {
+      if (!message || !message.sender_id) {
+        return;
+      }
+
+      setMessages((previous) => {
+        const alreadyExists = previous.some(
+          (item) => String(item.message_id) === String(message.message_id)
+        );
+
+        return alreadyExists ? previous : [...previous, message];
+      });
+
+      setConversations((previous) =>
+        previous.map((conversation) => {
+          if (conversation.user_id !== message.sender_id) {
+            return conversation;
+          }
+
+          const isActiveSender =
+            message.sender_id === activeUserIdRef.current;
+
+          return {
+            ...conversation,
+            lastMessage: message.content,
+            lastSeen: 'now',
+            unread: isActiveSender ? 0 : conversation.unread + 1,
+          };
+        })
+      );
+    };
+
+    const handleMessageError = (payload) => {
+      console.error('Message send failed:', payload?.error);
+    };
+
+    socket.on('connect', registerUser);
+    socket.on('receive_message', handleReceiveMessage);
+    socket.on('message_error', handleMessageError);
+
+    if (socket.connected) {
+      registerUser();
+    }
+
+    return () => {
+      socket.off('connect', registerUser);
+      socket.off('receive_message', handleReceiveMessage);
+      socket.off('message_error', handleMessageError);
+    };
+  }, []);
+
   const handleSelectConversation = (userId) => {
     setActiveUserId(userId);
     setConversations((previous) =>
@@ -181,11 +243,15 @@ function ChatInterface() {
       return;
     }
 
-    const newMessage = {
-      message_id: messages.length + 1,
+    const payload = {
       sender_id: CURRENT_USER_ID,
       receiver_id: activeUserId,
       content,
+    };
+
+    const newMessage = {
+      message_id: `local-${Date.now()}`,
+      ...payload,
       timestamp: new Date().toISOString(),
     };
 
@@ -198,6 +264,7 @@ function ChatInterface() {
       )
     );
     setInput('');
+    socket.emit('send_message', payload);
   };
 
   return (
