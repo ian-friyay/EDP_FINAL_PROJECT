@@ -11,14 +11,32 @@ const initSocket = (server) => {
   });
 
   io.on('connection', (socket) => {
-    const userId = socket.handshake.auth && socket.handshake.auth.user_id;
+    const authUserId = socket.handshake.auth && socket.handshake.auth.user_id;
 
-    console.log(`Socket connected: ${socket.id} (user_id: ${userId || 'unknown'})`);
+    const registerUser = (userId) => {
+      if (!userId) {
+        return;
+      }
 
-    if (userId) {
       socket.join(String(userId));
       console.log(`Socket ${socket.id} joined room ${userId}`);
+    };
+
+    console.log(
+      `Socket connected: ${socket.id} (user_id: ${authUserId || 'unknown'})`
+    );
+
+    if (authUserId) {
+      registerUser(authUserId);
     }
+
+    socket.on('register', (userId) => {
+      registerUser(userId);
+
+      if (userId) {
+        socket.emit('registered', { user_id: String(userId) });
+      }
+    });
 
     socket.on('send_message', async (payload) => {
       try {
