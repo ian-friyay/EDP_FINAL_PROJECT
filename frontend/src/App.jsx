@@ -5,6 +5,7 @@ import LandingPage from './components/LandingPage';
 import TermsAndConditions from './components/TermsAndConditions';
 import GlobalLoader from './components/GlobalLoader';
 import ServicesGrid from './components/ServicesGrid';
+import TransactionsPage from './pages/TransactionsPage';
 import { Card, Row, Col, Badge, Table, Button } from 'react-bootstrap';
 
 // Sample Pages mapped to the SerbisYou Universal Database Schema
@@ -168,76 +169,6 @@ function ServicesPage() {
       </div>
 
       <ServicesGrid />
-    </div>
-  );
-}
-
-function TransactionsPage() {
-  return (
-    <div>
-      <div className="mb-4">
-        <h2 className="fw-bold mb-1">Transactions &amp; Bookings</h2>
-        <p className="text-muted mb-0">Records of service bookings, booking fees (₱5), and 5% commission fees.</p>
-      </div>
-
-      <Card className="border-0 shadow-sm rounded-3">
-        <Card.Body className="p-0">
-          <Table responsive hover className="mb-0 align-middle">
-            <thead className="table-light">
-              <tr>
-                <th>Tx ID</th>
-                <th>Provider ID</th>
-                <th>Requestor ID</th>
-                <th>Service ID</th>
-                <th>Amount to Pay</th>
-                <th>Booking Fee</th>
-                <th>Commission (5%)</th>
-                <th>Total to Pay</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="font-monospace fw-bold">TX-1001</td>
-                <td>MMC-1042</td>
-                <td>MMC-2015</td>
-                <td>SRV-101</td>
-                <td>₱800.00</td>
-                <td>₱5.00</td>
-                <td>₱40.00</td>
-                <td className="fw-bold text-primary">₱805.00</td>
-                <td><Badge bg="success">Accepted</Badge></td>
-                <td><Button size="sm" variant="outline-primary">View QR</Button></td>
-              </tr>
-              <tr>
-                <td className="font-monospace fw-bold">TX-1002</td>
-                <td>MMC-1042</td>
-                <td>MMC-3044</td>
-                <td>SRV-102</td>
-                <td>₱1,200.00</td>
-                <td>₱5.00</td>
-                <td>₱60.00</td>
-                <td className="fw-bold text-primary">₱1,205.00</td>
-                <td><Badge bg="warning" text="dark">Pending</Badge></td>
-                <td><Button size="sm" variant="outline-primary">View QR</Button></td>
-              </tr>
-              <tr>
-                <td className="font-monospace fw-bold">TX-1003</td>
-                <td>MMC-1042</td>
-                <td>MMC-1088</td>
-                <td>SRV-103</td>
-                <td>₱2,500.00</td>
-                <td>₱5.00</td>
-                <td>₱125.00</td>
-                <td className="fw-bold text-primary">₱2,505.00</td>
-                <td><Badge bg="primary">Completed</Badge></td>
-                <td><Button size="sm" variant="outline-secondary">Receipt</Button></td>
-              </tr>
-            </tbody>
-          </Table>
-        </Card.Body>
-      </Card>
     </div>
   );
 }
