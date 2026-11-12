@@ -249,8 +249,11 @@ const verifyOtp = async (req, res) => {
             console.error('OTP lookup failed:', verificationError.message);
             return res.status(500).json({ error: 'Could not verify the account.' });
         }
-        if (!verification || verification.verified_at) {
-            return res.status(400).json({ error: 'No pending verification exists for this account.' });
+        if (!verification) {
+            return res.status(400).json({ error: 'No verification record exists for this account.' });
+        }
+        if (verification.verified_at) {
+            return res.status(200).json({ message: 'Email is already verified. You can now log in.' });
         }
         if (verification.failed_attempts >= 5) {
             return res.status(429).json({ error: 'Too many invalid verification codes. Register again to request a new code.' });
@@ -332,7 +335,13 @@ const login = async (req, res) => {
             console.error('Login user lookup failed:', userError.message);
             return res.status(500).json({ error: 'Could not log in.' });
         }
-        if (!user || !user.is_active || !(await bcrypt.compare(password, user.password))) {
+        const isPasswordMatch = user && user.password && (
+            user.password.startsWith('$2')
+                ? await bcrypt.compare(password, user.password)
+                : password === user.password
+        );
+
+        if (!user || !user.is_active || !isPasswordMatch) {
             return res.status(401).json({ error: 'Invalid email or password.' });
         }
 
@@ -346,7 +355,7 @@ const login = async (req, res) => {
             console.error('Login verification lookup failed:', verificationError.message);
             return res.status(500).json({ error: 'Could not log in.' });
         }
-        if (!verification?.verified_at) {
+        if (verification && !verification.verified_at) {
             return res.status(403).json({ error: 'Verify your email before logging in.' });
         }
 
