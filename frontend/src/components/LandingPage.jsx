@@ -18,12 +18,20 @@ export default function LandingPage() {
       {/* 1. Public Top Navigation Bar */}
       <Navbar className="neu-navbar border-bottom py-3 sticky-top" expand="lg">
         <Container>
-          <Navbar.Brand as={Link} to="/" className="fw-bold fs-4 d-flex align-items-center gap-2" style={{ color: 'var(--neu-primary)' }}>
+          <Navbar.Brand as={Link} to="/" className="fw-bold fs-4 d-flex align-items-center gap-2 text-white">
             <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="currentColor" viewBox="0 0 16 16">
               <path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5 8.186 1.113zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z" />
             </svg>
             <span>SerbisYou</span>
-            <Badge bg="primary" className="bg-opacity-10 text-primary small fw-semibold">
+            <Badge
+              className="small fw-bold px-2 py-1 rounded-pill shadow-sm"
+              style={{
+                backgroundColor: '#ffffff',
+                color: '#063a8f',
+                fontSize: '0.72rem',
+                letterSpacing: '0.3px',
+              }}
+            >
               Marketplace
             </Badge>
           </Navbar.Brand>
@@ -61,7 +69,15 @@ export default function LandingPage() {
           <Row className="align-items-center g-5">
             <Col lg={7}>
               <div className="mb-3">
-                <Badge bg="primary" className="bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-semibold fs-6">
+                <Badge
+                  className="px-3 py-2 rounded-pill fw-bold fs-6 shadow-sm"
+                  style={{
+                    backgroundColor: '#eef4fa',
+                    color: '#063a8f',
+                    border: '1px solid rgba(6, 58, 143, 0.25)',
+                    letterSpacing: '0.3px',
+                  }}
+                >
                   Community-Driven Service Marketplace
                 </Badge>
               </div>
@@ -159,7 +175,7 @@ export default function LandingPage() {
                     <hr className="my-2" />
                     <div className="d-flex justify-content-between align-items-center">
                       <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>Total to Pay:</span>
-                      <strong className="fs-5" style={{ color: 'var(--neu-primary)' }}>₱805.00</strong>
+                      <strong className="fs-5" style={{ color: '#063a8f' }}>₱805.00</strong>
                     </div>
                   </div>
 
@@ -177,7 +193,14 @@ export default function LandingPage() {
       <section id="how-it-works" className="py-5 flex-grow-0" style={{ background: 'var(--neu-bg)' }}>
         <Container className="py-lg-5">
           <div className="text-center mb-5">
-            <Badge bg="primary" className="bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-semibold mb-2">
+            <Badge
+              className="px-3 py-2 rounded-pill fw-bold mb-2 shadow-sm"
+              style={{
+                backgroundColor: '#eef4fa',
+                color: '#063a8f',
+                border: '1px solid rgba(6, 58, 143, 0.25)',
+              }}
+            >
               Simple 3-Step Process
             </Badge>
             <h2 className="display-6 fw-bold mb-2" style={{ color: 'var(--neu-text)' }}>

@@ -352,7 +352,7 @@ body {
 }
 
 .neu-fee-box .fee-label { font-size: 0.72rem; color: var(--neu-text-muted); }
-.neu-fee-box .fee-value { font-size: 1rem; font-weight: 800; color: var(--neu-primary); }
+.neu-fee-box .fee-value { font-size: 1rem; font-weight: 800; color: var(--neu-primary-dark); }
 .neu-fee-box .fee-sub   { font-size: 0.7rem; color: var(--neu-text-muted); }
 
 /* ═══════════════════════════════════════════════════════════

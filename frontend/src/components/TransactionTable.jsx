@@ -95,7 +95,7 @@ function TransactionTable({ transactions = dummyTransactions }) {
                   <small className="text-muted">Provider</small>
                 </td>
                 <td className="d-none d-md-table-cell">{formatAmount(transaction.amount_topay)}</td>
-                <td className="fw-bold" style={{ color: 'var(--neu-primary)' }}>
+                <td className="fw-bold" style={{ color: '#063a8f' }}>
                   {formatAmount(transaction.total_topay)}
                 </td>
                 <td>

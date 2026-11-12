@@ -327,7 +327,7 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
                       <hr className="my-1 border-secondary opacity-25" />
                       <div className="d-flex justify-content-between align-items-center">
                         <span className="fw-bold small" style={{ color: 'var(--neu-text)' }}>Total to Pay:</span>
-                        <strong className="fs-5" style={{ color: 'var(--neu-primary)' }}>
+                        <strong className="fs-5" style={{ color: '#063a8f' }}>
                           ₱{totalToPay.toFixed(2)}
                         </strong>
                       </div>
@@ -447,7 +447,7 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
               <hr className="my-2" />
               <div className="d-flex justify-content-between align-items-center">
                 <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>Total Requestor to Pay (<code>total_topay</code>):</span>
-                <strong className="fs-5" style={{ color: 'var(--neu-primary)' }}>
+                <strong className="fs-5" style={{ color: '#063a8f' }}>
                   ₱{(activeModalService.amount_topay + 5.0).toFixed(2)}
                 </strong>
               </div>

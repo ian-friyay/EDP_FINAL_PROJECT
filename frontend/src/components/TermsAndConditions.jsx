@@ -36,7 +36,14 @@ export default function TermsAndConditions() {
         {/* Page Title Card */}
         <div className="neu-card p-4 p-md-5 mb-4">
           <div className="mb-2">
-            <Badge bg="primary" className="bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-semibold">
+            <Badge
+              className="px-3 py-2 rounded-pill fw-bold shadow-sm"
+              style={{
+                backgroundColor: '#eef4fa',
+                color: '#063a8f',
+                border: '1px solid rgba(6, 58, 143, 0.25)',
+              }}
+            >
               SerbisYou Service Marketplace
             </Badge>
           </div>

@@ -63,28 +63,28 @@ function DashboardPage() {
         <Col sm={6} xl={3}>
           <div className="neu-metric-card h-100">
             <div className="text-muted small text-uppercase fw-semibold mb-1">Active Services</div>
-            <div className="fs-3 fw-bold" style={{ color: 'var(--neu-primary)' }}>8</div>
+            <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>8</div>
             <div className="small text-muted mt-1">services table</div>
           </div>
         </Col>
         <Col sm={6} xl={3}>
           <div className="neu-metric-card h-100">
             <div className="text-muted small text-uppercase fw-semibold mb-1">Total Bookings</div>
-            <div className="fs-3 fw-bold text-success">24</div>
+            <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>24</div>
             <div className="small text-muted mt-1">transactions table</div>
           </div>
         </Col>
         <Col sm={6} xl={3}>
           <div className="neu-metric-card h-100">
             <div className="text-muted small text-uppercase fw-semibold mb-1">Booking Fees Paid</div>
-            <div className="fs-3 fw-bold text-info">₱120.00</div>
+            <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>₱120.00</div>
             <div className="small text-muted mt-1">₱5 flat rate / transaction</div>
           </div>
         </Col>
         <Col sm={6} xl={3}>
           <div className="neu-metric-card h-100">
             <div className="text-muted small text-uppercase fw-semibold mb-1">Commission Earned</div>
-            <div className="fs-3 fw-bold text-warning">₱850.00</div>
+            <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>₱850.00</div>
             <div className="small text-muted mt-1">5% of amount_topay</div>
           </div>
         </Col>

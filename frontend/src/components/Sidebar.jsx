@@ -168,7 +168,7 @@ export default function Sidebar({
         <div className="pt-4 border-top">
           <Card className="neu-fee-box text-center mb-2">
             <small className="text-muted d-block">Booking Fee</small>
-            <strong className="fs-6" style={{ color: 'var(--neu-primary)' }}>₱5.00 Flat Rate</strong>
+            <strong className="fs-6" style={{ color: '#063a8f' }}>₱5.00 Flat Rate</strong>
             <small className="text-muted d-block mt-1">Commission: 5% of amount</small>
           </Card>
           <div className="text-center text-muted small">
