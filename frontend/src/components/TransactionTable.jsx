@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Table, Badge } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
+import { Button, Table, Badge } from 'react-bootstrap';
 
 const dummyTransactions = [
   {
@@ -68,12 +69,13 @@ function TransactionTable({ transactions = dummyTransactions }) {
           <th>Total To Pay</th>
           <th>Status</th>
           <th>Date</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody>
         {sortedTransactions.length === 0 ? (
           <tr>
-            <td colSpan={6} className="text-center text-muted py-4">
+            <td colSpan={7} className="text-center text-muted py-4">
               No transactions found.
             </td>
           </tr>
@@ -96,6 +98,16 @@ function TransactionTable({ transactions = dummyTransactions }) {
                 {transaction.created_at
                   ? new Date(transaction.created_at).toLocaleString('en-PH')
                   : '-'}
+              </td>
+              <td>
+                <Button
+                  as={Link}
+                  to={`/transactions/${transaction.transaction_id}/qr`}
+                  size="sm"
+                  variant="outline-primary"
+                >
+                  View QR
+                </Button>
               </td>
             </tr>
           ))

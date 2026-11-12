@@ -6,6 +6,7 @@ import TermsAndConditions from './components/TermsAndConditions';
 import GlobalLoader from './components/GlobalLoader';
 import ServicesGrid from './components/ServicesGrid';
 import TransactionsPage from './pages/TransactionsPage';
+import TransactionQRPage from './pages/TransactionQRPage';
 import { Card, Row, Col, Badge, Table, Button } from 'react-bootstrap';
 
 // Sample Pages mapped to the SerbisYou Universal Database Schema
@@ -305,6 +306,7 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="services" element={<ServicesPage />} />
           <Route path="transactions" element={<TransactionsPage />} />
+          <Route path="transactions/:transactionId/qr" element={<TransactionQRPage />} />
           <Route path="messages" element={<MessagesPage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>
