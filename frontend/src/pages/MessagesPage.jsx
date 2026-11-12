@@ -11,11 +11,56 @@ import {
 } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { socket } from '../socket';
+import { getCurrentUserId } from '../utils/user';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-const CURRENT_USER_ID =
-  localStorage.getItem('user_id') || 'MMC-0001';
-const USER_HEADERS = { 'x-user-id': String(CURRENT_USER_ID) };
+
+const KNOWN_USERS = {
+  'MMC-0001': 'Jasmine Requestor',
+  'MMC-1042': 'Juan Dela Cruz',
+  'MMC-2015': 'Maria Santos',
+  'MMC-3044': 'Pedro Penduko',
+  'MMC-3045': 'Adrian Friday',
+  'MMC-3046': 'Keizy Lara',
+};
+
+const getRealFullName = (conversation = {}) => {
+  if (conversation.first_name || conversation.last_name) {
+    const combined = [conversation.first_name, conversation.last_name]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+    if (
+      combined &&
+      !combined.toLowerCase().startsWith('provider') &&
+      !combined.startsWith('MMC-')
+    ) {
+      return combined;
+    }
+  }
+
+  const id = conversation.id || conversation.conversation_id;
+  if (id && KNOWN_USERS[id]) {
+    return KNOWN_USERS[id];
+  }
+
+  if (conversation.name) {
+    const cleanName = conversation.name
+      .replace(/^Provider\s*\(?/i, '')
+      .replace(/\)?$/i, '')
+      .trim();
+
+    if (KNOWN_USERS[cleanName]) {
+      return KNOWN_USERS[cleanName];
+    }
+    if (cleanName && !cleanName.startsWith('MMC-')) {
+      return cleanName;
+    }
+  }
+
+  return (id && KNOWN_USERS[id]) || conversation.name || id || 'User';
+};
+
 
 const getInitials = (name = '') =>
   name
@@ -31,13 +76,33 @@ const formatListTime = (timestamp) => {
     return '';
   }
 
-  return new Date(timestamp).toLocaleTimeString([], {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) {
+    return '';
+  }
+
+  const now = new Date();
+  const isToday =
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear();
+
+  if (isToday) {
+    return date.toLocaleTimeString([], {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  }
+
+  const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+  if (diffDays < 7) {
+    return date.toLocaleDateString([], { weekday: 'short' });
+  }
+
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 };
 
-function Avatar({ name, src, size = 48 }) {
+function Avatar({ name, src, size = 52 }) {
   if (src) {
     return (
       <img
@@ -45,15 +110,20 @@ function Avatar({ name, src, size = 48 }) {
         alt={name}
         width={size}
         height={size}
-        className="rounded-circle flex-shrink-0"
+        className="rounded-circle flex-shrink-0 object-fit-cover shadow-sm"
       />
     );
   }
 
   return (
     <span
-      className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
-      style={{ width: size, height: size, fontSize: size * 0.36 }}
+      className="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0 shadow-sm"
+      style={{
+        width: size,
+        height: size,
+        fontSize: size * 0.38,
+        background: 'linear-gradient(135deg, #0084ff 0%, #00c6ff 100%)',
+      }}
       role="img"
       aria-label={`${name} avatar`}
     >
@@ -84,8 +154,11 @@ export default function MessagesPage() {
         setLoading(true);
         setError('');
 
+        const currentUserId = getCurrentUserId();
         const response = await fetch(`${API_URL}/api/messages/conversations`, {
-          headers: USER_HEADERS,
+          headers: {
+            'x-user-id': String(currentUserId),
+          },
           signal: controller.signal,
         });
 
@@ -96,7 +169,11 @@ export default function MessagesPage() {
         const data = await response.json();
         const conversationList = Array.isArray(data)
           ? data
-          : data.conversations || [];
+          : Array.isArray(data?.conversations)
+          ? data.conversations
+          : Array.isArray(data?.data)
+          ? data.data
+          : [];
 
         setConversations(conversationList);
       } catch (fetchError) {
@@ -111,13 +188,18 @@ export default function MessagesPage() {
     };
 
     fetchConversations();
+    window.addEventListener('serbisyou_user_changed', fetchConversations);
 
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      window.removeEventListener('serbisyou_user_changed', fetchConversations);
+    };
   }, []);
 
   useEffect(() => {
     const registerUser = () => {
-      socket.emit('register', CURRENT_USER_ID);
+      const currentUserId = getCurrentUserId();
+      socket.emit('register', currentUserId);
     };
 
     const handleReceiveMessage = (newMessage) => {
@@ -125,6 +207,7 @@ export default function MessagesPage() {
         return;
       }
 
+      const currentUserId = getCurrentUserId();
       const senderId =
         newMessage.sender_id ?? newMessage.senderId ?? newMessage.from;
       const receiverId =
@@ -143,11 +226,11 @@ export default function MessagesPage() {
         return;
       }
 
-      if (CURRENT_USER_ID && senderId === CURRENT_USER_ID) {
+      if (currentUserId && senderId === currentUserId) {
         return;
       }
 
-      if (CURRENT_USER_ID && receiverId && receiverId !== CURRENT_USER_ID) {
+      if (currentUserId && receiverId && receiverId !== currentUserId) {
         return;
       }
 
@@ -155,7 +238,7 @@ export default function MessagesPage() {
 
       setConversations((previous) => {
         const existingConversation = previous.find(
-          (conversation) => conversation.id === conversationId
+          (conversation) => (conversation.id || conversation.conversation_id) === conversationId
         );
 
         if (existingConversation) {
@@ -169,7 +252,7 @@ export default function MessagesPage() {
           return [
             updatedConversation,
             ...previous.filter(
-              (conversation) => conversation.id !== conversationId
+              (conversation) => (conversation.id || conversation.conversation_id) !== conversationId
             ),
           ];
         }
@@ -216,32 +299,50 @@ export default function MessagesPage() {
   }, []);
 
   const handleConversationClick = (conversation) => {
+    const conversationId = conversation.id || conversation.conversation_id;
+    if (!conversationId) return;
+
+    const realName = getRealFullName(conversation);
+
     setConversations((previous) =>
       previous.map((item) =>
-        item.id === conversation.id ? { ...item, isUnread: false } : item
+        (item.id || item.conversation_id) === conversationId
+          ? { ...item, isUnread: false }
+          : item
       )
     );
 
-    fetch(`${API_URL}/api/messages/read/${conversation.id}`, {
+    const currentUserId = getCurrentUserId();
+    fetch(`${API_URL}/api/messages/read/${conversationId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        ...USER_HEADERS,
+        'x-user-id': String(currentUserId),
       },
     }).catch((readError) => {
       console.error('Unable to mark conversation as read:', readError);
     });
 
-    navigate(`/messages/${conversation.id}`);
+    navigate(`/messages/${conversationId}`, {
+      state: {
+        name: realName,
+        provider_name: realName,
+        profile_picture: conversation.profile_picture || conversation.avatar,
+        user_id: conversationId,
+      },
+    });
   };
 
   const filteredConversations = conversations.filter((conversation) => {
     const query = searchQuery.toLowerCase();
+    const realName = getRealFullName(conversation).toLowerCase();
+    const lastMsg = (
+      conversation.lastMessage ||
+      conversation.last_message ||
+      ''
+    ).toLowerCase();
 
-    return (
-      (conversation.name || '').toLowerCase().includes(query) ||
-      (conversation.lastMessage || '').toLowerCase().includes(query)
-    );
+    return realName.includes(query) || lastMsg.includes(query);
   });
 
   if (loading) {
@@ -271,13 +372,19 @@ export default function MessagesPage() {
   }
 
   return (
-    <Container fluid className="min-vh-100 bg-white p-3 p-md-4">
-      <Row className="g-0">
+    <Container
+      fluid
+      className="min-vh-100 bg-white p-3 p-md-4"
+      style={{ maxWidth: '820px' }}
+    >
+      <Row className="g-0 justify-content-center">
         <Col xs={12}>
-          <h1 className="fs-3 fw-bold mb-3">Messages</h1>
+          <div className="d-flex align-items-center justify-content-between mb-3">
+            <h1 className="fs-3 fw-bold text-dark mb-0">Messages</h1>
+          </div>
 
-          <InputGroup className="w-100 mb-4">
-            <InputGroup.Text className="bg-white">
+          <InputGroup className="w-100 mb-3 rounded-pill bg-light overflow-hidden border">
+            <InputGroup.Text className="bg-transparent border-0 ps-3 text-muted">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="16"
@@ -295,69 +402,110 @@ export default function MessagesPage() {
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               aria-label="Search conversations"
+              className="bg-transparent border-0 py-2 shadow-none"
             />
           </InputGroup>
 
           <ListGroup variant="flush" className="bg-transparent">
-            {filteredConversations.length === 0 ? (
+            {conversations.length === 0 ? (
+              <ListGroup.Item className="border-0 text-center text-muted py-5">
+                No messages yet. Start a conversation by booking a service!
+              </ListGroup.Item>
+            ) : filteredConversations.length === 0 ? (
               <ListGroup.Item className="border-0 text-center text-muted py-4">
                 No conversations found.
               </ListGroup.Item>
             ) : (
-              filteredConversations.map((conversation) => (
-                <ListGroup.Item
-                  key={conversation.id}
-                  action
-                  onClick={() => handleConversationClick(conversation)}
-                  className="d-flex align-items-center py-3 border-bottom bg-white px-0"
-                >
-                  <div className="position-relative flex-shrink-0">
-                    <Avatar
-                      name={conversation.name || conversation.id}
-                      src={conversation.profile_picture || conversation.avatar}
-                    />
-                    {conversation.online && (
-                      <span
-                        className="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle"
-                        style={{ width: 10, height: 10 }}
-                        aria-label="Online"
+              filteredConversations.map((conversation) => {
+                const conversationId =
+                  conversation.id || conversation.conversation_id;
+                const realName = getRealFullName(conversation);
+
+                return (
+                  <ListGroup.Item
+                    key={conversationId}
+                    action
+                    onClick={() => handleConversationClick(conversation)}
+                    className="d-flex align-items-center py-2 px-3 border-0 rounded-4 mb-1 transition-all"
+                    style={{
+                      cursor: 'pointer',
+                      backgroundColor: conversation.isUnread
+                        ? 'rgba(0, 132, 255, 0.05)'
+                        : 'transparent',
+                    }}
+                  >
+                    {/* 1. Left: Avatar / DP */}
+                    <div className="position-relative flex-shrink-0">
+                      <Avatar
+                        name={realName}
+                        src={
+                          conversation.profile_picture || conversation.avatar
+                        }
+                        size={52}
                       />
-                    )}
-                  </div>
-                  <div className="ms-3 flex-grow-1 overflow-hidden">
-                    <div
-                      className={`mb-0 text-truncate ${
-                        conversation.isUnread
-                          ? 'fw-bold text-dark'
-                          : 'fw-normal text-dark'
-                      }`}
-                    >
-                      {conversation.name || conversation.id}
+                      {conversation.online && (
+                        <span
+                          className="position-absolute bottom-0 end-0 bg-success border border-2 border-white rounded-circle"
+                          style={{ width: 14, height: 14 }}
+                          aria-label="Online"
+                        />
+                      )}
                     </div>
-                    <div
-                      className={`small text-truncate mb-0 ${
-                        conversation.isUnread
-                          ? 'fw-bold text-dark'
-                          : 'text-muted'
-                      }`}
-                    >
-                      {conversation.lastMessage}
+
+                    {/* 2. Side-by-Side: Name & Last Message Text right next to DP */}
+                    <div className="ms-3 flex-grow-1 overflow-hidden d-flex flex-column justify-content-center pe-2">
+                      <div
+                        className={`text-truncate mb-0 ${
+                          conversation.isUnread
+                            ? 'fw-bold text-dark'
+                            : 'fw-semibold text-dark'
+                        }`}
+                        style={{ fontSize: '1rem', lineHeight: 1.3 }}
+                      >
+                        {realName}
+                      </div>
+                      <div
+                        className={`text-truncate small ${
+                          conversation.isUnread
+                            ? 'fw-bold text-dark'
+                            : 'text-muted'
+                        }`}
+                        style={{ fontSize: '0.875rem', lineHeight: 1.3 }}
+                      >
+                        {conversation.lastMessage ||
+                          conversation.last_message ||
+                          'Started a conversation'}
+                      </div>
                     </div>
-                  </div>
-                  <div className="d-flex flex-column align-items-end ms-2 flex-shrink-0">
-                    <small className="text-muted">
-                      {formatListTime(conversation.timestamp)}
-                    </small>
-                    {conversation.isUnread && (
-                      <span
-                        className="d-block bg-danger rounded-circle mt-1"
-                        style={{ width: 10, height: 10 }}
-                        aria-label="Unread conversation"
-                      />
-                    )}
-                  </div>
-                </ListGroup.Item>
-              ))
+
+                    {/* 3. Far Right: Time & Red Unread Dot */}
+                    <div className="ms-auto ps-2 d-flex flex-column align-items-end justify-content-center flex-shrink-0">
+                      <small
+                        className={`mb-1 ${
+                          conversation.isUnread
+                            ? 'text-primary fw-bold'
+                            : 'text-muted'
+                        }`}
+                        style={{ fontSize: '0.78rem' }}
+                      >
+                        {formatListTime(conversation.timestamp)}
+                      </small>
+                      {conversation.isUnread ? (
+                        <span
+                          className="d-block bg-danger rounded-circle mt-1"
+                          style={{ width: 10, height: 10 }}
+                          aria-label="Unread conversation"
+                        />
+                      ) : (
+                        <span
+                          style={{ width: 10, height: 10 }}
+                          className="d-block mt-1"
+                        />
+                      )}
+                    </div>
+                  </ListGroup.Item>
+                );
+              })
             )}
           </ListGroup>
         </Col>

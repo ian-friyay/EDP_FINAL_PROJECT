@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import {
   Navbar,
@@ -12,24 +12,20 @@ import {
 } from 'react-bootstrap';
 import Sidebar from './Sidebar';
 import OfflineToast from './OfflineToast';
+import NotificationsDropdown from './NotificationsDropdown';
+import { getCurrentUser } from '../utils/user';
 
 export default function Layout() {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [currentUser, setLocalCurrentUser] = useState(getCurrentUser());
 
-  // Mock user following universal database schema: users table
-  const currentUser = {
-    user_id: 'MMC-1042',
-    first_name: 'Juan',
-    last_name: 'Dela Cruz',
-    username: 'juandelacruz',
-    email: 'juan.delacruz@serbisyou.ph',
-    contact_number: '+63 912 345 6789',
-    user_type: 'Provider', // 'Provider' | 'Requestor'
-    region: 'NCR',
-    province: 'Metro Manila',
-    city: 'Quezon City',
-    barangay: 'Brgy. Central',
-  };
+  useEffect(() => {
+    const handleUserChange = () => {
+      setLocalCurrentUser(getCurrentUser());
+    };
+    window.addEventListener('serbisyou_user_changed', handleUserChange);
+    return () => window.removeEventListener('serbisyou_user_changed', handleUserChange);
+  }, []);
 
   return (
     <div className="min-vh-100 d-flex flex-column bg-light">
@@ -63,14 +59,12 @@ export default function Layout() {
 
           {/* Right-side Navbar Actions */}
           <Nav className="ms-auto d-flex flex-row align-items-center gap-2">
+            <NotificationsDropdown currentUser={currentUser} />
             {/* Quick Messages Link */}
             <Nav.Link as={Link} to="/messages" className="text-white position-relative p-2" aria-label="Messages">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
                 <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
               </svg>
-              <Badge bg="danger" pill className="position-absolute top-0 start-100 translate-middle small">
-                3
-              </Badge>
             </Nav.Link>
 
             {/* User Dropdown */}
@@ -86,7 +80,7 @@ export default function Layout() {
                     {currentUser.user_type}
                   </Badge>
                   <span className="bg-white text-primary rounded-circle fw-bold d-inline-flex align-items-center justify-content-center px-2 py-1 small">
-                    {currentUser.first_name[0]}
+                    {currentUser.first_name ? currentUser.first_name[0] : 'U'}
                   </span>
                 </span>
               }

@@ -1,77 +1,40 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, Container, Form } from 'react-bootstrap';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { socket } from '../socket';
+import { getCurrentUserId } from '../utils/user';
 
-const CURRENT_USER_ID = 'current_user_id';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-const conversations = [
-  {
-    conversation_id: 'MMC-0002',
-    name: 'Juan Cruz',
-    profile_picture: null,
-    online: true,
-  },
-  {
-    conversation_id: 'MMC-0003',
-    name: 'Maria Santos',
-    profile_picture: null,
-    online: false,
-  },
-  {
-    conversation_id: 'MMC-0004',
-    name: 'Pedro Reyes',
-    profile_picture: null,
-    online: true,
-  },
-];
+const KNOWN_USERS = {
+  'MMC-0001': 'Jasmine Requestor',
+  'MMC-1042': 'Juan Dela Cruz',
+  'MMC-2015': 'Maria Santos',
+  'MMC-3044': 'Pedro Penduko',
+  'MMC-3045': 'Adrian Friday',
+  'MMC-3046': 'Keizy Lara',
+};
 
-const initialMessages = [
-  {
-    message_id: 'seed-1',
-    sender_id: 'MMC-0002',
-    receiver_id: CURRENT_USER_ID,
-    content: 'Hi! Are you available tomorrow?',
-    timestamp: '2026-11-12T09:00:00',
-  },
-  {
-    message_id: 'seed-2',
-    sender_id: CURRENT_USER_ID,
-    receiver_id: 'MMC-0002',
-    content: 'Hello Juan! Yes, I am available after 10 AM.',
-    timestamp: '2026-11-12T09:02:00',
-    status: 'read',
-  },
-  {
-    message_id: 'seed-3',
-    sender_id: 'MMC-0002',
-    receiver_id: CURRENT_USER_ID,
-    content: 'Perfect. I need help fixing a leaking sink.',
-    timestamp: '2026-11-12T09:03:00',
-  },
-  {
-    message_id: 'seed-4',
-    sender_id: 'MMC-0003',
-    receiver_id: CURRENT_USER_ID,
-    content: 'The booking has been accepted.',
-    timestamp: '2026-11-11T15:30:00',
-  },
-  {
-    message_id: 'seed-5',
-    sender_id: CURRENT_USER_ID,
-    receiver_id: 'MMC-0003',
-    content: 'Thank you! See you then.',
-    timestamp: '2026-11-11T15:32:00',
-    status: 'read',
-  },
-  {
-    message_id: 'seed-6',
-    sender_id: 'MMC-0004',
-    receiver_id: CURRENT_USER_ID,
-    content: 'Thank you for your service.',
-    timestamp: '2026-11-10T18:45:00',
-  },
-];
+const getRealFullName = (id, fallbackName) => {
+  if (fallbackName && !fallbackName.toLowerCase().startsWith('provider') && !fallbackName.startsWith('MMC-')) {
+    return fallbackName;
+  }
+  if (id && KNOWN_USERS[id]) {
+    return KNOWN_USERS[id];
+  }
+  if (fallbackName) {
+    const clean = fallbackName.replace(/^Provider\s*\(?/i, '').replace(/\)?$/i, '').trim();
+    if (KNOWN_USERS[clean]) return KNOWN_USERS[clean];
+    if (clean && !clean.startsWith('MMC-')) return clean;
+  }
+  return KNOWN_USERS[id] || id || 'User';
+};
+
+const formatTime = (timestamp) =>
+  new Date(timestamp).toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 
 const getInitials = (name = '') =>
   name
@@ -81,12 +44,6 @@ const getInitials = (name = '') =>
     .map((part) => part[0])
     .join('')
     .toUpperCase();
-
-const formatTime = (timestamp) =>
-  new Date(timestamp).toLocaleTimeString([], {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
 
 function Avatar({ name, src, size = 40 }) {
   if (src) {
@@ -116,23 +73,32 @@ function Avatar({ name, src, size = 40 }) {
 export default function ChatPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const currentUserId = getCurrentUserId();
+
   const [textInput, setTextInput] = useState('');
-  const [messages, setMessages] = useState(initialMessages);
+  const [messages, setMessages] = useState([]);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const messagesEndRef = useRef(null);
   const activeConversationIdRef = useRef(id);
   const readTimersRef = useRef([]);
   const typingTimerRef = useRef(null);
 
-  const activeConversation = conversations.find(
-    (conversation) => conversation.conversation_id === id
-  );
+  const activeConversation = {
+    conversation_id: id,
+    name: getRealFullName(
+      id,
+      location.state?.name || location.state?.provider_name
+    ),
+    profile_picture: location.state?.profile_picture || null,
+    online: true,
+  };
 
   const activeMessages = messages
     .filter(
       (message) =>
-        (message.sender_id === CURRENT_USER_ID && message.receiver_id === id) ||
-        (message.sender_id === id && message.receiver_id === CURRENT_USER_ID)
+        (message.sender_id === currentUserId && message.receiver_id === id) ||
+        (message.sender_id === id && message.receiver_id === currentUserId)
     )
     .sort(
       (first, second) =>
@@ -144,12 +110,35 @@ export default function ChatPage() {
   }, [id]);
 
   useEffect(() => {
+    if (!id) return;
+    const controller = new AbortController();
+
+    fetch(`${API_URL}/api/messages/${id}`, {
+      headers: { 'x-user-id': String(currentUserId) },
+      signal: controller.signal,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data?.messages)) {
+          setMessages(data.messages);
+        }
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          console.error('Error fetching chat history:', err);
+        }
+      });
+
+    return () => controller.abort();
+  }, [id, currentUserId]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, id]);
 
   useEffect(() => {
     const registerUser = () => {
-      socket.emit('register', CURRENT_USER_ID);
+      socket.emit('register', currentUserId);
     };
 
     const handleReceiveMessage = (newMessage) => {
@@ -184,7 +173,7 @@ export default function ChatPage() {
       socket.off('typing', handleTyping);
       socket.disconnect();
     };
-  }, []);
+  }, [currentUserId]);
 
   useEffect(
     () => () => {
@@ -204,7 +193,7 @@ export default function ChatPage() {
 
     setTextInput(value);
     socket.emit('typing', {
-      sender_id: CURRENT_USER_ID,
+      sender_id: currentUserId,
       receiver_id: id,
       isTyping,
     });
@@ -233,9 +222,10 @@ export default function ChatPage() {
     }
 
     const payload = {
-      sender_id: CURRENT_USER_ID,
+      sender_id: currentUserId,
       receiver_id: id,
       content,
+      receiver_name: activeConversation?.name,
     };
 
     const messageId = `local-${Date.now()}`;
@@ -247,9 +237,31 @@ export default function ChatPage() {
     };
 
     setMessages((previous) => [...previous, optimisticMessage]);
+
+    // Save to database via HTTP endpoint
+    fetch(`${API_URL}/api/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': String(currentUserId),
+      },
+      body: JSON.stringify(payload),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.message) {
+          setMessages((previous) =>
+            previous.map((msg) =>
+              msg.message_id === messageId ? data.message : msg
+            )
+          );
+        }
+      })
+      .catch((err) => console.error('Failed to save message via HTTP:', err));
+
     socket.emit('send_message', payload);
     socket.emit('typing', {
-      sender_id: CURRENT_USER_ID,
+      sender_id: currentUserId,
       receiver_id: id,
       isTyping: false,
     });
@@ -341,7 +353,7 @@ export default function ChatPage() {
           </div>
         ) : (
           activeMessages.map((message) => {
-            const isSent = message.sender_id === CURRENT_USER_ID;
+            const isSent = message.sender_id === currentUserId;
             const isRead = message.status === 'read';
 
             return (

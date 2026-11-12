@@ -1,5 +1,6 @@
 const { Server } = require('socket.io');
 const supabase = require('../supabaseClient');
+const { ensureUserExists } = require('../controllers/messageController');
 
 const userSockets = new Map();
 
@@ -53,6 +54,11 @@ const initSocket = (server) => {
           });
         }
 
+        await Promise.all([
+          ensureUserExists(senderId),
+          ensureUserExists(receiverId),
+        ]);
+
         const newMessage = {
           sender_id: String(senderId),
           receiver_id: String(receiverId),
@@ -71,10 +77,38 @@ const initSocket = (server) => {
           return socket.emit('message_error', { error: error.message });
         }
 
-        const receiverSocketId = userSockets.get(String(receiverId));
+        const KNOWN_USERS = {
+          'MMC-0001': 'Jasmine Requestor',
+          'MMC-1042': 'Juan Dela Cruz',
+          'MMC-2015': 'Maria Santos',
+          'MMC-3044': 'Pedro Penduko',
+          'MMC-3045': 'Adrian Friday',
+          'MMC-3046': 'Keizy Lara',
+        };
 
+        const senderDisplayName =
+          KNOWN_USERS[String(senderId)] || String(senderId);
+
+        const notifPayload = {
+          id: `msg_${data.message_id}`,
+          type: 'message',
+          title: `New message from ${senderDisplayName}`,
+          description: data.content,
+          timestamp: data.timestamp,
+          read: false,
+          link: `/messages/${senderId}`,
+          target_id: senderId,
+        };
+
+        // Emit to room (all connected sockets for this user)
+        io.to(String(receiverId)).emit('receive_message', data);
+        io.to(String(receiverId)).emit('new_notification', notifPayload);
+
+        // Also emit directly to mapped socket if tracked
+        const receiverSocketId = userSockets.get(String(receiverId));
         if (receiverSocketId) {
           io.to(receiverSocketId).emit('receive_message', data);
+          io.to(receiverSocketId).emit('new_notification', notifPayload);
         }
 
         socket.emit('message_sent', data);

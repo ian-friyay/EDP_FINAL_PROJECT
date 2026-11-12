@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const supabase = require('./db');
 const messageRoutes = require('./routes/messageRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const { initSocket } = require('./socket/socketServer');
 
 const app = express();
@@ -13,6 +14,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/messages', messageRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Test Route
 app.get('/', (req, res) => {
@@ -43,6 +45,7 @@ app.get('/api/test-db', async (req, res) => {
 
 const server = http.createServer(app);
 const io = initSocket(server);
+app.set('io', io);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
