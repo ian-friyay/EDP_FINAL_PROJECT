@@ -48,6 +48,7 @@ function NotificationsDropdown() {
     <NavDropdown
       id="notifications-dropdown"
       align="end"
+      className="neu-notifications-dropdown"
       title={
         <span className="position-relative d-inline-block">
           <svg
@@ -66,6 +67,7 @@ function NotificationsDropdown() {
               pill
               bg="danger"
               className="position-absolute top-0 start-100 translate-middle"
+              style={{ fontSize: '0.6rem' }}
             >
               {unreadCount}
             </Badge>
@@ -73,13 +75,14 @@ function NotificationsDropdown() {
         </span>
       }
     >
-      <Dropdown.Header className="d-flex justify-content-between align-items-center">
-        <span>Notifications</span>
+      <Dropdown.Header className="d-flex justify-content-between align-items-center px-3 py-2">
+        <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>Notifications</span>
         {unreadCount > 0 && (
           <Button
             variant="link"
             size="sm"
-            className="p-0 text-decoration-none"
+            className="p-0 text-decoration-none small"
+            style={{ color: 'var(--neu-primary)' }}
             onClick={markAllAsRead}
           >
             Mark all as read
@@ -87,31 +90,44 @@ function NotificationsDropdown() {
         )}
       </Dropdown.Header>
 
-      <Dropdown.Divider />
+      <Dropdown.Divider className="neu-divider mx-2" />
 
       {notifications.length === 0 ? (
-        <Dropdown.ItemText className="text-muted">No notifications</Dropdown.ItemText>
+        <Dropdown.ItemText className="text-muted text-center py-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16" className="mb-2 d-block mx-auto opacity-50">
+            <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zM8 1.918l-.797.161A4.002 4.002 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4.002 4.002 0 0 0-3.203-3.92L8 1.917z" />
+          </svg>
+          No notifications
+        </Dropdown.ItemText>
       ) : (
         notifications.slice(0, 3).map((notification) => (
           <Dropdown.Item
             key={notification.id}
             onClick={() => markAsRead(notification.id)}
-            className={notification.read ? 'text-muted' : 'fw-semibold'}
+            className={`neu-notification-item ${!notification.read ? 'unread' : ''}`}
           >
             <div className="d-flex justify-content-between align-items-start">
-              <div className="text-truncate">
-                <div>{notification.title}</div>
-                <small className="text-muted d-block text-wrap">
+              <div className="text-truncate me-2" style={{ maxWidth: '240px' }}>
+                <div className={notification.read ? 'text-muted' : 'fw-semibold'} style={{ color: notification.read ? undefined : 'var(--neu-text)' }}>
+                  {notification.title}
+                </div>
+                <small className="text-muted d-block text-wrap" style={{ lineHeight: 1.3 }}>
                   {notification.description}
                 </small>
-                <small className="text-muted d-block">
+                <small className="d-block mt-1" style={{ color: 'var(--neu-text-light)', fontSize: '0.72rem' }}>
                   {notification.timestamp}
                 </small>
               </div>
               {!notification.read && (
-                <Badge bg="primary" pill className="ms-2">
-                  New
-                </Badge>
+                <span
+                  className="rounded-circle flex-shrink-0 mt-1"
+                  style={{
+                    width: 8,
+                    height: 8,
+                    background: 'var(--neu-primary)',
+                    display: 'inline-block',
+                  }}
+                />
               )}
             </div>
           </Dropdown.Item>

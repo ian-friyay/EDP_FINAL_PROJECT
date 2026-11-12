@@ -124,7 +124,7 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
           variant="success"
           dismissible
           onClose={() => setBookingSuccessAlert(null)}
-          className="rounded-4 border-0 shadow-sm mb-4"
+          className="neu-alert rounded-4 border-0 mb-4"
         >
           <div className="d-flex align-items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16" className="flex-shrink-0">
@@ -138,7 +138,7 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
       )}
 
       {/* Header and Filter Bar */}
-      <div className="bg-white rounded-4 shadow-sm border-0 p-3 p-md-4 mb-4">
+      <div className="neu-filter-bar p-3 p-md-4 mb-4">
         <Row className="g-3 align-items-center">
           {/* Search Bar */}
           <Col lg={7}>
@@ -146,7 +146,7 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
               Search Services
             </Form.Label>
             <InputGroup>
-              <InputGroup.Text id="search-addon" className="bg-light border-end-0 text-muted">
+              <InputGroup.Text id="search-addon" className="neu-input-group-text">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
                 </svg>
@@ -158,12 +158,12 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search services by keyword, subcategory, or MMC provider ID..."
                 aria-describedby="search-addon"
-                className="bg-light border-start-0"
+                className="neu-input border-start-0"
               />
               {searchTerm && (
                 <Button
                   variant="outline-secondary"
-                  className="bg-light border-start-0 text-muted"
+                  className="neu-input border-start-0 text-muted"
                   onClick={() => setSearchTerm('')}
                   aria-label="Clear search text"
                 >
@@ -182,7 +182,7 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
               id="category-select"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="bg-light"
+              className="neu-select"
             >
               <option value="ALL">All Categories</option>
               {categories.map((cat) => (
@@ -196,8 +196,7 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
           {/* Action / Reset Button */}
           <Col sm={4} lg={2} className="text-sm-end">
             <Button
-              variant="outline-secondary"
-              className="w-100 rounded-3 text-nowrap"
+              className="neu-btn-ghost w-100 text-nowrap"
               onClick={handleClearFilters}
               disabled={searchTerm === '' && selectedCategory === 'ALL'}
             >
@@ -209,8 +208,8 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
         {/* Results Count & Current Active Filters Summary */}
         <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-wrap gap-2 text-muted small">
           <div>
-            Showing <strong className="text-dark">{filteredServices.length}</strong> of{' '}
-            <strong className="text-dark">{services.length}</strong> active marketplace services
+            Showing <strong style={{ color: 'var(--neu-text)' }}>{filteredServices.length}</strong> of{' '}
+            <strong style={{ color: 'var(--neu-text)' }}>{services.length}</strong> active marketplace services
           </div>
           {selectedCategory !== 'ALL' && (
             <div>
@@ -225,23 +224,21 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
 
       {/* Services Cards Grid */}
       {filteredServices.length === 0 ? (
-        <Card className="text-center py-5 border-0 shadow-sm rounded-4 bg-white">
-          <Card.Body>
-            <div className="text-muted mb-3">
-              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
-                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
-              </svg>
-            </div>
-            <h5 className="fw-bold text-dark">No services found</h5>
-            <p className="text-muted small mb-3">
-              No service matched your search keyword or selected category.
-            </p>
-            <Button variant="primary" size="sm" onClick={handleClearFilters} className="rounded-pill px-4">
-              Clear All Filters
-            </Button>
-          </Card.Body>
-        </Card>
+        <div className="neu-card text-center py-5">
+          <div className="text-muted mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+              <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+            </svg>
+          </div>
+          <h5 className="fw-bold" style={{ color: 'var(--neu-text)' }}>No services found</h5>
+          <p className="text-muted small mb-3">
+            No service matched your search keyword or selected category.
+          </p>
+          <Button className="neu-btn-primary rounded-pill px-4" size="sm" onClick={handleClearFilters}>
+            Clear All Filters
+          </Button>
+        </div>
       ) : (
         <Row xs={1} md={2} lg={3} className="g-4">
           {filteredServices.map((service) => {
@@ -254,13 +251,13 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
 
             return (
               <Col key={service.service_id}>
-                <Card className="h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white d-flex flex-column">
+                <div className="neu-card h-100 d-flex flex-column">
                   {/* Service Photo / Picture Proof Thumbnail */}
                   <div className="position-relative">
-                    <Card.Img
-                      variant="top"
+                    <img
                       src={primaryImage}
                       alt={service.subcategory}
+                      className="w-100 rounded-top-3"
                       style={{ height: '200px', objectFit: 'cover' }}
                       onError={(e) => {
                         e.target.src =
@@ -288,17 +285,17 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
                     )}
                   </div>
 
-                  <Card.Body className="d-flex flex-column p-4 flex-grow-1">
+                  <div className="d-flex flex-column p-4 flex-grow-1">
                     {/* Provider Info conforming to users table */}
                     <div className="d-flex justify-content-between align-items-center mb-2">
-                      <div className="small font-monospace text-primary fw-semibold">
+                      <div className="small font-monospace fw-semibold" style={{ color: 'var(--neu-primary)' }}>
                         Provider: {service.user_id}
                       </div>
                       <small className="text-muted font-monospace">{service.service_id}</small>
                     </div>
 
                     {/* Subcategory & Title */}
-                    <h5 className="fw-bold text-dark mb-2">
+                    <h5 className="fw-bold mb-2" style={{ color: 'var(--neu-text)' }}>
                       {service.subcategory}
                     </h5>
 
@@ -316,21 +313,21 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
                     </p>
 
                     {/* Pricing Breakdown matching transactions formula */}
-                    <div className="bg-light rounded-3 p-3 mb-3 mt-auto">
+                    <div className="neu-price-box rounded-3 p-3 mb-3 mt-auto">
                       <div className="d-flex justify-content-between align-items-center text-muted small mb-1">
                         <span>Service Rate:</span>
-                        <span className="text-dark fw-bold">
+                        <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>
                           ₱{service.amount_topay.toFixed(2)}
                         </span>
                       </div>
                       <div className="d-flex justify-content-between align-items-center text-muted small mb-1">
                         <span>Platform Booking Fee:</span>
-                        <span className="text-dark">₱{bookingFee.toFixed(2)}</span>
+                        <span style={{ color: 'var(--neu-text)' }}>₱{bookingFee.toFixed(2)}</span>
                       </div>
                       <hr className="my-1 border-secondary opacity-25" />
                       <div className="d-flex justify-content-between align-items-center">
-                        <span className="fw-bold text-dark small">Total to Pay:</span>
-                        <strong className="fs-5 text-primary">
+                        <span className="fw-bold small" style={{ color: 'var(--neu-text)' }}>Total to Pay:</span>
+                        <strong className="fs-5" style={{ color: 'var(--neu-primary)' }}>
                           ₱{totalToPay.toFixed(2)}
                         </strong>
                       </div>
@@ -339,24 +336,22 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
                     {/* Card Actions */}
                     <div className="d-flex gap-2">
                       <Button
-                        variant="outline-primary"
+                        className="neu-btn-outline w-50 fw-semibold"
                         size="sm"
-                        className="w-50 rounded-pill fw-semibold"
                         onClick={() => setActiveModalService(service)}
                       >
                         View Details
                       </Button>
                       <Button
-                        variant="primary"
+                        className="neu-btn-primary w-50 fw-semibold"
                         size="sm"
-                        className="w-50 rounded-pill fw-semibold shadow-sm"
                         onClick={() => handleBookService(service)}
                       >
                         Book Now
                       </Button>
                     </div>
-                  </Card.Body>
-                </Card>
+                  </div>
+                </div>
               </Col>
             );
           })}
@@ -371,13 +366,13 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
           size="lg"
           centered
         >
-          <Modal.Header closeButton className="border-bottom px-4 py-3 bg-light">
-            <Modal.Title className="fw-bold text-dark fs-5">
+          <Modal.Header closeButton className="border-bottom px-4 py-3" style={{ background: 'var(--neu-bg-dark)' }}>
+            <Modal.Title className="fw-bold fs-5" style={{ color: 'var(--neu-text)' }}>
               {activeModalService.subcategory}
             </Modal.Title>
           </Modal.Header>
 
-          <Modal.Body className="p-4">
+          <Modal.Body className="p-4" style={{ background: 'var(--neu-bg)' }}>
             {/* Picture Proof Gallery */}
             <div className="mb-4">
               <h6 className="fw-bold text-uppercase text-muted small mb-2">
@@ -399,11 +394,11 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
             </div>
 
             {/* Provider Details */}
-            <div className="bg-light rounded-3 p-3 mb-4">
+            <div className="rounded-3 p-3 mb-4" style={{ background: 'var(--neu-bg-dark)' }}>
               <Row className="g-2 small">
                 <Col sm={6}>
                   <span className="text-muted">Provider User ID:</span>{' '}
-                  <strong className="font-monospace text-primary">
+                  <strong className="font-monospace" style={{ color: 'var(--neu-primary)' }}>
                     {activeModalService.user_id}
                   </strong>
                 </Col>
@@ -433,17 +428,17 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
             </div>
 
             {/* Financial & Commission Terms */}
-            <div className="border rounded-3 p-3 bg-white">
+            <div className="border rounded-3 p-3" style={{ background: 'var(--neu-bg-dark)' }}>
               <h6 className="fw-bold text-uppercase text-muted small mb-2">
                 Transaction Calculation Breakdown
               </h6>
               <div className="d-flex justify-content-between small text-muted mb-1">
                 <span>Base Service Rate (<code>amount_topay</code>):</span>
-                <span className="text-dark fw-bold">₱{activeModalService.amount_topay.toFixed(2)}</span>
+                <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>₱{activeModalService.amount_topay.toFixed(2)}</span>
               </div>
               <div className="d-flex justify-content-between small text-muted mb-1">
                 <span>Platform Booking Fee (<code>booking_fee</code>):</span>
-                <span className="text-dark">₱5.00 Flat</span>
+                <span style={{ color: 'var(--neu-text)' }}>₱5.00 Flat</span>
               </div>
               <div className="d-flex justify-content-between small text-muted mb-1">
                 <span>Provider Commission (5% of rate):</span>
@@ -451,21 +446,20 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
               </div>
               <hr className="my-2" />
               <div className="d-flex justify-content-between align-items-center">
-                <span className="fw-bold text-dark">Total Requestor to Pay (<code>total_topay</code>):</span>
-                <strong className="fs-5 text-primary">
+                <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>Total Requestor to Pay (<code>total_topay</code>):</span>
+                <strong className="fs-5" style={{ color: 'var(--neu-primary)' }}>
                   ₱{(activeModalService.amount_topay + 5.0).toFixed(2)}
                 </strong>
               </div>
             </div>
           </Modal.Body>
 
-          <Modal.Footer className="border-top px-4 py-3 bg-light">
-            <Button variant="secondary" onClick={() => setActiveModalService(null)}>
+          <Modal.Footer className="border-top px-4 py-3" style={{ background: 'var(--neu-bg-dark)' }}>
+            <Button className="neu-btn-ghost" onClick={() => setActiveModalService(null)}>
               Close
             </Button>
             <Button
-              variant="primary"
-              className="px-4 fw-semibold"
+              className="neu-btn-primary px-4 fw-semibold"
               onClick={() => handleBookService(activeModalService)}
             >
               Confirm Booking (₱{(activeModalService.amount_topay + 5.0).toFixed(2)})

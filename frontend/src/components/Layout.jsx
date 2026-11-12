@@ -33,15 +33,15 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-vh-100 d-flex flex-column bg-light">
+    <div className="min-vh-100 d-flex flex-column">
       {/* 1. Top Navbar */}
-      <Navbar bg="primary" variant="dark" expand="lg" sticky="top" className="shadow-sm py-2 px-3">
+      <Navbar className="neu-navbar sticky-top py-2 px-3">
         <Container fluid className="p-0">
           <div className="d-flex align-items-center">
             {/* Hamburger button for Mobile (< lg) */}
             <Button
               variant="link"
-              className="text-white p-0 me-3 d-lg-none"
+              className="text-white p-0 me-3 d-lg-none neu-hamburger"
               onClick={() => setShowMobileSidebar(true)}
               aria-label="Open Navigation Sidebar"
             >
@@ -66,7 +66,7 @@ export default function Layout() {
           <Nav className="ms-auto d-flex flex-row align-items-center gap-2">
             <NotificationsDropdown />
             {/* Quick Messages Link */}
-            <Nav.Link as={Link} to="/messages" className="text-white position-relative p-2" aria-label="Messages">
+            <Nav.Link as={Link} to="/messages" className="neu-nav-icon text-white position-relative p-2" aria-label="Messages">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
                 <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
               </svg>
@@ -79,22 +79,23 @@ export default function Layout() {
             <NavDropdown
               align="end"
               id="user-nav-dropdown"
+              className="neu-dropdown"
               title={
                 <span className="text-white d-inline-flex align-items-center gap-2">
                   <span className="d-none d-md-inline small fw-semibold">
                     {currentUser.first_name}
                   </span>
-                  <Badge bg="light" text="dark" className="d-none d-md-inline small">
+                  <Badge bg="light" text="dark" className="d-none d-md-inline small rounded-pill">
                     {currentUser.user_type}
                   </Badge>
-                  <span className="bg-white text-primary rounded-circle fw-bold d-inline-flex align-items-center justify-content-center px-2 py-1 small">
+                  <span className="neu-avatar">
                     {currentUser.first_name[0]}
                   </span>
                 </span>
               }
             >
-              <div className="px-3 py-2 border-bottom">
-                <div className="fw-bold text-dark">
+              <div className="px-3 py-2 border-bottom" style={{ borderColor: 'rgba(154, 172, 196, 0.3)' }}>
+                <div className="fw-bold" style={{ color: 'var(--neu-text)' }}>
                   {currentUser.first_name} {currentUser.last_name}
                 </div>
                 <div className="text-muted small font-monospace">
@@ -135,7 +136,7 @@ export default function Layout() {
           </Col>
 
           {/* 3. Main Content Area Rendering Child Routes with <Outlet /> */}
-          <Col lg={9} xl={10} as="main" className="p-3 p-md-4 bg-body-tertiary flex-grow-1 overflow-auto">
+          <Col lg={9} xl={10} as="main" className="neu-main p-3 p-md-4 flex-grow-1 overflow-auto">
             <Outlet />
           </Col>
         </Row>

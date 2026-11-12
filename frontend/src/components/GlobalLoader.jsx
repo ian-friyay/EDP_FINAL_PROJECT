@@ -1,5 +1,5 @@
 import React from 'react';
-import { Spinner, Card } from 'react-bootstrap';
+import { Spinner } from 'react-bootstrap';
 
 /**
  * GlobalLoader
@@ -33,11 +33,11 @@ export default function GlobalLoader({
       aria-live="polite"
       aria-busy="true"
     >
-      <Card
-        className="bg-white text-dark shadow-lg border-0 rounded-4 p-4 text-center mx-3"
+      <div
+        className="neu-loader-card text-center mx-3"
         style={{ maxWidth: '360px', width: '100%' }}
       >
-        <Card.Body className="p-2 d-flex flex-column align-items-center">
+        <div className="p-2 d-flex flex-column align-items-center">
           {/* React-Bootstrap Spinner */}
           <div className="mb-3 d-flex align-items-center justify-content-center">
             <Spinner
@@ -50,7 +50,7 @@ export default function GlobalLoader({
           </div>
 
           {/* Primary Message */}
-          <h5 className="fw-bold mb-2 text-dark">
+          <h5 className="fw-bold mb-2" style={{ color: 'var(--neu-text)' }}>
             {message}
           </h5>
 
@@ -60,8 +60,8 @@ export default function GlobalLoader({
               {subMessage}
             </p>
           )}
-        </Card.Body>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

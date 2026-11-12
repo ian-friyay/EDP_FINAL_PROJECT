@@ -8,7 +8,7 @@ import ServicesGrid from './components/ServicesGrid';
 import TransactionsPage from './pages/TransactionsPage';
 import MessagesPage from './pages/MessagesPage';
 import TransactionQRPage from './pages/TransactionQRPage';
-import { Card, Row, Col, Badge, Table, Button } from 'react-bootstrap';
+import { Row, Col, Badge, Table, Button } from 'react-bootstrap';
 
 // Sample Pages mapped to the SerbisYou Universal Database Schema
 
@@ -40,19 +40,19 @@ function DashboardPage() {
         subMessage={loadingState.subMessage}
       />
 
-      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
-          <h2 className="fw-bold mb-1">Marketplace Dashboard</h2>
+          <h2 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>Marketplace Dashboard</h2>
           <p className="text-muted mb-0">Welcome back, Juan! Here is your service marketplace overview.</p>
         </div>
         <div className="d-flex gap-2 align-items-center flex-wrap">
-          <Button variant="primary" size="sm" onClick={triggerApiSimulation}>
-            Simulate API Call (Loader)
+          <Button className="neu-btn-primary" size="sm" onClick={triggerApiSimulation}>
+            Simulate API Call
           </Button>
-          <Button as={Link} to="/landing" variant="outline-primary" size="sm">
+          <Button as={Link} to="/landing" className="neu-btn-outline" size="sm">
             View Public Landing Page
           </Button>
-          <Badge bg="success" className="px-3 py-2 fs-6">
+          <Badge bg="success" className="px-3 py-2 rounded-pill fw-semibold">
             Online &amp; Active
           </Badge>
         </div>
@@ -61,98 +61,88 @@ function DashboardPage() {
       {/* Metrics Row */}
       <Row className="g-3 mb-4">
         <Col sm={6} xl={3}>
-          <Card className="border-0 shadow-sm rounded-3">
-            <Card.Body>
-              <div className="text-muted small text-uppercase fw-semibold mb-1">Active Services</div>
-              <div className="fs-3 fw-bold text-primary">8</div>
-              <div className="small text-muted mt-1">services table</div>
-            </Card.Body>
-          </Card>
+          <div className="neu-metric-card h-100">
+            <div className="text-muted small text-uppercase fw-semibold mb-1">Active Services</div>
+            <div className="fs-3 fw-bold" style={{ color: 'var(--neu-primary)' }}>8</div>
+            <div className="small text-muted mt-1">services table</div>
+          </div>
         </Col>
         <Col sm={6} xl={3}>
-          <Card className="border-0 shadow-sm rounded-3">
-            <Card.Body>
-              <div className="text-muted small text-uppercase fw-semibold mb-1">Total Bookings</div>
-              <div className="fs-3 fw-bold text-success">24</div>
-              <div className="small text-muted mt-1">transactions table</div>
-            </Card.Body>
-          </Card>
+          <div className="neu-metric-card h-100">
+            <div className="text-muted small text-uppercase fw-semibold mb-1">Total Bookings</div>
+            <div className="fs-3 fw-bold text-success">24</div>
+            <div className="small text-muted mt-1">transactions table</div>
+          </div>
         </Col>
         <Col sm={6} xl={3}>
-          <Card className="border-0 shadow-sm rounded-3">
-            <Card.Body>
-              <div className="text-muted small text-uppercase fw-semibold mb-1">Booking Fees Paid</div>
-              <div className="fs-3 fw-bold text-info">₱120.00</div>
-              <div className="small text-muted mt-1">₱5 flat rate / transaction</div>
-            </Card.Body>
-          </Card>
+          <div className="neu-metric-card h-100">
+            <div className="text-muted small text-uppercase fw-semibold mb-1">Booking Fees Paid</div>
+            <div className="fs-3 fw-bold text-info">₱120.00</div>
+            <div className="small text-muted mt-1">₱5 flat rate / transaction</div>
+          </div>
         </Col>
         <Col sm={6} xl={3}>
-          <Card className="border-0 shadow-sm rounded-3">
-            <Card.Body>
-              <div className="text-muted small text-uppercase fw-semibold mb-1">Commission Earned</div>
-              <div className="fs-3 fw-bold text-warning">₱850.00</div>
-              <div className="small text-muted mt-1">5% of amount_topay</div>
-            </Card.Body>
-          </Card>
+          <div className="neu-metric-card h-100">
+            <div className="text-muted small text-uppercase fw-semibold mb-1">Commission Earned</div>
+            <div className="fs-3 fw-bold text-warning">₱850.00</div>
+            <div className="small text-muted mt-1">5% of amount_topay</div>
+          </div>
         </Col>
       </Row>
 
       {/* Recent Activity Card */}
-      <Card className="border-0 shadow-sm rounded-3">
-        <Card.Header className="bg-white border-bottom py-3">
-          <div className="d-flex justify-content-between align-items-center">
-            <h5 className="fw-bold mb-0">Recent Transactions</h5>
-            <Button as={Link} to="/transactions" variant="outline-primary" size="sm">
-              View All
-            </Button>
-          </div>
-        </Card.Header>
-        <Card.Body className="p-0">
-          <Table responsive hover className="mb-0 align-middle">
-            <thead className="table-light">
-              <tr>
-                <th>Tx ID</th>
-                <th>Service</th>
-                <th>Requestor</th>
-                <th>Amount</th>
-                <th>Booking Fee</th>
-                <th>Total</th>
-                <th>Status</th>
+      <div className="neu-card">
+        <div className="d-flex justify-content-between align-items-center border-bottom p-3 p-md-4" style={{ borderColor: 'rgba(154, 172, 196, 0.3)' }}>
+          <h5 className="fw-bold mb-0" style={{ color: 'var(--neu-text)' }}>Recent Transactions</h5>
+          <Button as={Link} to="/transactions" className="neu-btn-ghost px-3" size="sm">
+            View All
+          </Button>
+        </div>
+        <div className="table-responsive">
+          <Table hover className="mb-0 align-middle">
+            <thead>
+              <tr style={{ background: 'var(--neu-bg-dark)', borderBottom: '2px solid rgba(154, 172, 196, 0.4)' }}>
+                <th className="py-3 px-3 text-uppercase small fw-bold" style={{ color: 'var(--neu-text)' }}>Tx ID</th>
+                <th className="py-3 px-3 text-uppercase small fw-bold" style={{ color: 'var(--neu-text)' }}>Service</th>
+                <th className="py-3 px-3 text-uppercase small fw-bold" style={{ color: 'var(--neu-text)' }}>Requestor</th>
+                <th className="py-3 px-3 text-uppercase small fw-bold" style={{ color: 'var(--neu-text)' }}>Amount</th>
+                <th className="py-3 px-3 text-uppercase small fw-bold d-none d-md-table-cell" style={{ color: 'var(--neu-text)' }}>Booking Fee</th>
+                <th className="py-3 px-3 text-uppercase small fw-bold" style={{ color: 'var(--neu-text)' }}>Total</th>
+                <th className="py-3 px-3 text-uppercase small fw-bold" style={{ color: 'var(--neu-text)' }}>Status</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td className="font-monospace fw-bold">TXN-9021</td>
-                <td>Aircon Cleaning &amp; Repair</td>
-                <td>MMC-2031</td>
-                <td>₱800.00</td>
-                <td>₱5.00</td>
-                <td className="fw-bold">₱805.00</td>
-                <td><Badge bg="success">Accepted</Badge></td>
+                <td className="font-monospace fw-bold px-3">TXN-9021</td>
+                <td className="px-3">Aircon Cleaning &amp; Repair</td>
+                <td className="px-3 font-monospace text-muted">MMC-2031</td>
+                <td className="px-3">₱800.00</td>
+                <td className="px-3 text-muted d-none d-md-table-cell">₱5.00</td>
+                <td className="px-3 fw-bold" style={{ color: 'var(--neu-primary)' }}>₱805.00</td>
+                <td className="px-3"><Badge bg="success" className="rounded-pill px-2 py-1">Accepted</Badge></td>
               </tr>
               <tr>
-                <td className="font-monospace fw-bold">TXN-9020</td>
-                <td>Plumbing Installation</td>
-                <td>MMC-3044</td>
-                <td>₱1,200.00</td>
-                <td>₱5.00</td>
-                <td className="fw-bold">₱1,205.00</td>
-                <td><Badge bg="warning" text="dark">Pending</Badge></td>
+                <td className="font-monospace fw-bold px-3">TXN-9020</td>
+                <td className="px-3">Plumbing Installation</td>
+                <td className="px-3 font-monospace text-muted">MMC-3044</td>
+                <td className="px-3">₱1,200.00</td>
+                <td className="px-3 text-muted d-none d-md-table-cell">₱5.00</td>
+                <td className="px-3 fw-bold" style={{ color: 'var(--neu-primary)' }}>₱1,205.00</td>
+                <td className="px-3"><Badge bg="warning" text="dark" className="rounded-pill px-2 py-1">Pending</Badge></td>
               </tr>
               <tr>
-                <td className="font-monospace fw-bold">TXN-9019</td>
-                <td>Home Electrical Wiring</td>
-                <td>MMC-1088</td>
-                <td>₱2,500.00</td>
-                <td>₱5.00</td>
-                <td className="fw-bold">₱2,505.00</td>
-                <td><Badge bg="primary">Completed</Badge></td>
+                <td className="font-monospace fw-bold px-3">TXN-9019</td>
+                <td className="px-3">Home Electrical Wiring</td>
+                <td className="px-3 font-monospace text-muted">MMC-1088</td>
+                <td className="px-3">₱2,500.00</td>
+                <td className="px-3 text-muted d-none d-md-table-cell">₱5.00</td>
+                <td className="px-3 fw-bold" style={{ color: 'var(--neu-primary)' }}>₱2,505.00</td>
+                <td className="px-3"><Badge bg="primary" className="rounded-pill px-2 py-1">Completed</Badge></td>
               </tr>
             </tbody>
           </Table>
-        </Card.Body>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
@@ -160,12 +150,12 @@ function DashboardPage() {
 function ServicesPage() {
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
-          <h2 className="fw-bold mb-1">Services Marketplace</h2>
+          <h2 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>Services Marketplace</h2>
           <p className="text-muted mb-0">Browse and book verified community services, or filter by category.</p>
         </div>
-        <Button variant="primary" className="rounded-pill px-3 shadow-sm">
+        <Button className="neu-btn-primary rounded-pill px-4">
           + Add New Service
         </Button>
       </div>
@@ -179,61 +169,88 @@ function ProfilePage() {
   return (
     <div>
       <div className="mb-4">
-        <h2 className="fw-bold mb-1">User Profile &amp; Account</h2>
+        <h2 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>User Profile &amp; Account</h2>
         <p className="text-muted mb-0">Registered user information conforming to the users table schema.</p>
       </div>
 
-      <Card className="border-0 shadow-sm rounded-3">
-        <Card.Header className="bg-white fw-bold py-3">Account Details</Card.Header>
-        <Card.Body className="p-4">
-          <Row className="g-3">
-            <Col sm={6}>
-              <div className="text-muted small">User ID (Format: MMC-XXXX)</div>
-              <div className="fw-bold font-monospace fs-5 text-primary">MMC-1042</div>
-            </Col>
-            <Col sm={6}>
-              <div className="text-muted small">User Type</div>
-              <div><Badge bg="success" className="fs-6">Provider</Badge></div>
-            </Col>
-            <Col sm={6}>
-              <div className="text-muted small">Full Name</div>
-              <div className="fw-bold">Juan Dela Cruz</div>
-            </Col>
-            <Col sm={6}>
-              <div className="text-muted small">Username</div>
-              <div className="fw-bold">@juandelacruz</div>
-            </Col>
-            <Col sm={6}>
-              <div className="text-muted small">Contact Number</div>
-              <div className="fw-bold">+63 912 345 6789</div>
-            </Col>
-            <Col sm={6}>
-              <div className="text-muted small">Email Address</div>
-              <div className="fw-bold">juan.delacruz@serbisyou.ph</div>
-            </Col>
-            <Col sm={12}>
-              <hr />
-              <h6 className="fw-bold text-muted text-uppercase small mb-3">Location Details</h6>
-            </Col>
-            <Col sm={6} md={3}>
-              <div className="text-muted small">Region</div>
-              <div className="fw-bold">NCR</div>
-            </Col>
-            <Col sm={6} md={3}>
-              <div className="text-muted small">Province</div>
-              <div className="fw-bold">Metro Manila</div>
-            </Col>
-            <Col sm={6} md={3}>
-              <div className="text-muted small">City</div>
-              <div className="fw-bold">Quezon City</div>
-            </Col>
-            <Col sm={6} md={3}>
-              <div className="text-muted small">Barangay</div>
-              <div className="fw-bold">Brgy. Central</div>
-            </Col>
-          </Row>
-        </Card.Body>
-      </Card>
+      <div className="neu-card p-4 p-md-5">
+        <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom" style={{ borderColor: 'rgba(154, 172, 196, 0.3)' }}>
+          <div>
+            <h5 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>Account Details</h5>
+            <small className="text-muted">SerbisYou Universal User Identifier Record</small>
+          </div>
+          <Badge bg="success" className="px-3 py-2 rounded-pill fs-6">
+            Provider Verified
+          </Badge>
+        </div>
+
+        <Row className="g-4">
+          <Col sm={6}>
+            <div className="neu-card-inset p-3">
+              <div className="text-muted small mb-1">User ID (Format: MMC-XXXX)</div>
+              <div className="fw-bold font-monospace fs-5" style={{ color: 'var(--neu-primary)' }}>MMC-1042</div>
+            </div>
+          </Col>
+          <Col sm={6}>
+            <div className="neu-card-inset p-3">
+              <div className="text-muted small mb-1">User Type</div>
+              <div><Badge bg="success" className="rounded-pill px-3 py-1 fs-6">Provider</Badge></div>
+            </div>
+          </Col>
+          <Col sm={6}>
+            <div className="neu-card-inset p-3">
+              <div className="text-muted small mb-1">Full Name</div>
+              <div className="fw-bold fs-6" style={{ color: 'var(--neu-text)' }}>Juan Dela Cruz</div>
+            </div>
+          </Col>
+          <Col sm={6}>
+            <div className="neu-card-inset p-3">
+              <div className="text-muted small mb-1">Username</div>
+              <div className="fw-bold fs-6" style={{ color: 'var(--neu-text)' }}>@juandelacruz</div>
+            </div>
+          </Col>
+          <Col sm={6}>
+            <div className="neu-card-inset p-3">
+              <div className="text-muted small mb-1">Contact Number</div>
+              <div className="fw-bold fs-6" style={{ color: 'var(--neu-text)' }}>+63 912 345 6789</div>
+            </div>
+          </Col>
+          <Col sm={6}>
+            <div className="neu-card-inset p-3">
+              <div className="text-muted small mb-1">Email Address</div>
+              <div className="fw-bold fs-6 text-truncate" style={{ color: 'var(--neu-text)' }}>juan.delacruz@serbisyou.ph</div>
+            </div>
+          </Col>
+          <Col sm={12}>
+            <hr className="my-2" style={{ borderColor: 'rgba(154, 172, 196, 0.3)' }} />
+            <h6 className="fw-bold text-muted text-uppercase small mb-3">Location Details</h6>
+          </Col>
+          <Col sm={6} md={3}>
+            <div className="neu-card-inset p-3 text-center">
+              <div className="text-muted small mb-1">Region</div>
+              <div className="fw-bold" style={{ color: 'var(--neu-text)' }}>NCR</div>
+            </div>
+          </Col>
+          <Col sm={6} md={3}>
+            <div className="neu-card-inset p-3 text-center">
+              <div className="text-muted small mb-1">Province</div>
+              <div className="fw-bold" style={{ color: 'var(--neu-text)' }}>Metro Manila</div>
+            </div>
+          </Col>
+          <Col sm={6} md={3}>
+            <div className="neu-card-inset p-3 text-center">
+              <div className="text-muted small mb-1">City</div>
+              <div className="fw-bold" style={{ color: 'var(--neu-text)' }}>Quezon City</div>
+            </div>
+          </Col>
+          <Col sm={6} md={3}>
+            <div className="neu-card-inset p-3 text-center">
+              <div className="text-muted small mb-1">Barangay</div>
+              <div className="fw-bold" style={{ color: 'var(--neu-text)' }}>Brgy. Central</div>
+            </div>
+          </Col>
+        </Row>
+      </div>
     </div>
   );
 }
