@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import Layout from './components/Layout';
 import LandingPage from './components/LandingPage';
@@ -6,6 +6,7 @@ import TermsAndConditions from './components/TermsAndConditions';
 import GlobalLoader from './components/GlobalLoader';
 import ServicesGrid from './components/ServicesGrid';
 import MessagesPage from './pages/MessagesPage';
+import ChatPage from './pages/ChatPage';
 import TransactionQRPage from './pages/TransactionQRPage';
 import { Card, Row, Col, Badge, Table, Button } from 'react-bootstrap';
 
@@ -322,6 +323,7 @@ export default function App() {
           <Route path="transactions" element={<TransactionsPage />} />
           <Route path="transactions/:transactionId/qr" element={<TransactionQRPage />} />
           <Route path="messages" element={<MessagesPage />} />
+          <Route path="messages/:id" element={<ChatPage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>
       </Routes>
