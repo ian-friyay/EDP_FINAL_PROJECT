@@ -428,8 +428,8 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/landing" element={<LandingPage />} />
         <Route path="/terms" element={<TermsAndConditions />} />
-        <Route path="/sign-in" element={<AuthPage mode="sign-in" />} />
-        <Route path="/sign-up" element={<AuthPage mode="sign-up" />} />
+        <Route path="/sign-in" element={<AuthPage key="sign-in" mode="sign-in" />} />
+        <Route path="/sign-up" element={<AuthPage key="sign-up" mode="sign-up" />} />
 
         {/* App Shell Routes */}
         <Route element={<RequireAuth><Layout /></RequireAuth>}>

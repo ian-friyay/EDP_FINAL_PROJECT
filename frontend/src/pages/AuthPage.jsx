@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Alert, Button, Card, Container, Form } from 'react-bootstrap';
 import api from '../api/axios';
@@ -22,6 +22,19 @@ export default function AuthPage({ mode }) {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (mode === 'sign-in') {
+      setVerificationPending(false);
+      setOtp('');
+      setError('');
+      if (location.state?.message) {
+        setMessage(location.state.message);
+      }
+    } else {
+      setError('');
+    }
+  }, [mode, location.pathname, location.state]);
+
   const getRequestError = (requestError) =>
     requestError.response?.data?.error ||
     'Could not reach the server. Check that the backend is running and try again.';
@@ -35,6 +48,8 @@ export default function AuthPage({ mode }) {
     try {
       if (verificationPending) {
         await api.post('/auth/verify-otp', { email, otp });
+        setVerificationPending(false);
+        setOtp('');
         navigate('/sign-in', {
           replace: true,
           state: { message: 'Email verified. You can now sign in.' },
