@@ -6,6 +6,7 @@ import TermsAndConditions from './components/TermsAndConditions';
 import GlobalLoader from './components/GlobalLoader';
 import ServicesGrid from './components/ServicesGrid';
 import TransactionsPage from './pages/TransactionsPage';
+import MessagesPage from './pages/MessagesPage';
 import TransactionQRPage from './pages/TransactionQRPage';
 import { Card, Row, Col, Badge, Table, Button } from 'react-bootstrap';
 
@@ -170,62 +171,6 @@ function ServicesPage() {
       </div>
 
       <ServicesGrid />
-    </div>
-  );
-}
-
-function MessagesPage() {
-  return (
-    <div>
-      <div className="mb-4">
-        <h2 className="fw-bold mb-1">Messages &amp; Chat</h2>
-        <p className="text-muted mb-0">Direct communications between Providers and Requestors.</p>
-      </div>
-
-      <Row className="g-3">
-        <Col md={4}>
-          <Card className="border-0 shadow-sm rounded-3">
-            <Card.Header className="bg-white fw-bold py-3">Conversations</Card.Header>
-            <Card.Body className="p-0">
-              <div className="p-3 border-bottom bg-light">
-                <div className="fw-bold">Maria Santos (Requestor)</div>
-                <div className="small text-muted font-monospace">MMC-2015</div>
-                <div className="small text-truncate text-secondary mt-1">Can we schedule the cleaning at 2pm?</div>
-              </div>
-              <div className="p-3 border-bottom">
-                <div className="fw-bold">Pedro Penduko (Requestor)</div>
-                <div className="small text-muted font-monospace">MMC-3044</div>
-                <div className="small text-truncate text-secondary mt-1">Thanks! The pipe is working properly now.</div>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={8}>
-          <Card className="border-0 shadow-sm rounded-3">
-            <Card.Header className="bg-white fw-bold py-3 d-flex justify-content-between align-items-center">
-              <div>
-                <span>Maria Santos</span>
-                <span className="small text-muted ms-2 font-monospace">MMC-2015</span>
-              </div>
-              <Badge bg="success">Online</Badge>
-            </Card.Header>
-            <Card.Body className="p-4">
-              <div className="mb-3">
-                <div className="p-2 bg-light rounded-3 d-inline-block">
-                  Hello, I booked your Aircon Cleaning service. Are you available this Saturday?
-                </div>
-                <div className="small text-muted mt-1">10:15 AM</div>
-              </div>
-              <div className="mb-3 text-end">
-                <div className="p-2 bg-primary text-white rounded-3 d-inline-block">
-                  Yes, Saturday afternoon is open. What time works best for you?
-                </div>
-                <div className="small text-muted mt-1">10:18 AM</div>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
     </div>
   );
 }
