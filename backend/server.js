@@ -6,6 +6,7 @@ const validatePassword = require('./middleware/validatePassword');
 const { rateLimit } = require('express-rate-limit');
 const servicesRoutes = require('./routes/servicesRoutes');
 const profileRoutes = require('./routes/profileRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 const registrationRateLimiter = rateLimit({
@@ -28,6 +29,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/api/services', servicesRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Test Route
 app.get('/', (req, res) => {

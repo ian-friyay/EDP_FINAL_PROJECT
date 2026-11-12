@@ -39,7 +39,7 @@ const requireAuth = async (req, res, next) => {
         .maybeSingle();
 
     if (error) {
-        console.error('Service authorization lookup failed:', error.message);
+        console.error('Authentication lookup failed:', error.message);
         return res.status(500).json({ error: 'Could not verify the account.' });
     }
     if (!user || !user.is_active) {
@@ -50,4 +50,25 @@ const requireAuth = async (req, res, next) => {
     return next();
 };
 
-module.exports = requireAuth;
+const requireAdmin = async (req, res, next) => {
+    const { data: user, error } = await supabase
+        .from('users')
+        .select('department, designation, is_active')
+        .eq('user_id', req.user.user_id)
+        .maybeSingle();
+
+    if (error) {
+        console.error('Admin authorization lookup failed:', error.message);
+        return res.status(500).json({ error: 'Could not verify administrator access.' });
+    }
+    if (!user || !user.is_active) {
+        return res.status(401).json({ error: 'Active user account required.' });
+    }
+    if (!user.department || !user.designation) {
+        return res.status(403).json({ error: 'Administrator access is required.' });
+    }
+
+    return next();
+};
+
+module.exports = { requireAuth, requireAdmin };
