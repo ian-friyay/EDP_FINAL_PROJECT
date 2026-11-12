@@ -11,11 +11,14 @@ const profileRoutes = require('./routes/profileRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const cancelTransactionRoutes = require('./routes/cancelTransactionRoutes');
-const { initSocket } = require('./socket');
+const messageRoutes = require('./routes/messageRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const { initSocket } = require('./socket/socketServer');
 
 const app = express();
 const server = http.createServer(app);
-initSocket(server);
+const io = initSocket(server);
+app.set('io', io);
 
 const registrationRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -40,6 +43,8 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/transactions', cancelTransactionRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Messages API to fetch conversation history
 app.get('/api/messages/:otherUserId', requireAuth, async (req, res) => {

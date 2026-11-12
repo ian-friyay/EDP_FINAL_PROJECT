@@ -109,7 +109,7 @@ export default function Layout() {
 
           {/* Right-side Navbar Actions */}
           <Nav className="ms-auto d-flex flex-row align-items-center gap-2">
-            <NotificationsDropdown />
+            <NotificationsDropdown currentUser={user} />
             {/* Quick Messages Link */}
             <Nav.Link as={Link} to="/messages" className="neu-nav-icon text-white position-relative p-2" aria-label="Messages">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
