@@ -5,6 +5,7 @@ const { register, verifyOtp, login } = require('./controllers/authController');
 const validatePassword = require('./middleware/validatePassword');
 const { rateLimit } = require('express-rate-limit');
 const servicesRoutes = require('./routes/servicesRoutes');
+const profileRoutes = require('./routes/profileRoutes');
 
 const app = express();
 const registrationRateLimiter = rateLimit({
@@ -26,6 +27,7 @@ const otpVerificationLimiter = rateLimit({
 app.use(cors());
 app.use(express.json());
 app.use('/api/services', servicesRoutes);
+app.use('/api/profile', profileRoutes);
 
 // Test Route
 app.get('/', (req, res) => {
