@@ -10,11 +10,17 @@ export default function AuthPage({ mode }) {
   const isSignUp = mode === 'sign-up';
   const location = useLocation();
   const navigate = useNavigate();
+  const [studentId, setStudentId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
+  const [contactNumber, setContactNumber] = useState('');
+  const [region, setRegion] = useState('');
+  const [province, setProvince] = useState('');
+  const [city, setCity] = useState('');
+  const [barangay, setBarangay] = useState('');
   const [userType, setUserType] = useState('Requestor');
   const [otp, setOtp] = useState('');
   const [verificationPending, setVerificationPending] = useState(false);
@@ -58,12 +64,23 @@ export default function AuthPage({ mode }) {
       }
 
       if (isSignUp) {
+        let normalizedStudentId = studentId.trim().toUpperCase();
+        if (/^\d{1,4}$/.test(normalizedStudentId)) {
+          normalizedStudentId = `MMC-${normalizedStudentId.padStart(4, '0')}`;
+        }
+
         await api.post('/auth/register', {
+          student_id: normalizedStudentId,
           email,
           password,
           first_name: firstName,
           last_name: lastName,
           username,
+          contact_number: contactNumber,
+          region,
+          province,
+          city,
+          barangay,
           user_type: userType,
         });
         setVerificationPending(true);
@@ -124,6 +141,17 @@ export default function AuthPage({ mode }) {
             <Form onSubmit={handleSubmit}>
               {isSignUp && !verificationPending && (
                 <>
+                  <Form.Group className="mb-3" controlId="studentId">
+                    <Form.Label>Student ID <span className="text-danger">*</span></Form.Label>
+                    <Form.Control
+                      placeholder="e.g. MMC-1234 or 1234"
+                      value={studentId}
+                      onChange={(event) => setStudentId(event.target.value)}
+                      required
+                    />
+                    <Form.Text className="text-muted">Must be in MMC-XXXX format (e.g. MMC-1234).</Form.Text>
+                  </Form.Group>
+
                   <div className="row">
                     <Form.Group className="col-md-6 mb-3" controlId="firstName">
                       <Form.Label>First name</Form.Label>
@@ -160,9 +188,68 @@ export default function AuthPage({ mode }) {
                       onChange={(event) => setUserType(event.target.value)}
                     >
                       <option value="Requestor">Requestor</option>
-                      <option value="Provider">Provider</option>
+                      <option value="Provider">Provider (Services)</option>
                     </Form.Select>
                   </Form.Group>
+
+                  {userType === 'Provider' && (
+                    <div className="border rounded-3 p-3 bg-light mb-3">
+                      <h6 className="fw-bold small text-uppercase text-primary mb-3">
+                        Provider Address &amp; Contact Info (Required)
+                      </h6>
+                      <Form.Group className="mb-3" controlId="contactNumber">
+                        <Form.Label>Contact Number <span className="text-danger">*</span></Form.Label>
+                        <Form.Control
+                          placeholder="+63 912 345 6789"
+                          value={contactNumber}
+                          onChange={(event) => setContactNumber(event.target.value)}
+                          required={userType === 'Provider'}
+                        />
+                      </Form.Group>
+
+                      <div className="row">
+                        <Form.Group className="col-md-6 mb-3" controlId="region">
+                          <Form.Label>Region <span className="text-danger">*</span></Form.Label>
+                          <Form.Control
+                            placeholder="e.g. NCR"
+                            value={region}
+                            onChange={(event) => setRegion(event.target.value)}
+                            required={userType === 'Provider'}
+                          />
+                        </Form.Group>
+                        <Form.Group className="col-md-6 mb-3" controlId="province">
+                          <Form.Label>Province <span className="text-danger">*</span></Form.Label>
+                          <Form.Control
+                            placeholder="e.g. Metro Manila"
+                            value={province}
+                            onChange={(event) => setProvince(event.target.value)}
+                            required={userType === 'Provider'}
+                          />
+                        </Form.Group>
+                      </div>
+
+                      <div className="row">
+                        <Form.Group className="col-md-6 mb-3" controlId="city">
+                          <Form.Label>City <span className="text-danger">*</span></Form.Label>
+                          <Form.Control
+                            placeholder="e.g. Quezon City"
+                            value={city}
+                            onChange={(event) => setCity(event.target.value)}
+                            required={userType === 'Provider'}
+                          />
+                        </Form.Group>
+                        <Form.Group className="col-md-6 mb-3" controlId="barangay">
+                          <Form.Label>Barangay <span className="text-danger">*</span></Form.Label>
+                          <Form.Control
+                            placeholder="e.g. Brgy. Central"
+                            value={barangay}
+                            onChange={(event) => setBarangay(event.target.value)}
+                            required={userType === 'Provider'}
+                          />
+                        </Form.Group>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 

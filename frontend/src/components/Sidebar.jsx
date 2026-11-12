@@ -102,14 +102,14 @@ export default function Sidebar({
           <Card className="border-0 bg-light rounded-3 p-3 mb-4 shadow-sm">
             <div className="d-flex align-items-center gap-2 mb-2">
               <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold fs-5 px-3 py-2 flex-shrink-0">
-                {currentUser.first_name[0]}{currentUser.last_name[0]}
+                {(currentUser.first_name || 'U')[0]?.toUpperCase()}{(currentUser.last_name || '')[0]?.toUpperCase() || ''}
               </div>
               <div className="overflow-hidden">
                 <div className="fw-bold text-truncate text-dark">
-                  {currentUser.first_name} {currentUser.last_name}
+                  {`${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.username || currentUser.user_id || 'User'}
                 </div>
                 <div className="text-muted small font-monospace">
-                  ID: {currentUser.user_id}
+                  ID: {currentUser.user_id || '---'}
                 </div>
               </div>
             </div>
@@ -118,10 +118,10 @@ export default function Sidebar({
                 bg={currentUser.user_type === 'Provider' ? 'success' : 'info'}
                 className="text-white"
               >
-                {currentUser.user_type}
+                {currentUser.user_type || 'User'}
               </Badge>
               <span className="text-muted small text-truncate">
-                {currentUser.barangay}, {currentUser.city}
+                {[currentUser.barangay, currentUser.city].filter(Boolean).join(', ') || 'Philippines'}
               </span>
             </div>
           </Card>

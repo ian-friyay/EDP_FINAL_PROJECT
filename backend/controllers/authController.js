@@ -77,6 +77,44 @@ const register = async (req, res) => {
             return res.status(400).json({ error: 'user_type must be Provider or Requestor.' });
         }
 
+        // Student ID Validation (Required)
+        const rawStudentId = typeof body.student_id === 'string'
+            ? body.student_id.trim()
+            : typeof body.user_id === 'string'
+                ? body.user_id.trim()
+                : '';
+
+        if (!rawStudentId) {
+            return res.status(400).json({ error: 'Student ID is required.' });
+        }
+
+        let normalizedStudentId = rawStudentId.toUpperCase();
+        if (/^\d{1,4}$/.test(normalizedStudentId)) {
+            normalizedStudentId = `MMC-${normalizedStudentId.padStart(4, '0')}`;
+        }
+        if (!/^MMC-\d{4}$/.test(normalizedStudentId)) {
+            return res.status(400).json({ error: 'Student ID must follow the format MMC-XXXX (e.g. MMC-1234).' });
+        }
+
+        // Provider Requirements (Personal Info & Address)
+        if (userType === 'Provider') {
+            if (!contactNumber || !contactNumber.trim()) {
+                return res.status(400).json({ error: 'Contact number is required for Provider accounts.' });
+            }
+            if (!region || !region.trim()) {
+                return res.status(400).json({ error: 'Region is required for Provider accounts.' });
+            }
+            if (!province || !province.trim()) {
+                return res.status(400).json({ error: 'Province is required for Provider accounts.' });
+            }
+            if (!city || !city.trim()) {
+                return res.status(400).json({ error: 'City is required for Provider accounts.' });
+            }
+            if (!barangay || !barangay.trim()) {
+                return res.status(400).json({ error: 'Barangay is required for Provider accounts.' });
+            }
+        }
+
         const normalizedEmail = email.trim().toLowerCase();
         const { data: existingUser, error: lookupError } = await supabase
             .from('users')
@@ -90,6 +128,17 @@ const register = async (req, res) => {
         }
         if (existingUser && !existingUser.is_active) {
             return res.status(409).json({ error: 'This account is inactive.' });
+        }
+
+        // Check if Student ID is already taken by another account
+        const { data: userWithId } = await supabase
+            .from('users')
+            .select('user_id, email')
+            .eq('user_id', normalizedStudentId)
+            .maybeSingle();
+
+        if (userWithId && userWithId.email !== normalizedEmail) {
+            return res.status(409).json({ error: `Student ID ${normalizedStudentId} is already registered.` });
         }
 
         if (existingUser) {
@@ -116,25 +165,7 @@ const register = async (req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Generate user_id (MMC-XXXX) if existingUser does not exist
-        let assignedUserId = existingUser ? existingUser.user_id : null;
-        if (!assignedUserId) {
-            const { data: latestUsers } = await supabase
-                .from('users')
-                .select('user_id')
-                .order('user_id', { ascending: false })
-                .limit(1);
-
-            let nextNum = 1;
-            if (latestUsers && latestUsers.length > 0 && latestUsers[0].user_id) {
-                const match = latestUsers[0].user_id.match(/^MMC-(\d+)$/);
-                if (match) {
-                    nextNum = parseInt(match[1], 10) + 1;
-                }
-            }
-            assignedUserId = `MMC-${String(nextNum).padStart(4, '0')}`;
-        }
+        const assignedUserId = existingUser ? existingUser.user_id : normalizedStudentId;
 
         const userRecord = {
             user_id: assignedUserId,

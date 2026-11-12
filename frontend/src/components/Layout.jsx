@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import {
   Navbar,
@@ -13,31 +13,42 @@ import {
 import Sidebar from './Sidebar';
 import OfflineToast from './OfflineToast';
 import NotificationsDropdown from './NotificationsDropdown';
+import api from '../api/axios';
 
 export default function Layout() {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const navigate = useNavigate();
 
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    api.get('/profile/me')
+      .then(({ data }) => {
+        if (data.user) {
+          setCurrentUser(data.user);
+          window.localStorage.setItem('user', JSON.stringify(data.user));
+          window.localStorage.setItem('user_id', data.user.user_id);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const handleSignOut = () => {
     window.localStorage.removeItem('token');
     window.localStorage.removeItem('user_id');
+    window.localStorage.removeItem('user');
     navigate('/', { replace: true });
   };
 
-  // Mock user following universal database schema: users table
-  const currentUser = {
-    user_id: 'MMC-1042',
-    first_name: 'Juan',
-    last_name: 'Dela Cruz',
-    username: 'juandelacruz',
-    email: 'juan.delacruz@serbisyou.ph',
-    contact_number: '+63 912 345 6789',
-    user_type: 'Provider', // 'Provider' | 'Requestor'
-    region: 'NCR',
-    province: 'Metro Manila',
-    city: 'Quezon City',
-    barangay: 'Brgy. Central',
-  };
+  const displayName = `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.username || currentUser.user_id || 'User';
+  const initial = (currentUser.first_name || displayName || 'U')[0]?.toUpperCase();
 
   return (
     <div className="min-vh-100 d-flex flex-column bg-light">
@@ -89,20 +100,20 @@ export default function Layout() {
               title={
                 <span className="text-white d-inline-flex align-items-center gap-2">
                   <span className="d-none d-md-inline small fw-semibold">
-                    {currentUser.first_name}
+                    {displayName}
                   </span>
                   <Badge bg="light" text="dark" className="d-none d-md-inline small">
-                    {currentUser.user_type}
+                    {currentUser.user_type || 'User'}
                   </Badge>
                   <span className="bg-white text-primary rounded-circle fw-bold d-inline-flex align-items-center justify-content-center px-2 py-1 small">
-                    {currentUser.first_name[0]}
+                    {initial}
                   </span>
                 </span>
               }
             >
               <div className="px-3 py-2 border-bottom">
                 <div className="fw-bold text-dark">
-                  {currentUser.first_name} {currentUser.last_name}
+                  {displayName}
                 </div>
                 <div className="text-muted small font-monospace">
                   {currentUser.user_id}
