@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const supabase = require('./db'); // Imports your Supabase connection
-const { register, verifyOtp, login } = require('./controllers/authController');
+const { register, verifyOtp, resendOtp, login } = require('./controllers/authController');
 const validatePassword = require('./middleware/validatePassword');
 const { requireAuth } = require('./middleware/authMiddleware');
 const { rateLimit } = require('express-rate-limit');
@@ -91,6 +91,7 @@ app.get('/api/test-db', async (req, res) => {
 // Auth Routes
 app.post('/api/auth/register', registrationRateLimiter, validatePassword, register);
 app.post('/api/auth/verify-otp', otpVerificationLimiter, verifyOtp);
+app.post('/api/auth/resend-otp', otpVerificationLimiter, resendOtp);
 app.post('/api/auth/login', login);
 
 // Start Server

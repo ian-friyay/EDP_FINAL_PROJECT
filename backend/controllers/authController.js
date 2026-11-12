@@ -348,6 +348,73 @@ const verifyOtp = async (req, res) => {
     }
 };
 
+const resendOtp = async (req, res) => {
+    try {
+        const { email } = req.body || {};
+        if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+            return res.status(400).json({ error: 'A valid email address is required.' });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+        const { data: user, error: userError } = await supabase
+            .from('users')
+            .select('user_id, is_active')
+            .eq('email', normalizedEmail)
+            .maybeSingle();
+
+        if (userError) {
+            console.error('Resend OTP user lookup failed:', userError.message);
+            return res.status(500).json({ error: 'Could not lookup account.' });
+        }
+        if (!user || !user.is_active) {
+            return res.status(404).json({ error: 'Account not found.' });
+        }
+
+        const { data: verification } = await supabase
+            .from('email_verifications')
+            .select('verified_at')
+            .eq('user_id', user.user_id)
+            .maybeSingle();
+
+        if (verification?.verified_at) {
+            return res.status(400).json({ error: 'Email is already verified. You can sign in.' });
+        }
+
+        const otp = crypto.randomInt(0, 1000000).toString().padStart(6, '0');
+        const otpHash = await bcrypt.hash(otp, 10);
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+        const { error: saveError } = await supabase
+            .from('email_verifications')
+            .upsert({
+                user_id: user.user_id,
+                otp_hash: otpHash,
+                expires_at: expiresAt,
+                verified_at: null,
+                failed_attempts: 0
+            }, { onConflict: 'user_id' });
+
+        if (saveError) {
+            console.error('Resend OTP save failed:', saveError.message);
+            return res.status(500).json({ error: 'Could not generate new verification code.' });
+        }
+
+        console.log(`[AUTH OTP DEV LOG] Resent OTP for ${normalizedEmail}: ${otp}`);
+
+        try {
+            await sendOtpEmail(normalizedEmail, otp);
+        } catch (error) {
+            console.error('Resend OTP email delivery failed:', error.message);
+            return res.status(502).json({ error: 'Could not send verification email. Please try again later.' });
+        }
+
+        return res.status(200).json({ message: 'A new 6-digit verification code has been sent to your email.' });
+    } catch (error) {
+        console.error('Resend OTP error:', error.message);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+};
+
 const login = async (req, res) => {
     try {
         const { email, password } = req.body || {};
@@ -413,5 +480,6 @@ const login = async (req, res) => {
 module.exports = {
     register,
     verifyOtp,
+    resendOtp,
     login
 };
