@@ -1,3 +1,4 @@
+import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Offcanvas,
@@ -9,20 +10,26 @@ import {
 export default function Sidebar({
   show = false,
   onHide = () => {},
-  currentUser = {
+  currentUser,
+}) {
+  const user = currentUser || {
     user_id: 'MMC-1042',
     first_name: 'Juan',
     last_name: 'Dela Cruz',
     username: 'juandelacruz',
     email: 'juan.delacruz@serbisyou.ph',
     contact_number: '+63 912 345 6789',
-    user_type: 'Provider', // 'Provider' | 'Requestor'
+    user_type: 'Provider',
     region: 'NCR',
     province: 'Metro Manila',
     city: 'Quezon City',
     barangay: 'Brgy. Central',
-  },
-}) {
+  };
+
+  const displayName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.user_id || 'User';
+  const initials = `${(user.first_name || 'U')[0] || ''}${(user.last_name || '')[0] || ''}`.toUpperCase();
+  const locationString = [user.barangay, user.city].filter(Boolean).join(', ') || 'Philippines';
+
   // Navigation links for Dashboard, Services, Transactions, Messages, Profile
   const navItems = [
     {
@@ -83,10 +90,10 @@ export default function Sidebar({
       show={show}
       onHide={onHide}
       responsive="lg"
-      className="bg-white border-end h-100 shadow-sm"
+      className="neu-sidebar"
     >
       {/* Mobile Offcanvas Header (auto-hidden on lg and wider) */}
-      <Offcanvas.Header closeButton className="d-lg-none border-bottom px-3 py-3 bg-light">
+      <Offcanvas.Header closeButton className="d-lg-none neu-sidebar-header px-3 py-3">
         <Offcanvas.Title className="fw-bold text-primary d-flex align-items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
             <path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5 8.186 1.113zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z" />
@@ -99,35 +106,35 @@ export default function Sidebar({
       <Offcanvas.Body className="d-flex flex-column justify-content-between p-3">
         <div>
           {/* User Profile Card grounded in users table */}
-          <Card className="border-0 bg-light rounded-3 p-3 mb-4 shadow-sm">
+          <Card className="neu-profile-card mb-4">
             <div className="d-flex align-items-center gap-2 mb-2">
-              <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold fs-5 px-3 py-2 flex-shrink-0">
-                {(currentUser.first_name || 'U')[0]?.toUpperCase()}{(currentUser.last_name || '')[0]?.toUpperCase() || ''}
+              <div className="neu-avatar-sidebar flex-shrink-0">
+                {initials}
               </div>
               <div className="overflow-hidden">
-                <div className="fw-bold text-truncate text-dark">
-                  {`${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.username || currentUser.user_id || 'User'}
+                <div className="fw-bold text-truncate" style={{ color: 'var(--neu-text)' }}>
+                  {displayName}
                 </div>
                 <div className="text-muted small font-monospace">
-                  ID: {currentUser.user_id || '---'}
+                  ID: {user.user_id || '---'}
                 </div>
               </div>
             </div>
             <div className="d-flex align-items-center justify-content-between pt-2 border-top">
               <Badge
-                bg={currentUser.user_type === 'Provider' ? 'success' : 'info'}
+                bg={user.user_type === 'Provider' ? 'success' : 'info'}
                 className="text-white"
               >
-                {currentUser.user_type || 'User'}
+                {user.user_type || 'User'}
               </Badge>
               <span className="text-muted small text-truncate">
-                {[currentUser.barangay, currentUser.city].filter(Boolean).join(', ') || 'Philippines'}
+                {locationString}
               </span>
             </div>
           </Card>
 
           {/* Navigation Links Section */}
-          <div className="text-uppercase text-muted fw-bold small px-2 mb-2">
+          <div className="neu-nav-label text-uppercase fw-bold small px-2 mb-2">
             Navigation Menu
           </div>
           <Nav className="flex-column gap-1">
@@ -138,11 +145,7 @@ export default function Sidebar({
                 end={item.to === '/dashboard'}
                 onClick={() => onHide && onHide()}
                 className={({ isActive }) =>
-                  `nav-link d-flex align-items-center justify-content-between rounded-3 px-3 py-2 text-decoration-none ${
-                    isActive
-                      ? 'active bg-primary text-white fw-semibold shadow-sm'
-                      : 'text-dark hover-bg-light text-secondary'
-                  }`
+                  isActive ? 'neu-nav-link active' : 'neu-nav-link'
                 }
               >
                 {({ isActive }) => (
@@ -169,9 +172,9 @@ export default function Sidebar({
 
         {/* Sidebar Footer grounded in transactions table rules */}
         <div className="pt-4 border-top">
-          <Card className="border-0 bg-light p-2 rounded-3 text-center mb-2">
+          <Card className="neu-fee-box text-center mb-2">
             <small className="text-muted d-block">Booking Fee</small>
-            <strong className="text-primary fs-6">₱5.00 Flat Rate</strong>
+            <strong className="fs-6" style={{ color: '#063a8f' }}>₱5.00 Flat Rate</strong>
             <small className="text-muted d-block mt-1">Commission: 5% of amount</small>
           </Card>
           <div className="text-center text-muted small">

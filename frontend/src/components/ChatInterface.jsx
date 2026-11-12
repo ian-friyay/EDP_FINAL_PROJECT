@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Row, Col, ListGroup, Form, Button, Card, Badge } from 'react-bootstrap';
+import { Row, Col, ListGroup, Form, Button, Badge } from 'react-bootstrap';
 import socket from '../socket';
-import api from '../api/axios';
+
+const CURRENT_USER_ID =
+  (typeof window !== 'undefined' && (window.localStorage.getItem('user_id') || (JSON.parse(window.localStorage.getItem('user') || '{}')).user_id)) ||
+  'MMC-0001';
 
 const initialConversations = [
   {
@@ -120,7 +123,6 @@ const formatDateLabel = (timestamp) =>
   });
 
 function ChatInterface() {
-  const currentUserId = window.localStorage.getItem('user_id') || 'MMC-0001';
   const [conversations, setConversations] = useState(initialConversations);
   const [messages, setMessages] = useState(initialMessages);
   const [activeUserId, setActiveUserId] = useState(initialConversations[0].user_id);
@@ -131,21 +133,6 @@ function ChatInterface() {
 
   useEffect(() => {
     activeUserIdRef.current = activeUserId;
-  }, [activeUserId]);
-
-  useEffect(() => {
-    if (!activeUserId) return;
-    api.get(`/messages/${activeUserId}`)
-      .then(({ data }) => {
-        if (Array.isArray(data.messages) && data.messages.length > 0) {
-          setMessages((prev) => {
-            const map = new Map(prev.map((m) => [String(m.message_id), m]));
-            data.messages.forEach((m) => map.set(String(m.message_id), m));
-            return Array.from(map.values());
-          });
-        }
-      })
-      .catch(() => {});
   }, [activeUserId]);
 
   const activeConversation = conversations.find(
@@ -166,16 +153,16 @@ function ChatInterface() {
       messages
         .filter(
           (message) =>
-            (message.sender_id === currentUserId &&
+            (message.sender_id === CURRENT_USER_ID &&
               message.receiver_id === activeUserId) ||
             (message.sender_id === activeUserId &&
-              message.receiver_id === currentUserId)
+              message.receiver_id === CURRENT_USER_ID)
         )
         .sort(
           (first, second) =>
             new Date(first.timestamp).getTime() - new Date(second.timestamp).getTime()
         ),
-    [messages, activeUserId, currentUserId]
+    [messages, activeUserId]
   );
 
   useEffect(() => {
@@ -184,7 +171,7 @@ function ChatInterface() {
 
   useEffect(() => {
     const registerUser = () => {
-      socket.emit('register', currentUserId);
+      socket.emit('register', CURRENT_USER_ID);
     };
 
     const handleReceiveMessage = (message) => {
@@ -259,7 +246,7 @@ function ChatInterface() {
     }
 
     const payload = {
-      sender_id: currentUserId,
+      sender_id: CURRENT_USER_ID,
       receiver_id: activeUserId,
       content,
     };
@@ -283,14 +270,18 @@ function ChatInterface() {
   };
 
   return (
-    <Card className="vh-100 shadow-sm border-0 overflow-hidden">
-      <Row className="g-0 h-100">
-        <Col md={4} lg={3} className="border-end d-flex flex-column bg-white">
-          <Card.Header className="bg-white border-bottom px-3 py-3">
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <h6 className="mb-0 fw-bold">Messages</h6>
+    <div
+      className="neu-chat-card d-flex flex-column"
+      style={{ height: 'calc(100vh - 120px)', minHeight: '560px' }}
+    >
+      <Row className="g-0 h-100 flex-grow-1">
+        {/* Left Side: Conversations Sidebar */}
+        <Col md={5} lg={4} className="neu-chat-sidebar d-flex flex-column h-100">
+          <div className="p-3 border-bottom" style={{ borderColor: 'rgba(154, 172, 196, 0.35)' }}>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h5 className="mb-0 fw-bold" style={{ color: 'var(--neu-text)' }}>Messages</h5>
               {totalUnread > 0 && (
-                <Badge bg="primary" pill>
+                <Badge bg="primary" pill className="px-2 py-1">
                   {totalUnread} new
                 </Badge>
               )}
@@ -301,16 +292,16 @@ function ChatInterface() {
               placeholder="Search conversations..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              className="rounded-pill"
+              className="neu-input"
               aria-label="Search conversations"
             />
-          </Card.Header>
+          </div>
 
-          <ListGroup variant="flush" className="overflow-auto flex-grow-1">
+          <ListGroup variant="flush" className="overflow-auto flex-grow-1 p-2">
             {filteredConversations.length === 0 ? (
-              <ListGroup.Item className="text-center text-muted py-4 border-0">
+              <div className="text-center text-muted py-4 small">
                 No conversations found.
-              </ListGroup.Item>
+              </div>
             ) : (
               filteredConversations.map((conversation) => {
                 const isActive = conversation.user_id === activeUserId;
@@ -319,44 +310,67 @@ function ChatInterface() {
                   <ListGroup.Item
                     key={conversation.user_id}
                     action
-                    active={isActive}
                     onClick={() => handleSelectConversation(conversation.user_id)}
-                    className="border-0 px-3 py-3"
+                    className="border-0 mb-2 p-2"
+                    style={{
+                      background: isActive
+                        ? 'linear-gradient(135deg, var(--neu-primary) 0%, var(--neu-primary-dark) 100%)'
+                        : 'var(--neu-bg)',
+                      borderRadius: 'var(--neu-radius)',
+                      boxShadow: isActive
+                        ? '3px 3px 8px rgba(8, 75, 181, 0.4), -2px -2px 5px rgba(232, 239, 248, 0.5)'
+                        : 'var(--neu-shadow-sm)',
+                      color: isActive ? '#fff' : 'var(--neu-text)',
+                      cursor: 'pointer',
+                      transition: 'all var(--neu-transition)',
+                    }}
                   >
                     <div className="d-flex align-items-center gap-2">
-                      <span
-                        className={`rounded-circle d-inline-flex align-items-center justify-content-center p-2 fw-bold ${
-                          isActive
-                            ? 'bg-white text-primary'
-                            : 'bg-primary-subtle text-primary'
-                        }`}
+                      <div
+                        className="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                        style={{
+                          width: '38px',
+                          height: '38px',
+                          background: isActive ? 'rgba(255,255,255,0.2)' : 'var(--neu-bg-dark)',
+                          color: isActive ? '#fff' : 'var(--neu-primary)',
+                          boxShadow: isActive ? 'none' : 'var(--neu-shadow-inset)',
+                          fontSize: '0.85rem',
+                        }}
                       >
                         {conversation.initials}
-                      </span>
+                      </div>
                       <div className="flex-grow-1 overflow-hidden">
                         <div className="d-flex justify-content-between align-items-center">
-                          <span className="fw-semibold text-truncate">
+                          <span className="fw-semibold text-truncate small">
                             {conversation.name}
                           </span>
                           <small
-                            className={isActive ? 'text-white-50' : 'text-muted'}
+                            className="ms-1 flex-shrink-0"
+                            style={{
+                              color: isActive ? 'rgba(255,255,255,0.8)' : 'var(--neu-text-light)',
+                              fontSize: '0.7rem',
+                            }}
                           >
                             {conversation.lastSeen}
                           </small>
                         </div>
-                        <div className="d-flex justify-content-between align-items-center gap-2">
+                        <div className="d-flex justify-content-between align-items-center gap-2 mt-1">
                           <small
-                            className={`text-truncate ${
-                              isActive ? 'text-white-50' : 'text-muted'
-                            }`}
+                            className="text-truncate"
+                            style={{
+                              color: isActive ? 'rgba(255,255,255,0.85)' : 'var(--neu-text-muted)',
+                              fontSize: '0.78rem',
+                            }}
                           >
                             {conversation.lastMessage}
                           </small>
                           {conversation.unread > 0 && (
                             <Badge
                               bg={isActive ? 'light' : 'danger'}
-                              className={isActive ? 'text-dark' : undefined}
+                              text={isActive ? 'primary' : 'white'}
                               pill
+                              className="small"
+                              style={{ fontSize: '0.65rem' }}
                             >
                               {conversation.unread}
                             </Badge>
@@ -371,46 +385,88 @@ function ChatInterface() {
           </ListGroup>
         </Col>
 
-        <Col md={8} lg={9} className="d-flex flex-column">
-          <Card.Header className="bg-white border-bottom px-3 py-2">
-            <div className="d-flex align-items-center">
-              <div className="d-flex align-items-center gap-2">
-                <span className="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center p-2 fw-bold">
-                  {activeConversation ? activeConversation.initials : '--'}
-                </span>
-                <div>
-                  <div className="fw-semibold">
-                    {activeConversation
-                      ? activeConversation.name
-                      : 'Select a conversation'}
-                  </div>
-                  <small
-                    className={
-                      activeConversation?.online ? 'text-success' : 'text-muted'
-                    }
-                  >
-                    {activeConversation?.online ? 'Active now' : 'Offline'}
-                  </small>
+        {/* Right Side: Message Thread & Input */}
+        <Col md={7} lg={8} className="d-flex flex-column h-100">
+          {/* Active Conversation Header */}
+          <div
+            className="p-3 border-bottom d-flex align-items-center justify-content-between"
+            style={{
+              background: 'var(--neu-bg-dark)',
+              borderColor: 'rgba(154, 172, 196, 0.35)',
+            }}
+          >
+            <div className="d-flex align-items-center gap-2">
+              <span
+                className="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold"
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  background: 'linear-gradient(135deg, var(--neu-primary) 0%, var(--neu-primary-dark) 100%)',
+                  color: '#fff',
+                  boxShadow: '2px 2px 5px rgba(8, 75, 181, 0.3)',
+                }}
+              >
+                {activeConversation ? activeConversation.initials : '--'}
+              </span>
+              <div>
+                <div className="fw-bold" style={{ color: 'var(--neu-text)', fontSize: '0.95rem' }}>
+                  {activeConversation
+                    ? activeConversation.name
+                    : 'Select a conversation'}
                 </div>
+                <small className="d-flex align-items-center gap-1" style={{ fontSize: '0.75rem' }}>
+                  <span
+                    className="rounded-circle d-inline-block"
+                    style={{
+                      width: '7px',
+                      height: '7px',
+                      background: activeConversation?.online ? 'var(--neu-success)' : 'var(--neu-text-light)',
+                    }}
+                  />
+                  <span className={activeConversation?.online ? 'text-success fw-semibold' : 'text-muted'}>
+                    {activeConversation?.online ? 'Active now' : 'Offline'}
+                  </span>
+                </small>
               </div>
             </div>
-          </Card.Header>
 
-          <Card.Body className="overflow-auto flex-grow-1 bg-body-tertiary px-3 py-3">
+            {activeConversation && (
+              <Badge bg="secondary" className="bg-opacity-25 text-dark font-monospace small px-2 py-1">
+                {activeConversation.user_id}
+              </Badge>
+            )}
+          </div>
+
+          {/* Messages Scroll Area */}
+          <div
+            className="overflow-auto flex-grow-1 p-3 p-md-4"
+            style={{ background: 'var(--neu-bg)' }}
+          >
             {activeMessages.length === 0 ? (
-              <div className="h-100 d-flex align-items-center justify-content-center text-muted">
-                No messages yet. Start the conversation.
+              <div className="h-100 d-flex flex-column align-items-center justify-content-center text-muted">
+                <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor" viewBox="0 0 16 16" className="mb-2 opacity-50">
+                  <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
+                </svg>
+                <span>No messages yet. Start the conversation.</span>
               </div>
             ) : (
               <>
                 <div className="text-center mb-3">
-                  <Badge className="bg-secondary-subtle text-secondary fw-normal">
+                  <span
+                    className="small px-3 py-1 rounded-pill"
+                    style={{
+                      background: 'var(--neu-bg-dark)',
+                      color: 'var(--neu-text-muted)',
+                      boxShadow: 'var(--neu-shadow-sm)',
+                      fontSize: '0.72rem',
+                    }}
+                  >
                     {formatDateLabel(activeMessages[0].timestamp)}
-                  </Badge>
+                  </span>
                 </div>
 
                 {activeMessages.map((message) => {
-                  const isSent = message.sender_id === currentUserId;
+                  const isSent = message.sender_id === CURRENT_USER_ID;
 
                   return (
                     <Row
@@ -421,7 +477,17 @@ function ChatInterface() {
                     >
                       {!isSent && (
                         <Col xs="auto" className="me-2">
-                          <span className="rounded-circle bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center p-1 fw-bold small">
+                          <span
+                            className="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold small"
+                            style={{
+                              width: '30px',
+                              height: '30px',
+                              background: 'var(--neu-bg-dark)',
+                              color: 'var(--neu-primary)',
+                              boxShadow: 'var(--neu-shadow-sm)',
+                              fontSize: '0.75rem',
+                            }}
+                          >
                             {activeConversation ? activeConversation.initials : '--'}
                           </span>
                         </Col>
@@ -429,31 +495,34 @@ function ChatInterface() {
 
                       <Col
                         xs={10}
+                        sm={9}
                         md={8}
                         lg={7}
                         className={isSent ? 'text-end' : 'text-start'}
                       >
                         <div
-                          className={`d-inline-block text-start px-3 py-2 rounded-4 shadow-sm ${
-                            isSent
-                              ? 'bg-primary text-white'
-                              : 'bg-white border'
+                          className={`d-inline-block text-start ${
+                            isSent ? 'neu-chat-bubble-sent' : 'neu-chat-bubble-received'
                           }`}
                         >
-                          <div className="text-break">{message.content}</div>
+                          <div className="text-break" style={{ fontSize: '0.9rem', lineHeight: 1.4 }}>
+                            {message.content}
+                          </div>
                         </div>
                         <div
-                          className={`small mt-1 text-muted ${
-                            isSent ? 'text-end' : 'text-start'
-                          }`}
+                          className="mt-1"
+                          style={{
+                            fontSize: '0.7rem',
+                            color: 'var(--neu-text-light)',
+                          }}
                         >
                           {formatTime(message.timestamp)}
                           {isSent && (
-                            <span className="ms-2 text-primary">
+                            <span className="ms-2" style={{ color: 'var(--neu-primary)' }}>
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                width="14"
-                                height="14"
+                                width="12"
+                                height="12"
                                 fill="currentColor"
                                 viewBox="0 0 16 16"
                                 className="me-1"
@@ -461,7 +530,7 @@ function ChatInterface() {
                               >
                                 <path d="M12.354 4.354a.5.5 0 0 0-.708-.708L5 10.293 1.854 7.146a.5.5 0 1 0-.708.708l3.5 3.5a.5.5 0 0 0 .708 0zm-4.208 7-.896-.897.707-.707.543.543 6.646-6.647a.5.5 0 0 1 .708.708l-7 7a.5.5 0 0 1-.708 0" />
                               </svg>
-                              Read
+                              Delivered
                             </span>
                           )}
                         </div>
@@ -472,20 +541,28 @@ function ChatInterface() {
               </>
             )}
             <div ref={messagesEndRef} />
-          </Card.Body>
+          </div>
 
-          <Card.Footer className="bg-white border-top p-2">
+          {/* Chat Input Bar */}
+          <div
+            className="p-3 border-top"
+            style={{
+              background: 'var(--neu-bg-dark)',
+              borderColor: 'rgba(154, 172, 196, 0.35)',
+            }}
+          >
             <Form onSubmit={handleSend} className="d-flex align-items-center gap-2">
               <Button
-                variant="light"
-                className="rounded-circle p-2"
+                variant="link"
+                className="neu-btn-ghost rounded-circle p-2 d-flex align-items-center justify-content-center"
+                style={{ width: '38px', height: '38px' }}
                 aria-label="Attach file"
                 type="button"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
+                  width="18"
+                  height="18"
                   fill="currentColor"
                   viewBox="0 0 16 16"
                   aria-hidden="true"
@@ -500,13 +577,12 @@ function ChatInterface() {
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 aria-label="Message"
-                className="rounded-pill bg-light border-0 px-3"
+                className="neu-chat-input flex-grow-1"
               />
 
               <Button
                 type="submit"
-                variant="primary"
-                className="rounded-circle p-2"
+                className="neu-chat-send-btn flex-shrink-0"
                 disabled={!input.trim()}
                 aria-label="Send message"
               >
@@ -522,10 +598,10 @@ function ChatInterface() {
                 </svg>
               </Button>
             </Form>
-          </Card.Footer>
+          </div>
         </Col>
       </Row>
-    </Card>
+    </div>
   );
 }
 

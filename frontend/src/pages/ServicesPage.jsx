@@ -192,22 +192,21 @@ export default function ServicesPage() {
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-          <h2 className="fw-bold mb-1">Services Marketplace</h2>
+          <h2 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>Services Marketplace</h2>
           <p className="text-muted mb-0">
             Browse and book active community services, or publish your own.
           </p>
         </div>
         <Button
-          variant="primary"
-          className="rounded-pill px-3 shadow-sm"
+          className="neu-btn-primary rounded-pill px-4"
           onClick={() => setShowCreateModal(true)}
         >
           + Add New Service
         </Button>
       </div>
 
-      {message && <Alert variant="success" dismissible onClose={() => setMessage('')}>{message}</Alert>}
-      {error && <Alert variant="danger" role="alert">{error}</Alert>}
+      {message && <Alert variant="success" dismissible onClose={() => setMessage('')} className="neu-alert">{message}</Alert>}
+      {error && <Alert variant="danger" role="alert" className="neu-alert">{error}</Alert>}
 
       {isLoading ? (
         <div className="text-center text-muted py-5" role="status">Loading services...</div>
@@ -225,65 +224,70 @@ export default function ServicesPage() {
 
       {/* Create Service Modal */}
       <Modal show={showCreateModal} onHide={() => setShowCreateModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Add a service</Modal.Title>
+        <Modal.Header closeButton style={{ background: 'var(--neu-bg-dark)', borderBottom: '1px solid rgba(154, 172, 196, 0.35)' }}>
+          <Modal.Title className="fw-bold fs-5" style={{ color: 'var(--neu-text)' }}>Add a Service</Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleCreateService}>
-          <Modal.Body>
+          <Modal.Body style={{ background: 'var(--neu-bg)' }}>
             <Form.Group className="mb-3" controlId="serviceCategory">
-              <Form.Label>Category</Form.Label>
+              <Form.Label className="small fw-semibold text-muted">Category</Form.Label>
               <Form.Control
+                className="neu-input"
                 value={serviceForm.service_category}
                 onChange={(event) => setServiceForm({ ...serviceForm, service_category: event.target.value })}
                 required
               />
             </Form.Group>
             <Form.Group className="mb-3" controlId="serviceSubcategory">
-              <Form.Label>Service name</Form.Label>
+              <Form.Label className="small fw-semibold text-muted">Service Name</Form.Label>
               <Form.Control
+                className="neu-input"
                 value={serviceForm.subcategory}
                 onChange={(event) => setServiceForm({ ...serviceForm, subcategory: event.target.value })}
                 required
               />
             </Form.Group>
             <Form.Group className="mb-3" controlId="serviceDescription">
-              <Form.Label>Description</Form.Label>
+              <Form.Label className="small fw-semibold text-muted">Description</Form.Label>
               <Form.Control
                 as="textarea"
                 rows={4}
+                className="neu-input"
                 value={serviceForm.service_description}
                 onChange={(event) => setServiceForm({ ...serviceForm, service_description: event.target.value })}
                 required
               />
             </Form.Group>
             <Form.Group className="mb-3" controlId="serviceAmount">
-              <Form.Label>Price (₱)</Form.Label>
+              <Form.Label className="small fw-semibold text-muted">Price (₱)</Form.Label>
               <Form.Control
                 type="number"
                 min="0"
                 step="0.01"
+                className="neu-input"
                 value={serviceForm.amount_topay}
                 onChange={(event) => setServiceForm({ ...serviceForm, amount_topay: event.target.value })}
                 required
               />
             </Form.Group>
             <Form.Group controlId="servicePictureProof">
-              <Form.Label>Picture proof URLs (optional)</Form.Label>
+              <Form.Label className="small fw-semibold text-muted">Picture Proof URLs (optional)</Form.Label>
               <Form.Control
                 as="textarea"
                 rows={3}
+                className="neu-input"
                 value={serviceForm.picture_proof}
                 onChange={(event) => setServiceForm({ ...serviceForm, picture_proof: event.target.value })}
                 placeholder="Enter one http(s) URL per line"
               />
             </Form.Group>
           </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowCreateModal(false)} disabled={isSaving}>
+          <Modal.Footer style={{ background: 'var(--neu-bg-dark)', borderTop: '1px solid rgba(154, 172, 196, 0.35)' }}>
+            <Button className="neu-btn-ghost" onClick={() => setShowCreateModal(false)} disabled={isSaving}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Create service'}
+            <Button type="submit" className="neu-btn-primary px-4 fw-semibold" disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Create Service'}
             </Button>
           </Modal.Footer>
         </Form>
@@ -291,64 +295,69 @@ export default function ServicesPage() {
 
       {/* Edit Service Modal */}
       <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Edit Service</Modal.Title>
+        <Modal.Header closeButton style={{ background: 'var(--neu-bg-dark)', borderBottom: '1px solid rgba(154, 172, 196, 0.35)' }}>
+          <Modal.Title className="fw-bold fs-5" style={{ color: 'var(--neu-text)' }}>Edit Service</Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleUpdateService}>
-          <Modal.Body>
+          <Modal.Body style={{ background: 'var(--neu-bg)' }}>
             <Form.Group className="mb-3" controlId="editServiceCategory">
-              <Form.Label>Category</Form.Label>
+              <Form.Label className="small fw-semibold text-muted">Category</Form.Label>
               <Form.Control
+                className="neu-input"
                 value={editForm.service_category}
                 onChange={(event) => setEditForm({ ...editForm, service_category: event.target.value })}
                 required
               />
             </Form.Group>
             <Form.Group className="mb-3" controlId="editServiceSubcategory">
-              <Form.Label>Service name</Form.Label>
+              <Form.Label className="small fw-semibold text-muted">Service Name</Form.Label>
               <Form.Control
+                className="neu-input"
                 value={editForm.subcategory}
                 onChange={(event) => setEditForm({ ...editForm, subcategory: event.target.value })}
                 required
               />
             </Form.Group>
             <Form.Group className="mb-3" controlId="editServiceDescription">
-              <Form.Label>Description</Form.Label>
+              <Form.Label className="small fw-semibold text-muted">Description</Form.Label>
               <Form.Control
                 as="textarea"
                 rows={4}
+                className="neu-input"
                 value={editForm.service_description}
                 onChange={(event) => setEditForm({ ...editForm, service_description: event.target.value })}
                 required
               />
             </Form.Group>
             <Form.Group className="mb-3" controlId="editServiceAmount">
-              <Form.Label>Price (₱)</Form.Label>
+              <Form.Label className="small fw-semibold text-muted">Price (₱)</Form.Label>
               <Form.Control
                 type="number"
                 min="0"
                 step="0.01"
+                className="neu-input"
                 value={editForm.amount_topay}
                 onChange={(event) => setEditForm({ ...editForm, amount_topay: event.target.value })}
                 required
               />
             </Form.Group>
             <Form.Group controlId="editServicePictureProof">
-              <Form.Label>Picture proof URLs (optional)</Form.Label>
+              <Form.Label className="small fw-semibold text-muted">Picture Proof URLs (optional)</Form.Label>
               <Form.Control
                 as="textarea"
                 rows={3}
+                className="neu-input"
                 value={editForm.picture_proof}
                 onChange={(event) => setEditForm({ ...editForm, picture_proof: event.target.value })}
                 placeholder="Enter one http(s) URL per line"
               />
             </Form.Group>
           </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowEditModal(false)} disabled={isUpdating}>
+          <Modal.Footer style={{ background: 'var(--neu-bg-dark)', borderTop: '1px solid rgba(154, 172, 196, 0.35)' }}>
+            <Button className="neu-btn-ghost" onClick={() => setShowEditModal(false)} disabled={isUpdating}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isUpdating}>
+            <Button type="submit" className="neu-btn-primary px-4 fw-semibold" disabled={isUpdating}>
               {isUpdating ? 'Updating...' : 'Save Changes'}
             </Button>
           </Modal.Footer>

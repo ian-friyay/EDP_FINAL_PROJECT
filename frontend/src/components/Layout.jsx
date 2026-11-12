@@ -22,44 +22,63 @@ export default function Layout() {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const stored = window.localStorage.getItem('user');
-      return stored ? JSON.parse(stored) : {};
+      return stored ? JSON.parse(stored) : null;
     } catch {
-      return {};
+      return null;
     }
   });
 
   useEffect(() => {
+    let isMounted = true;
     api.get('/profile/me')
       .then(({ data }) => {
-        if (data.user) {
+        if (isMounted && data.user) {
           setCurrentUser(data.user);
           window.localStorage.setItem('user', JSON.stringify(data.user));
           window.localStorage.setItem('user_id', data.user.user_id);
         }
       })
       .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleSignOut = () => {
     window.localStorage.removeItem('token');
     window.localStorage.removeItem('user_id');
     window.localStorage.removeItem('user');
-    navigate('/', { replace: true });
+    navigate('/sign-in', { replace: true });
   };
 
-  const displayName = `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.username || currentUser.user_id || 'User';
-  const initial = (currentUser.first_name || displayName || 'U')[0]?.toUpperCase();
+  const user = currentUser || {
+    user_id: 'MMC-1042',
+    first_name: 'Juan',
+    last_name: 'Dela Cruz',
+    username: 'juandelacruz',
+    email: 'juan.delacruz@serbisyou.ph',
+    contact_number: '+63 912 345 6789',
+    user_type: 'Provider',
+    region: 'NCR',
+    province: 'Metro Manila',
+    city: 'Quezon City',
+    barangay: 'Brgy. Central',
+  };
+
+  const displayName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.user_id || 'User';
+  const initial = (user.first_name || displayName || 'U')[0]?.toUpperCase();
 
   return (
-    <div className="min-vh-100 d-flex flex-column bg-light">
+    <div className="min-vh-100 d-flex flex-column">
       {/* 1. Top Navbar */}
-      <Navbar bg="primary" variant="dark" expand="lg" sticky="top" className="shadow-sm py-2 px-3">
+      <Navbar className="neu-navbar sticky-top py-2 px-3">
         <Container fluid className="p-0">
           <div className="d-flex align-items-center">
             {/* Hamburger button for Mobile (< lg) */}
             <Button
               variant="link"
-              className="text-white p-0 me-3 d-lg-none"
+              className="text-white p-0 me-3 d-lg-none neu-hamburger"
               onClick={() => setShowMobileSidebar(true)}
               aria-label="Open Navigation Sidebar"
             >
@@ -74,7 +93,15 @@ export default function Layout() {
                 <path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5 8.186 1.113zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z" />
               </svg>
               <span>SerbisYou</span>
-              <Badge bg="light" text="primary" className="ms-1 small d-none d-sm-inline-block">
+              <Badge
+                className="ms-1 small fw-bold px-2 py-1 rounded-pill d-none d-sm-inline-block shadow-sm"
+                style={{
+                  backgroundColor: '#ffffff',
+                  color: '#063a8f',
+                  fontSize: '0.72rem',
+                  letterSpacing: '0.3px',
+                }}
+              >
                 Marketplace
               </Badge>
             </Navbar.Brand>
@@ -84,7 +111,7 @@ export default function Layout() {
           <Nav className="ms-auto d-flex flex-row align-items-center gap-2">
             <NotificationsDropdown />
             {/* Quick Messages Link */}
-            <Nav.Link as={Link} to="/messages" className="text-white position-relative p-2" aria-label="Messages">
+            <Nav.Link as={Link} to="/messages" className="neu-nav-icon text-white position-relative p-2" aria-label="Messages">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
                 <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
               </svg>
@@ -97,29 +124,30 @@ export default function Layout() {
             <NavDropdown
               align="end"
               id="user-nav-dropdown"
+              className="neu-dropdown"
               title={
                 <span className="text-white d-inline-flex align-items-center gap-2">
                   <span className="d-none d-md-inline small fw-semibold">
                     {displayName}
                   </span>
-                  <Badge bg="light" text="dark" className="d-none d-md-inline small">
-                    {currentUser.user_type || 'User'}
+                  <Badge bg="light" text="dark" className="d-none d-md-inline small rounded-pill">
+                    {user.user_type || 'User'}
                   </Badge>
-                  <span className="bg-white text-primary rounded-circle fw-bold d-inline-flex align-items-center justify-content-center px-2 py-1 small">
+                  <span className="neu-avatar">
                     {initial}
                   </span>
                 </span>
               }
             >
-              <div className="px-3 py-2 border-bottom">
-                <div className="fw-bold text-dark">
+              <div className="px-3 py-2 border-bottom" style={{ borderColor: 'rgba(154, 172, 196, 0.3)' }}>
+                <div className="fw-bold" style={{ color: 'var(--neu-text)' }}>
                   {displayName}
                 </div>
                 <div className="text-muted small font-monospace">
-                  {currentUser.user_id}
+                  {user.user_id}
                 </div>
                 <div className="text-muted small text-truncate">
-                  {currentUser.email}
+                  {user.email}
                 </div>
               </div>
               <NavDropdown.Item as={Link} to="/profile">
@@ -148,12 +176,12 @@ export default function Layout() {
             <Sidebar
               show={showMobileSidebar}
               onHide={() => setShowMobileSidebar(false)}
-              currentUser={currentUser}
+              currentUser={user}
             />
           </Col>
 
           {/* 3. Main Content Area Rendering Child Routes with <Outlet /> */}
-          <Col lg={9} xl={10} as="main" className="p-3 p-md-4 bg-body-tertiary flex-grow-1 overflow-auto">
+          <Col lg={9} xl={10} as="main" className="neu-main p-3 p-md-4 flex-grow-1 overflow-auto">
             <Outlet />
           </Col>
         </Row>

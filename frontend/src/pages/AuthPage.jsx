@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Alert, Button, Card, Col, Container, Form, InputGroup, ProgressBar, Row } from 'react-bootstrap';
+import { Alert, Button, Col, Container, Form, InputGroup, ProgressBar, Row } from 'react-bootstrap';
 import api from '../api/axios';
 import { philippineRegions } from '../data/philippinesLocations';
 
@@ -323,554 +323,730 @@ export default function AuthPage({ mode }) {
   };
 
   return (
-    <main className="min-vh-100 bg-light py-5">
-      <Container className="d-flex justify-content-center">
-        <Card
-          className="w-100 border-0 shadow-sm"
-          style={{ maxWidth: isSignUp && !verificationPending ? '720px' : '520px' }}
+    <main
+      className="min-vh-100 py-4 py-md-5 d-flex align-items-center justify-content-center"
+      style={{ background: 'var(--neu-bg)' }}
+    >
+      <Container className="d-flex justify-content-center px-3">
+        <div
+          className="neu-card p-4 p-md-5 w-100"
+          style={{
+            maxWidth: isSignUp && !verificationPending ? '740px' : '520px',
+            boxShadow: 'var(--neu-shadow-flat-lg)',
+          }}
         >
-          <Card.Body className="p-4 p-md-5">
-            {/* Header bar */}
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <Link to="/" className="text-decoration-none fw-bold fs-4 text-primary">
+          {/* Header bar with SerbisYou Logo and Step Indicators */}
+          <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom" style={{ borderColor: 'rgba(154, 172, 196, 0.35)' }}>
+            <Link to="/" className="text-decoration-none d-flex align-items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#063a8f" viewBox="0 0 16 16">
+                <path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5 8.186 1.113zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z" />
+              </svg>
+              <span className="fw-bold fs-4" style={{ color: '#063a8f' }}>
                 SerbisYou
-              </Link>
-              {isSignUp && !verificationPending && (
-                <div className="d-flex align-items-center gap-2">
-                  <span className={`badge ${step === 1 ? 'bg-primary text-white' : 'bg-light text-secondary border'}`}>
-                    1. Basic Info
+              </span>
+              <span
+                className="badge small fw-bold px-2 py-1 rounded-pill shadow-sm"
+                style={{
+                  backgroundColor: '#ffffff',
+                  color: '#063a8f',
+                  fontSize: '0.68rem',
+                  letterSpacing: '0.3px',
+                }}
+              >
+                Marketplace
+              </span>
+            </Link>
+
+            {isSignUp && !verificationPending && (
+              <div className="d-flex align-items-center gap-2">
+                <span
+                  className="small px-3 py-1 rounded-pill fw-semibold"
+                  style={{
+                    background: step === 1 ? 'linear-gradient(135deg, var(--neu-primary) 0%, var(--neu-primary-dark) 100%)' : 'var(--neu-bg)',
+                    color: step === 1 ? '#fff' : 'var(--neu-text-muted)',
+                    boxShadow: step === 1 ? '2px 2px 6px rgba(8, 75, 181, 0.35)' : 'var(--neu-shadow-sm)',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  1. Basic Info
+                </span>
+                {userType === 'Provider' && (
+                  <span
+                    className="small px-3 py-1 rounded-pill fw-semibold"
+                    style={{
+                      background: step === 2 ? 'linear-gradient(135deg, var(--neu-primary) 0%, var(--neu-primary-dark) 100%)' : 'var(--neu-bg)',
+                      color: step === 2 ? '#fff' : 'var(--neu-text-muted)',
+                      boxShadow: step === 2 ? '2px 2px 6px rgba(8, 75, 181, 0.35)' : 'var(--neu-shadow-sm)',
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    2. Location
                   </span>
-                  {userType === 'Provider' && (
-                    <span className={`badge ${step === 2 ? 'bg-primary text-white' : 'bg-light text-secondary border'}`}>
-                      2. Provider Details
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <h1 className="h3 mb-2">{getPageTitle()}</h1>
-            <p className="text-muted mb-4">
-              {verificationPending
-                ? `Enter the 6-digit code sent to ${email}.`
-                : isSignUp
-                  ? step === 1
-                    ? 'Select your account role and enter your account information.'
-                    : 'Provide your Philippine contact and address details.'
-                  : 'Sign in to access your SerbisYou services.'}
-            </p>
-
-            {message && <Alert variant="success" className="d-flex align-items-center">{message}</Alert>}
-            {error && <Alert variant="danger" role="alert">{error}</Alert>}
-
-            {/* OTP Verification Screen */}
-            {verificationPending ? (
-              <Form onSubmit={handleSubmit}>
-                <Form.Group as={Row} className="mb-4 align-items-center" controlId="otp">
-                  <Form.Label column sm={4} className="text-sm-end fw-semibold text-secondary">
-                    Verification Code
-                  </Form.Label>
-                  <Col sm={8}>
-                    <Form.Control
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      pattern="[0-9]{6}"
-                      maxLength={6}
-                      placeholder="Enter 6-digit code"
-                      className="text-center fs-4 letter-spacing-2"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                      required
-                    />
-                    <Form.Text className="text-muted">
-                      Code expires in 10 minutes. Check your inbox or spam folder.
-                    </Form.Text>
-                  </Col>
-                </Form.Group>
-
-                <div className="d-grid gap-2">
-                  <Button type="submit" variant="primary" disabled={isSubmitting || otp.length !== 6}>
-                    {isSubmitting ? 'Verifying...' : 'Verify Email & Complete'}
-                  </Button>
-
-                  <div className="text-center mt-2">
-                    <Button
-                      variant="link"
-                      className="text-decoration-none small text-muted"
-                      disabled={resendCooldown > 0 || isResending}
-                      onClick={handleResendOtp}
-                    >
-                      {isResending
-                        ? 'Sending code...'
-                        : resendCooldown > 0
-                          ? `Resend code in ${resendCooldown}s`
-                          : "Didn't receive code? Resend Code"}
-                    </Button>
-                  </div>
-                </div>
-              </Form>
-            ) : isSignUp ? (
-              /* Sign Up Form */
-              <Form onSubmit={userType === 'Provider' && step === 1 ? handleNextStep : handleSubmit}>
-                {step === 1 && (
-                  <>
-                    {/* Account Type Selector */}
-                    <Form.Group as={Row} className="mb-4 align-items-center" controlId="userType">
-                      <Form.Label column sm={4} className="text-sm-end fw-semibold text-secondary">
-                        Account Type <span className="text-danger">*</span>
-                      </Form.Label>
-                      <Col sm={8}>
-                        <div className="btn-group w-100" role="group">
-                          <button
-                            type="button"
-                            className={`btn py-2 ${userType === 'Requestor' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                            onClick={() => setUserType('Requestor')}
-                          >
-                            Requestor (Student)
-                          </button>
-                          <button
-                            type="button"
-                            className={`btn py-2 ${userType === 'Provider' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                            onClick={() => setUserType('Provider')}
-                          >
-                            Provider (Services)
-                          </button>
-                        </div>
-                      </Col>
-                    </Form.Group>
-
-                    {/* Student ID */}
-                    <Form.Group as={Row} className="mb-3 align-items-center" controlId="studentId">
-                      <Form.Label column sm={4} className="text-sm-end fw-semibold text-secondary">
-                        Student ID <span className="text-danger">*</span>
-                      </Form.Label>
-                      <Col sm={8}>
-                        <InputGroup>
-                          <Form.Control
-                            placeholder="e.g. MMC-1234 or 1234"
-                            value={studentId}
-                            onChange={(e) => setStudentId(e.target.value)}
-                            isValid={studentId.trim() && isStudentIdValid}
-                            isInvalid={studentId.trim() && !isStudentIdValid}
-                            required
-                          />
-                        </InputGroup>
-                        <div className="d-flex justify-content-between mt-1">
-                          <Form.Text className="text-muted">Must follow MMC-XXXX format</Form.Text>
-                          {studentId.trim() && (
-                            <span className={`small ${isStudentIdValid ? 'text-success' : 'text-danger'}`}>
-                              {isStudentIdValid ? '✓ Valid format' : '✗ Use MMC-XXXX'}
-                            </span>
-                          )}
-                        </div>
-                      </Col>
-                    </Form.Group>
-
-                    {/* First Name */}
-                    <Form.Group as={Row} className="mb-3 align-items-center" controlId="firstName">
-                      <Form.Label column sm={4} className="text-sm-end fw-semibold text-secondary">
-                        First Name <span className="text-danger">*</span>
-                      </Form.Label>
-                      <Col sm={8}>
-                        <Form.Control
-                          placeholder="First name"
-                          autoComplete="given-name"
-                          value={firstName}
-                          onChange={(e) => setFirstName(e.target.value)}
-                          isValid={firstName.trim().length >= 2}
-                          required
-                        />
-                      </Col>
-                    </Form.Group>
-
-                    {/* Last Name */}
-                    <Form.Group as={Row} className="mb-3 align-items-center" controlId="lastName">
-                      <Form.Label column sm={4} className="text-sm-end fw-semibold text-secondary">
-                        Last Name <span className="text-danger">*</span>
-                      </Form.Label>
-                      <Col sm={8}>
-                        <Form.Control
-                          placeholder="Last name"
-                          autoComplete="family-name"
-                          value={lastName}
-                          onChange={(e) => setLastName(e.target.value)}
-                          isValid={lastName.trim().length >= 2}
-                          required
-                        />
-                      </Col>
-                    </Form.Group>
-
-                    {/* Username */}
-                    <Form.Group as={Row} className="mb-3 align-items-center" controlId="username">
-                      <Form.Label column sm={4} className="text-sm-end fw-semibold text-secondary">
-                        Username <span className="text-danger">*</span>
-                      </Form.Label>
-                      <Col sm={8}>
-                        <Form.Control
-                          placeholder="Choose username"
-                          autoComplete="username"
-                          value={username}
-                          onChange={(e) => setUsername(e.target.value)}
-                          isValid={username.trim().length >= 3}
-                          required
-                        />
-                        {username.trim() && username.trim().length < 3 && (
-                          <Form.Text className="text-danger">At least 3 characters</Form.Text>
-                        )}
-                      </Col>
-                    </Form.Group>
-
-                    {/* Email */}
-                    <Form.Group as={Row} className="mb-3 align-items-center" controlId="email">
-                      <Form.Label column sm={4} className="text-sm-end fw-semibold text-secondary">
-                        Email Address <span className="text-danger">*</span>
-                      </Form.Label>
-                      <Col sm={8}>
-                        <Form.Control
-                          type="email"
-                          placeholder="your.email@example.com"
-                          autoComplete="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          isValid={email.trim() && isEmailValid}
-                          isInvalid={email.trim() && !isEmailValid}
-                          required
-                        />
-                        {email.trim() && (
-                          <div className="d-flex justify-content-end mt-1">
-                            <span className={`small ${isEmailValid ? 'text-success' : 'text-danger'}`}>
-                              {isEmailValid ? '✓ Valid email address' : '✗ Invalid email format'}
-                            </span>
-                          </div>
-                        )}
-                      </Col>
-                    </Form.Group>
-
-                    {/* Password with Strength Meter & Eye Toggle */}
-                    <Form.Group as={Row} className="mb-4 align-items-start" controlId="password">
-                      <Form.Label column sm={4} className="text-sm-end fw-semibold text-secondary pt-2">
-                        Password <span className="text-danger">*</span>
-                      </Form.Label>
-                      <Col sm={8}>
-                        <InputGroup>
-                          <Form.Control
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder="Password"
-                            autoComplete="new-password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            minLength={8}
-                            required
-                          />
-                          <Button
-                            variant="outline-secondary"
-                            onClick={() => setShowPassword(!showPassword)}
-                            type="button"
-                            aria-label={showPassword ? 'Hide password' : 'Show password'}
-                            className="d-flex align-items-center px-3"
-                          >
-                            {showPassword ? (
-                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
-                                <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
-                                <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
-                              </svg>
-                            ) : (
-                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
-                                <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
-                              </svg>
-                            )}
-                          </Button>
-                        </InputGroup>
-
-                        {/* Password Strength Progress Bar */}
-                        {password && (
-                          <div className="mt-2">
-                            <div className="d-flex justify-content-between align-items-center mb-1">
-                              <span className="small text-muted">Password Strength:</span>
-                              <span className={`small fw-bold text-${passwordStrength.variant}`}>
-                                {passwordStrength.label}
-                              </span>
-                            </div>
-                            <ProgressBar
-                              now={passwordStrength.percent}
-                              variant={passwordStrength.variant}
-                              style={{ height: '6px' }}
-                            />
-                            <div className="d-flex flex-wrap gap-2 mt-2">
-                              <span className={`badge ${passwordCriteria.hasMinLength ? 'bg-success' : 'bg-light text-muted border'}`}>
-                                {passwordCriteria.hasMinLength ? '✓' : '○'} 8+ chars
-                              </span>
-                              <span className={`badge ${passwordCriteria.hasUpper ? 'bg-success' : 'bg-light text-muted border'}`}>
-                                {passwordCriteria.hasUpper ? '✓' : '○'} Uppercase
-                              </span>
-                              <span className={`badge ${passwordCriteria.hasNumber ? 'bg-success' : 'bg-light text-muted border'}`}>
-                                {passwordCriteria.hasNumber ? '✓' : '○'} Number
-                              </span>
-                              <span className={`badge ${passwordCriteria.hasSpecial ? 'bg-success' : 'bg-light text-muted border'}`}>
-                                {passwordCriteria.hasSpecial ? '✓' : '○'} Special symbol
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </Col>
-                    </Form.Group>
-
-                    {/* Step 1 Actions */}
-                    <div className="d-flex justify-content-end mt-4">
-                      {userType === 'Provider' ? (
-                        <Button type="submit" variant="primary" className="px-4">
-                          Next: Provider Details &rarr;
-                        </Button>
-                      ) : (
-                        <Button type="submit" variant="primary" className="w-100" disabled={isSubmitting}>
-                          {isSubmitting ? 'Creating Account...' : 'Create Account'}
-                        </Button>
-                      )}
-                    </div>
-                  </>
                 )}
-
-                {step === 2 && userType === 'Provider' && (
-                  <>
-                    <div className="alert alert-info py-2 small mb-4">
-                      Please specify your Philippine contact number and service coverage location.
-                    </div>
-
-                    {/* Contact Number */}
-                    <Form.Group as={Row} className="mb-3 align-items-center" controlId="contactNumber">
-                      <Form.Label column sm={4} className="text-sm-end fw-semibold text-secondary">
-                        Mobile Number <span className="text-danger">*</span>
-                      </Form.Label>
-                      <Col sm={8}>
-                        <Form.Control
-                          placeholder="0912 345 6789"
-                          value={contactNumber}
-                          onChange={(e) => setContactNumber(e.target.value)}
-                          isValid={contactNumber.trim() && isContactValid}
-                          isInvalid={contactNumber.trim() && !isContactValid}
-                          required
-                        />
-                        {contactNumber.trim() && (
-                          <div className="d-flex justify-content-end mt-1">
-                            <span className={`small ${isContactValid ? 'text-success' : 'text-danger'}`}>
-                              {isContactValid ? '✓ Valid PH mobile' : '✗ Format: 09XXXXXXXXX'}
-                            </span>
-                          </div>
-                        )}
-                      </Col>
-                    </Form.Group>
-
-                    {/* Philippine Address Cascading Dropdowns */}
-                    {/* Region */}
-                    <Form.Group as={Row} className="mb-3 align-items-center" controlId="region">
-                      <Form.Label column sm={4} className="text-sm-end fw-semibold text-secondary">
-                        Region <span className="text-danger">*</span>
-                      </Form.Label>
-                      <Col sm={8}>
-                        <Form.Select
-                          value={selectedRegion}
-                          onChange={(e) => handleRegionChange(e.target.value)}
-                          isValid={!!selectedRegion}
-                          required
-                        >
-                          <option value="">Select Region...</option>
-                          {philippineRegions.map((region) => (
-                            <option key={region.code} value={region.name}>
-                              {region.name}
-                            </option>
-                          ))}
-                        </Form.Select>
-                      </Col>
-                    </Form.Group>
-
-                    {/* Province */}
-                    <Form.Group as={Row} className="mb-3 align-items-center" controlId="province">
-                      <Form.Label column sm={4} className="text-sm-end fw-semibold text-secondary">
-                        Province <span className="text-danger">*</span>
-                      </Form.Label>
-                      <Col sm={8}>
-                        <Form.Select
-                          value={selectedProvince}
-                          onChange={(e) => handleProvinceChange(e.target.value)}
-                          disabled={!selectedRegion}
-                          isValid={!!selectedProvince}
-                          required
-                        >
-                          <option value="">{selectedRegion ? 'Select Province...' : 'Select a Region first'}</option>
-                          {provinceOptions.map((province) => (
-                            <option key={province.name} value={province.name}>
-                              {province.name}
-                            </option>
-                          ))}
-                        </Form.Select>
-                      </Col>
-                    </Form.Group>
-
-                    {/* City / Municipality */}
-                    <Form.Group as={Row} className="mb-3 align-items-center" controlId="city">
-                      <Form.Label column sm={4} className="text-sm-end fw-semibold text-secondary">
-                        City / Municipality <span className="text-danger">*</span>
-                      </Form.Label>
-                      <Col sm={8}>
-                        <Form.Select
-                          value={selectedCity}
-                          onChange={(e) => handleCityChange(e.target.value)}
-                          disabled={!selectedProvince}
-                          isValid={!!selectedCity}
-                          required
-                        >
-                          <option value="">{selectedProvince ? 'Select City/Municipality...' : 'Select a Province first'}</option>
-                          {cityOptions.map((city) => (
-                            <option key={city.name} value={city.name}>
-                              {city.name}
-                            </option>
-                          ))}
-                        </Form.Select>
-                      </Col>
-                    </Form.Group>
-
-                    {/* Barangay */}
-                    <Form.Group as={Row} className="mb-4 align-items-center" controlId="barangay">
-                      <Form.Label column sm={4} className="text-sm-end fw-semibold text-secondary">
-                        Barangay <span className="text-danger">*</span>
-                      </Form.Label>
-                      <Col sm={8}>
-                        <Form.Select
-                          value={selectedBarangay}
-                          onChange={(e) => setSelectedBarangay(e.target.value)}
-                          disabled={!selectedCity}
-                          isValid={selectedBarangay && selectedBarangay !== 'Other'}
-                          required
-                        >
-                          <option value="">{selectedCity ? 'Select Barangay...' : 'Select a City first'}</option>
-                          {barangayOptions.map((brgy) => (
-                            <option key={brgy} value={brgy}>
-                              {brgy}
-                            </option>
-                          ))}
-                          <option value="Other">Other / Not Listed</option>
-                        </Form.Select>
-
-                        {selectedBarangay === 'Other' && (
-                          <Form.Control
-                            className="mt-2"
-                            placeholder="Enter your Barangay name"
-                            value={customBarangay}
-                            onChange={(e) => setCustomBarangay(e.target.value)}
-                            required
-                          />
-                        )}
-                      </Col>
-                    </Form.Group>
-
-                    {/* Step 2 Actions */}
-                    <div className="d-flex justify-content-between mt-4">
-                      <Button
-                        type="button"
-                        variant="outline-secondary"
-                        onClick={() => {
-                          setError('');
-                          setStep(1);
-                        }}
-                      >
-                        &larr; Back
-                      </Button>
-                      <Button type="submit" variant="primary" className="px-4" disabled={isSubmitting}>
-                        {isSubmitting ? 'Creating Account...' : 'Complete Registration'}
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </Form>
-            ) : (
-              /* Sign In View with Remember Me */
-              <Form onSubmit={handleSubmit}>
-                <Form.Group as={Row} className="mb-3 align-items-center" controlId="loginEmail">
-                  <Form.Label column sm={4} className="text-sm-end fw-semibold text-secondary">
-                    Email
-                  </Form.Label>
-                  <Col sm={8}>
-                    <Form.Control
-                      type="email"
-                      placeholder="Enter your email"
-                      autoComplete="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </Col>
-                </Form.Group>
-
-                <Form.Group as={Row} className="mb-3 align-items-center" controlId="loginPassword">
-                  <Form.Label column sm={4} className="text-sm-end fw-semibold text-secondary">
-                    Password
-                  </Form.Label>
-                  <Col sm={8}>
-                    <InputGroup>
-                      <Form.Control
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="Enter your password"
-                        autoComplete="current-password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                      />
-                      <Button
-                        variant="outline-secondary"
-                        onClick={() => setShowPassword(!showPassword)}
-                        type="button"
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                        className="d-flex align-items-center px-3"
-                      >
-                        {showPassword ? (
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
-                            <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
-                            <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
-                          </svg>
-                        ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
-                            <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
-                          </svg>
-                        )}
-                      </Button>
-                    </InputGroup>
-                  </Col>
-                </Form.Group>
-
-                {/* Remember Me Checkbox */}
-                <Row className="mb-4">
-                  <Col sm={{ span: 8, offset: 4 }}>
-                    <Form.Check
-                      type="checkbox"
-                      id="rememberMeCheckbox"
-                      label="Remember me on this device"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="text-muted small"
-                    />
-                  </Col>
-                </Row>
-
-                <Button type="submit" className="w-100" disabled={isSubmitting}>
-                  {isSubmitting ? 'Signing in...' : 'Sign in'}
-                </Button>
-              </Form>
-            )}
-
-            {!verificationPending && (
-              <div className="text-center mt-4">
-                {isSignUp ? 'Already have an account? ' : 'New to SerbisYou? '}
-                <Link to={isSignUp ? '/sign-in' : '/sign-up'}>
-                  {isSignUp ? 'Sign in' : 'Create an account'}
-                </Link>
               </div>
             )}
-          </Card.Body>
-        </Card>
+          </div>
+
+          <h2 className="fw-bold mb-2" style={{ color: 'var(--neu-text)' }}>
+            {getPageTitle()}
+          </h2>
+          <p className="text-muted small mb-4">
+            {verificationPending
+              ? `Enter the 6-digit confirmation code sent to ${email}.`
+              : isSignUp
+                ? step === 1
+                  ? 'Select your account role and enter your registration details.'
+                  : 'Provide your Philippine mobile and service coverage address.'
+                : 'Sign in to access your services and transactions.'}
+          </p>
+
+          {message && (
+            <div
+              className="neu-alert p-3 mb-4 d-flex align-items-center gap-2"
+              style={{
+                background: 'rgba(17, 122, 62, 0.08)',
+                borderLeft: '4px solid var(--neu-success)',
+                color: 'var(--neu-success)',
+                borderRadius: 'var(--neu-radius)',
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
+              </svg>
+              <span className="small fw-semibold">{message}</span>
+            </div>
+          )}
+
+          {error && (
+            <div
+              className="neu-alert p-3 mb-4 d-flex align-items-center gap-2"
+              style={{
+                background: 'rgba(161, 32, 45, 0.08)',
+                borderLeft: '4px solid var(--neu-danger)',
+                color: 'var(--neu-danger)',
+                borderRadius: 'var(--neu-radius)',
+              }}
+              role="alert"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0z" />
+              </svg>
+              <span className="small fw-semibold">{error}</span>
+            </div>
+          )}
+
+          {/* OTP Verification Screen */}
+          {verificationPending ? (
+            <Form onSubmit={handleSubmit}>
+              <div className="neu-card-inset p-4 text-center mb-4">
+                <div className="mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" fill="#063a8f" viewBox="0 0 16 16" className="opacity-75">
+                    <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z" />
+                  </svg>
+                </div>
+                <h5 className="fw-bold mb-2" style={{ color: 'var(--neu-text)' }}>
+                  Enter Verification Code
+                </h5>
+                <p className="text-muted small mb-3">
+                  Check your email ({email}) for your 6-digit OTP security code.
+                </p>
+
+                <Form.Control
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  placeholder="• • • • • •"
+                  className="neu-input text-center font-monospace fs-2 fw-bold mx-auto mb-2"
+                  style={{ maxWidth: '280px', letterSpacing: '8px' }}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  required
+                />
+                <small className="text-muted d-block">
+                  Code expires in 10 minutes.
+                </small>
+              </div>
+
+              <div className="d-grid gap-2">
+                <Button
+                  type="submit"
+                  className="neu-btn-primary rounded-pill py-2 fw-bold"
+                  disabled={isSubmitting || otp.length !== 6}
+                >
+                  {isSubmitting ? 'Verifying...' : 'Verify Email & Continue'}
+                </Button>
+
+                <div className="text-center mt-3">
+                  <Button
+                    variant="link"
+                    className="neu-btn-ghost rounded-pill px-3 py-1 small text-decoration-none"
+                    disabled={resendCooldown > 0 || isResending}
+                    onClick={handleResendOtp}
+                  >
+                    {isResending
+                      ? 'Sending code...'
+                      : resendCooldown > 0
+                        ? `Resend code in ${resendCooldown}s`
+                        : "Didn't receive code? Resend Code"}
+                  </Button>
+                </div>
+              </div>
+            </Form>
+          ) : isSignUp ? (
+            /* Multi-Step Sign Up Form */
+            <Form onSubmit={userType === 'Provider' && step === 1 ? handleNextStep : handleSubmit}>
+              {step === 1 && (
+                <>
+                  {/* Account Type Selector (Neumorphic Segmented Control) */}
+                  <div className="mb-4">
+                    <label className="fw-semibold small mb-2 d-block" style={{ color: 'var(--neu-text)' }}>
+                      Select Account Role <span className="text-danger">*</span>
+                    </label>
+                    <div
+                      className="p-1 rounded-pill d-flex gap-2"
+                      style={{
+                        background: 'var(--neu-bg)',
+                        boxShadow: 'var(--neu-shadow-inset)',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className={`flex-grow-1 border-0 py-2 rounded-pill fw-semibold small transition-all ${
+                          userType === 'Requestor'
+                            ? 'neu-btn-primary text-white shadow-sm'
+                            : 'neu-btn-ghost text-muted'
+                        }`}
+                        onClick={() => setUserType('Requestor')}
+                      >
+                        Requestor (Student)
+                      </button>
+                      <button
+                        type="button"
+                        className={`flex-grow-1 border-0 py-2 rounded-pill fw-semibold small transition-all ${
+                          userType === 'Provider'
+                            ? 'neu-btn-primary text-white shadow-sm'
+                            : 'neu-btn-ghost text-muted'
+                        }`}
+                        onClick={() => setUserType('Provider')}
+                      >
+                        Provider (Services)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Student ID */}
+                  <Form.Group as={Row} className="mb-3 align-items-center" controlId="studentId">
+                    <Form.Label column sm={4} className="text-sm-end fw-semibold small" style={{ color: 'var(--neu-text)' }}>
+                      Student ID <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Col sm={8}>
+                      <Form.Control
+                        placeholder="e.g. MMC-1234 or 1234"
+                        value={studentId}
+                        onChange={(e) => setStudentId(e.target.value)}
+                        className="neu-input"
+                        required
+                      />
+                      <div className="d-flex justify-content-between mt-1 px-1">
+                        <small className="text-muted" style={{ fontSize: '0.72rem' }}>Format: MMC-XXXX</small>
+                        {studentId.trim() && (
+                          <span
+                            className="small fw-semibold"
+                            style={{
+                              fontSize: '0.72rem',
+                              color: isStudentIdValid ? 'var(--neu-success)' : 'var(--neu-danger)',
+                            }}
+                          >
+                            {isStudentIdValid ? '✓ Valid MMC ID' : '✗ Format: MMC-XXXX'}
+                          </span>
+                        )}
+                      </div>
+                    </Col>
+                  </Form.Group>
+
+                  {/* First Name & Last Name */}
+                  <Form.Group as={Row} className="mb-3 align-items-center" controlId="firstName">
+                    <Form.Label column sm={4} className="text-sm-end fw-semibold small" style={{ color: 'var(--neu-text)' }}>
+                      First Name <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Col sm={8}>
+                      <Form.Control
+                        placeholder="First name"
+                        autoComplete="given-name"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="neu-input"
+                        required
+                      />
+                    </Col>
+                  </Form.Group>
+
+                  <Form.Group as={Row} className="mb-3 align-items-center" controlId="lastName">
+                    <Form.Label column sm={4} className="text-sm-end fw-semibold small" style={{ color: 'var(--neu-text)' }}>
+                      Last Name <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Col sm={8}>
+                      <Form.Control
+                        placeholder="Last name"
+                        autoComplete="family-name"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="neu-input"
+                        required
+                      />
+                    </Col>
+                  </Form.Group>
+
+                  {/* Username */}
+                  <Form.Group as={Row} className="mb-3 align-items-center" controlId="username">
+                    <Form.Label column sm={4} className="text-sm-end fw-semibold small" style={{ color: 'var(--neu-text)' }}>
+                      Username <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Col sm={8}>
+                      <Form.Control
+                        placeholder="Choose username"
+                        autoComplete="username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="neu-input"
+                        required
+                      />
+                      {username.trim() && username.trim().length < 3 && (
+                        <small className="text-danger d-block mt-1 px-1" style={{ fontSize: '0.72rem' }}>
+                          At least 3 characters
+                        </small>
+                      )}
+                    </Col>
+                  </Form.Group>
+
+                  {/* Email */}
+                  <Form.Group as={Row} className="mb-3 align-items-center" controlId="email">
+                    <Form.Label column sm={4} className="text-sm-end fw-semibold small" style={{ color: 'var(--neu-text)' }}>
+                      Email Address <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Col sm={8}>
+                      <Form.Control
+                        type="email"
+                        placeholder="your.email@example.com"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="neu-input"
+                        required
+                      />
+                      {email.trim() && (
+                        <div className="d-flex justify-content-end mt-1 px-1">
+                          <span
+                            className="small fw-semibold"
+                            style={{
+                              fontSize: '0.72rem',
+                              color: isEmailValid ? 'var(--neu-success)' : 'var(--neu-danger)',
+                            }}
+                          >
+                            {isEmailValid ? '✓ Valid email address' : '✗ Invalid email format'}
+                          </span>
+                        </div>
+                      )}
+                    </Col>
+                  </Form.Group>
+
+                  {/* Password with Strength Meter & Eye Toggle */}
+                  <Form.Group as={Row} className="mb-4 align-items-start" controlId="password">
+                    <Form.Label column sm={4} className="text-sm-end fw-semibold small pt-2" style={{ color: 'var(--neu-text)' }}>
+                      Password <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Col sm={8}>
+                      <InputGroup>
+                        <Form.Control
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Create strong password"
+                          autoComplete="new-password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          minLength={8}
+                          className="neu-input rounded-start"
+                          required
+                        />
+                        <Button
+                          variant="link"
+                          onClick={() => setShowPassword(!showPassword)}
+                          type="button"
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          className="neu-btn-ghost d-flex align-items-center px-3"
+                          style={{
+                            borderTopLeftRadius: 0,
+                            borderBottomLeftRadius: 0,
+                            borderTopRightRadius: 'var(--neu-radius)',
+                            borderBottomRightRadius: 'var(--neu-radius)',
+                          }}
+                        >
+                          {showPassword ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                              <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
+                              <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
+                              <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                              <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                              <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                            </svg>
+                          )}
+                        </Button>
+                      </InputGroup>
+
+                      {/* Password Strength Progress Bar & Badges */}
+                      {password && (
+                        <div className="mt-2 p-2 rounded-3" style={{ background: 'var(--neu-bg-dark)', boxShadow: 'var(--neu-shadow-inset)' }}>
+                          <div className="d-flex justify-content-between align-items-center mb-1">
+                            <span className="small text-muted" style={{ fontSize: '0.72rem' }}>Password Strength:</span>
+                            <span className={`small fw-bold text-${passwordStrength.variant}`} style={{ fontSize: '0.72rem' }}>
+                              {passwordStrength.label}
+                            </span>
+                          </div>
+                          <ProgressBar
+                            now={passwordStrength.percent}
+                            variant={passwordStrength.variant}
+                            style={{ height: '5px', borderRadius: '4px' }}
+                          />
+                          <div className="d-flex flex-wrap gap-1 mt-2">
+                            <span
+                              className="badge"
+                              style={{
+                                background: passwordCriteria.hasMinLength ? 'var(--neu-success)' : 'var(--neu-bg)',
+                                color: passwordCriteria.hasMinLength ? '#fff' : 'var(--neu-text-muted)',
+                                boxShadow: 'var(--neu-shadow-sm)',
+                                fontSize: '0.68rem',
+                              }}
+                            >
+                              {passwordCriteria.hasMinLength ? '✓' : '○'} 8+ chars
+                            </span>
+                            <span
+                              className="badge"
+                              style={{
+                                background: passwordCriteria.hasUpper ? 'var(--neu-success)' : 'var(--neu-bg)',
+                                color: passwordCriteria.hasUpper ? '#fff' : 'var(--neu-text-muted)',
+                                boxShadow: 'var(--neu-shadow-sm)',
+                                fontSize: '0.68rem',
+                              }}
+                            >
+                              {passwordCriteria.hasUpper ? '✓' : '○'} Uppercase
+                            </span>
+                            <span
+                              className="badge"
+                              style={{
+                                background: passwordCriteria.hasNumber ? 'var(--neu-success)' : 'var(--neu-bg)',
+                                color: passwordCriteria.hasNumber ? '#fff' : 'var(--neu-text-muted)',
+                                boxShadow: 'var(--neu-shadow-sm)',
+                                fontSize: '0.68rem',
+                              }}
+                            >
+                              {passwordCriteria.hasNumber ? '✓' : '○'} Number
+                            </span>
+                            <span
+                              className="badge"
+                              style={{
+                                background: passwordCriteria.hasSpecial ? 'var(--neu-success)' : 'var(--neu-bg)',
+                                color: passwordCriteria.hasSpecial ? '#fff' : 'var(--neu-text-muted)',
+                                boxShadow: 'var(--neu-shadow-sm)',
+                                fontSize: '0.68rem',
+                              }}
+                            >
+                              {passwordCriteria.hasSpecial ? '✓' : '○'} Special char
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </Col>
+                  </Form.Group>
+
+                  {/* Step 1 Actions */}
+                  <div className="d-flex justify-content-end mt-4 pt-2 border-top" style={{ borderColor: 'rgba(154, 172, 196, 0.35)' }}>
+                    {userType === 'Provider' ? (
+                      <Button type="submit" className="neu-btn-primary rounded-pill px-4 py-2 fw-semibold">
+                        Next: Provider Location &rarr;
+                      </Button>
+                    ) : (
+                      <Button type="submit" className="neu-btn-primary rounded-pill w-100 py-2 fw-bold" disabled={isSubmitting}>
+                        {isSubmitting ? 'Creating Account...' : 'Create Account'}
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {step === 2 && userType === 'Provider' && (
+                <>
+                  <div className="neu-alert p-3 mb-4 d-flex align-items-center gap-2" style={{ background: 'rgba(8, 95, 166, 0.08)', borderLeft: '4px solid var(--neu-info)', borderRadius: 'var(--neu-radius)' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="var(--neu-info)" viewBox="0 0 16 16">
+                      <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" />
+                    </svg>
+                    <span className="small fw-semibold" style={{ color: 'var(--neu-info)' }}>
+                      Please specify your Philippine mobile contact and service coverage location.
+                    </span>
+                  </div>
+
+                  {/* Contact Number */}
+                  <Form.Group as={Row} className="mb-3 align-items-center" controlId="contactNumber">
+                    <Form.Label column sm={4} className="text-sm-end fw-semibold small" style={{ color: 'var(--neu-text)' }}>
+                      Mobile Number <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Col sm={8}>
+                      <Form.Control
+                        placeholder="0912 345 6789"
+                        value={contactNumber}
+                        onChange={(e) => setContactNumber(e.target.value)}
+                        className="neu-input"
+                        required
+                      />
+                      {contactNumber.trim() && (
+                        <div className="d-flex justify-content-end mt-1 px-1">
+                          <span
+                            className="small fw-semibold"
+                            style={{
+                              fontSize: '0.72rem',
+                              color: isContactValid ? 'var(--neu-success)' : 'var(--neu-danger)',
+                            }}
+                          >
+                            {isContactValid ? '✓ Valid PH mobile' : '✗ Format: 09XXXXXXXXX'}
+                          </span>
+                        </div>
+                      )}
+                    </Col>
+                  </Form.Group>
+
+                  {/* Philippine Address Cascading Dropdowns */}
+                  {/* Region */}
+                  <Form.Group as={Row} className="mb-3 align-items-center" controlId="region">
+                    <Form.Label column sm={4} className="text-sm-end fw-semibold small" style={{ color: 'var(--neu-text)' }}>
+                      Region <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Col sm={8}>
+                      <Form.Select
+                        value={selectedRegion}
+                        onChange={(e) => handleRegionChange(e.target.value)}
+                        className="neu-select w-100"
+                        required
+                      >
+                        <option value="">Select Region...</option>
+                        {philippineRegions.map((region) => (
+                          <option key={region.code} value={region.name}>
+                            {region.name}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Col>
+                  </Form.Group>
+
+                  {/* Province */}
+                  <Form.Group as={Row} className="mb-3 align-items-center" controlId="province">
+                    <Form.Label column sm={4} className="text-sm-end fw-semibold small" style={{ color: 'var(--neu-text)' }}>
+                      Province <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Col sm={8}>
+                      <Form.Select
+                        value={selectedProvince}
+                        onChange={(e) => handleProvinceChange(e.target.value)}
+                        disabled={!selectedRegion}
+                        className="neu-select w-100"
+                        required
+                      >
+                        <option value="">{selectedRegion ? 'Select Province...' : 'Select a Region first'}</option>
+                        {provinceOptions.map((province) => (
+                          <option key={province.name} value={province.name}>
+                            {province.name}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Col>
+                  </Form.Group>
+
+                  {/* City / Municipality */}
+                  <Form.Group as={Row} className="mb-3 align-items-center" controlId="city">
+                    <Form.Label column sm={4} className="text-sm-end fw-semibold small" style={{ color: 'var(--neu-text)' }}>
+                      City / Municipality <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Col sm={8}>
+                      <Form.Select
+                        value={selectedCity}
+                        onChange={(e) => handleCityChange(e.target.value)}
+                        disabled={!selectedProvince}
+                        className="neu-select w-100"
+                        required
+                      >
+                        <option value="">{selectedProvince ? 'Select City/Municipality...' : 'Select a Province first'}</option>
+                        {cityOptions.map((city) => (
+                          <option key={city.name} value={city.name}>
+                            {city.name}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Col>
+                  </Form.Group>
+
+                  {/* Barangay */}
+                  <Form.Group as={Row} className="mb-4 align-items-center" controlId="barangay">
+                    <Form.Label column sm={4} className="text-sm-end fw-semibold small" style={{ color: 'var(--neu-text)' }}>
+                      Barangay <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Col sm={8}>
+                      <Form.Select
+                        value={selectedBarangay}
+                        onChange={(e) => setSelectedBarangay(e.target.value)}
+                        disabled={!selectedCity}
+                        className="neu-select w-100"
+                        required
+                      >
+                        <option value="">{selectedCity ? 'Select Barangay...' : 'Select a City first'}</option>
+                        {barangayOptions.map((brgy) => (
+                          <option key={brgy} value={brgy}>
+                            {brgy}
+                          </option>
+                        ))}
+                        <option value="Other">Other / Not Listed</option>
+                      </Form.Select>
+
+                      {selectedBarangay === 'Other' && (
+                        <Form.Control
+                          className="neu-input mt-2"
+                          placeholder="Enter your Barangay name"
+                          value={customBarangay}
+                          onChange={(e) => setCustomBarangay(e.target.value)}
+                          required
+                        />
+                      )}
+                    </Col>
+                  </Form.Group>
+
+                  {/* Step 2 Actions */}
+                  <div className="d-flex justify-content-between mt-4 pt-2 border-top" style={{ borderColor: 'rgba(154, 172, 196, 0.35)' }}>
+                    <Button
+                      type="button"
+                      className="neu-btn-ghost rounded-pill px-4 py-2"
+                      onClick={() => {
+                        setError('');
+                        setStep(1);
+                      }}
+                    >
+                      &larr; Back
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="neu-btn-primary rounded-pill px-4 py-2 fw-semibold"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? 'Creating Account...' : 'Complete Registration'}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </Form>
+          ) : (
+            /* Sign In View with Remember Me */
+            <Form onSubmit={handleSubmit}>
+              <Form.Group as={Row} className="mb-3 align-items-center" controlId="loginEmail">
+                <Form.Label column sm={4} className="text-sm-end fw-semibold small" style={{ color: 'var(--neu-text)' }}>
+                  Email Address
+                </Form.Label>
+                <Col sm={8}>
+                  <Form.Control
+                    type="email"
+                    placeholder="Enter your email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="neu-input"
+                    required
+                  />
+                </Col>
+              </Form.Group>
+
+              <Form.Group as={Row} className="mb-3 align-items-center" controlId="loginPassword">
+                <Form.Label column sm={4} className="text-sm-end fw-semibold small" style={{ color: 'var(--neu-text)' }}>
+                  Password
+                </Form.Label>
+                <Col sm={8}>
+                  <InputGroup>
+                    <Form.Control
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Enter your password"
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="neu-input rounded-start"
+                      required
+                    />
+                    <Button
+                      variant="link"
+                      onClick={() => setShowPassword(!showPassword)}
+                      type="button"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      className="neu-btn-ghost d-flex align-items-center px-3"
+                      style={{
+                        borderTopLeftRadius: 0,
+                        borderBottomLeftRadius: 0,
+                        borderTopRightRadius: 'var(--neu-radius)',
+                        borderBottomRightRadius: 'var(--neu-radius)',
+                      }}
+                    >
+                      {showPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
+                          <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
+                          <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                          <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                        </svg>
+                      )}
+                    </Button>
+                  </InputGroup>
+                </Col>
+              </Form.Group>
+
+              {/* Remember Me Checkbox */}
+              <Row className="mb-4">
+                <Col sm={{ span: 8, offset: 4 }}>
+                  <Form.Check
+                    type="checkbox"
+                    id="rememberMeCheckbox"
+                    label="Remember me on this device"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="text-muted small"
+                  />
+                </Col>
+              </Row>
+
+              <Button
+                type="submit"
+                className="neu-btn-primary rounded-pill w-100 py-2 fw-bold"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Signing in...' : 'Sign in'}
+              </Button>
+            </Form>
+          )}
+
+          {!verificationPending && (
+            <div className="text-center mt-4 pt-3 border-top" style={{ borderColor: 'rgba(154, 172, 196, 0.35)' }}>
+              <span className="text-muted small">
+                {isSignUp ? 'Already have an account? ' : 'New to SerbisYou? '}
+              </span>
+              <Link
+                to={isSignUp ? '/sign-in' : '/sign-up'}
+                className="fw-bold small text-decoration-none ms-1"
+                style={{ color: '#063a8f' }}
+              >
+                {isSignUp ? 'Sign in' : 'Create an account'}
+              </Link>
+            </div>
+          )}
+        </div>
       </Container>
     </main>
   );
