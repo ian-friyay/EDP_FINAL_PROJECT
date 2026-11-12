@@ -116,16 +116,37 @@ const register = async (req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Generate user_id (MMC-XXXX) if existingUser does not exist
+        let assignedUserId = existingUser ? existingUser.user_id : null;
+        if (!assignedUserId) {
+            const { data: latestUsers } = await supabase
+                .from('users')
+                .select('user_id')
+                .order('user_id', { ascending: false })
+                .limit(1);
+
+            let nextNum = 1;
+            if (latestUsers && latestUsers.length > 0 && latestUsers[0].user_id) {
+                const match = latestUsers[0].user_id.match(/^MMC-(\d+)$/);
+                if (match) {
+                    nextNum = parseInt(match[1], 10) + 1;
+                }
+            }
+            assignedUserId = `MMC-${String(nextNum).padStart(4, '0')}`;
+        }
+
         const userRecord = {
-            first_name: firstName,
-            last_name: lastName,
-            username,
-            contact_number: contactNumber,
+            user_id: assignedUserId,
+            first_name: firstName || '',
+            last_name: lastName || '',
+            username: username || '',
+            contact_number: contactNumber || '',
             email: normalizedEmail,
-            region,
-            province,
-            city,
-            barangay,
+            region: region || '',
+            province: province || '',
+            city: city || '',
+            barangay: barangay || '',
             user_type: userType,
             password: hashedPassword,
             is_active: true
@@ -170,6 +191,8 @@ const register = async (req, res) => {
             console.error('Registration OTP save failed:', saveVerificationError.message);
             return res.status(500).json({ error: 'Could not save the verification code.' });
         }
+
+        console.log(`[AUTH OTP DEV LOG] Generated OTP for ${normalizedEmail}: ${otp}`);
 
         try {
             await sendOtpEmail(normalizedEmail, otp);
