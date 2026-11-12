@@ -56,4 +56,28 @@ const updateProfile = async (req, res) => {
     return res.status(200).json({ message: 'Profile updated successfully.', user });
 };
 
-module.exports = { updateProfile };
+const getProfile = async (req, res) => {
+    try {
+        const userId = req.user && req.user.user_id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized.' });
+        }
+
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('user_id, first_name, last_name, username, contact_number, email, region, province, city, barangay, user_type, department, designation, is_active')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (error || !user) {
+            return res.status(404).json({ error: 'User profile not found.' });
+        }
+
+        return res.status(200).json({ user });
+    } catch (err) {
+        console.error('getProfile error:', err);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+};
+
+module.exports = { getProfile, updateProfile };

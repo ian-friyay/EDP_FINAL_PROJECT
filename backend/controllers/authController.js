@@ -77,6 +77,44 @@ const register = async (req, res) => {
             return res.status(400).json({ error: 'user_type must be Provider or Requestor.' });
         }
 
+        // Student ID Validation (Required)
+        const rawStudentId = typeof body.student_id === 'string'
+            ? body.student_id.trim()
+            : typeof body.user_id === 'string'
+                ? body.user_id.trim()
+                : '';
+
+        if (!rawStudentId) {
+            return res.status(400).json({ error: 'Student ID is required.' });
+        }
+
+        let normalizedStudentId = rawStudentId.toUpperCase();
+        if (/^\d{1,4}$/.test(normalizedStudentId)) {
+            normalizedStudentId = `MMC-${normalizedStudentId.padStart(4, '0')}`;
+        }
+        if (!/^MMC-\d{4}$/.test(normalizedStudentId)) {
+            return res.status(400).json({ error: 'Student ID must follow the format MMC-XXXX (e.g. MMC-1234).' });
+        }
+
+        // Provider Requirements (Personal Info & Address)
+        if (userType === 'Provider') {
+            if (!contactNumber || !contactNumber.trim()) {
+                return res.status(400).json({ error: 'Contact number is required for Provider accounts.' });
+            }
+            if (!region || !region.trim()) {
+                return res.status(400).json({ error: 'Region is required for Provider accounts.' });
+            }
+            if (!province || !province.trim()) {
+                return res.status(400).json({ error: 'Province is required for Provider accounts.' });
+            }
+            if (!city || !city.trim()) {
+                return res.status(400).json({ error: 'City is required for Provider accounts.' });
+            }
+            if (!barangay || !barangay.trim()) {
+                return res.status(400).json({ error: 'Barangay is required for Provider accounts.' });
+            }
+        }
+
         const normalizedEmail = email.trim().toLowerCase();
         const { data: existingUser, error: lookupError } = await supabase
             .from('users')
@@ -90,6 +128,17 @@ const register = async (req, res) => {
         }
         if (existingUser && !existingUser.is_active) {
             return res.status(409).json({ error: 'This account is inactive.' });
+        }
+
+        // Check if Student ID is already taken by another account
+        const { data: userWithId } = await supabase
+            .from('users')
+            .select('user_id, email')
+            .eq('user_id', normalizedStudentId)
+            .maybeSingle();
+
+        if (userWithId && userWithId.email !== normalizedEmail) {
+            return res.status(409).json({ error: `Student ID ${normalizedStudentId} is already registered.` });
         }
 
         if (existingUser) {
@@ -116,16 +165,19 @@ const register = async (req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
+        const assignedUserId = existingUser ? existingUser.user_id : normalizedStudentId;
+
         const userRecord = {
-            first_name: firstName,
-            last_name: lastName,
-            username,
-            contact_number: contactNumber,
+            user_id: assignedUserId,
+            first_name: firstName || '',
+            last_name: lastName || '',
+            username: username || '',
+            contact_number: contactNumber || '',
             email: normalizedEmail,
-            region,
-            province,
-            city,
-            barangay,
+            region: region || '',
+            province: province || '',
+            city: city || '',
+            barangay: barangay || '',
             user_type: userType,
             password: hashedPassword,
             is_active: true
@@ -170,6 +222,8 @@ const register = async (req, res) => {
             console.error('Registration OTP save failed:', saveVerificationError.message);
             return res.status(500).json({ error: 'Could not save the verification code.' });
         }
+
+        console.log(`[AUTH OTP DEV LOG] Generated OTP for ${normalizedEmail}: ${otp}`);
 
         try {
             await sendOtpEmail(normalizedEmail, otp);
@@ -226,8 +280,11 @@ const verifyOtp = async (req, res) => {
             console.error('OTP lookup failed:', verificationError.message);
             return res.status(500).json({ error: 'Could not verify the account.' });
         }
-        if (!verification || verification.verified_at) {
-            return res.status(400).json({ error: 'No pending verification exists for this account.' });
+        if (!verification) {
+            return res.status(400).json({ error: 'No verification record exists for this account.' });
+        }
+        if (verification.verified_at) {
+            return res.status(200).json({ message: 'Email is already verified. You can now log in.' });
         }
         if (verification.failed_attempts >= 5) {
             return res.status(429).json({ error: 'Too many invalid verification codes. Register again to request a new code.' });
@@ -291,6 +348,73 @@ const verifyOtp = async (req, res) => {
     }
 };
 
+const resendOtp = async (req, res) => {
+    try {
+        const { email } = req.body || {};
+        if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+            return res.status(400).json({ error: 'A valid email address is required.' });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+        const { data: user, error: userError } = await supabase
+            .from('users')
+            .select('user_id, is_active')
+            .eq('email', normalizedEmail)
+            .maybeSingle();
+
+        if (userError) {
+            console.error('Resend OTP user lookup failed:', userError.message);
+            return res.status(500).json({ error: 'Could not lookup account.' });
+        }
+        if (!user || !user.is_active) {
+            return res.status(404).json({ error: 'Account not found.' });
+        }
+
+        const { data: verification } = await supabase
+            .from('email_verifications')
+            .select('verified_at')
+            .eq('user_id', user.user_id)
+            .maybeSingle();
+
+        if (verification?.verified_at) {
+            return res.status(400).json({ error: 'Email is already verified. You can sign in.' });
+        }
+
+        const otp = crypto.randomInt(0, 1000000).toString().padStart(6, '0');
+        const otpHash = await bcrypt.hash(otp, 10);
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+        const { error: saveError } = await supabase
+            .from('email_verifications')
+            .upsert({
+                user_id: user.user_id,
+                otp_hash: otpHash,
+                expires_at: expiresAt,
+                verified_at: null,
+                failed_attempts: 0
+            }, { onConflict: 'user_id' });
+
+        if (saveError) {
+            console.error('Resend OTP save failed:', saveError.message);
+            return res.status(500).json({ error: 'Could not generate new verification code.' });
+        }
+
+        console.log(`[AUTH OTP DEV LOG] Resent OTP for ${normalizedEmail}: ${otp}`);
+
+        try {
+            await sendOtpEmail(normalizedEmail, otp);
+        } catch (error) {
+            console.error('Resend OTP email delivery failed:', error.message);
+            return res.status(502).json({ error: 'Could not send verification email. Please try again later.' });
+        }
+
+        return res.status(200).json({ message: 'A new 6-digit verification code has been sent to your email.' });
+    } catch (error) {
+        console.error('Resend OTP error:', error.message);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+};
+
 const login = async (req, res) => {
     try {
         const { email, password } = req.body || {};
@@ -309,7 +433,13 @@ const login = async (req, res) => {
             console.error('Login user lookup failed:', userError.message);
             return res.status(500).json({ error: 'Could not log in.' });
         }
-        if (!user || !user.is_active || !(await bcrypt.compare(password, user.password))) {
+        const isPasswordMatch = user && user.password && (
+            user.password.startsWith('$2')
+                ? await bcrypt.compare(password, user.password)
+                : password === user.password
+        );
+
+        if (!user || !user.is_active || !isPasswordMatch) {
             return res.status(401).json({ error: 'Invalid email or password.' });
         }
 
@@ -323,7 +453,7 @@ const login = async (req, res) => {
             console.error('Login verification lookup failed:', verificationError.message);
             return res.status(500).json({ error: 'Could not log in.' });
         }
-        if (!verification?.verified_at) {
+        if (verification && !verification.verified_at) {
             return res.status(403).json({ error: 'Verify your email before logging in.' });
         }
 
@@ -350,5 +480,6 @@ const login = async (req, res) => {
 module.exports = {
     register,
     verifyOtp,
+    resendOtp,
     login
 };

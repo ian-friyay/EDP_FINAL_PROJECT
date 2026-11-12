@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Outlet, Link, useNavigate } from 'react-router-dom';
 import {
   Navbar,
   Nav,
@@ -13,24 +13,61 @@ import {
 import Sidebar from './Sidebar';
 import OfflineToast from './OfflineToast';
 import NotificationsDropdown from './NotificationsDropdown';
+import api from '../api/axios';
 
 export default function Layout() {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const navigate = useNavigate();
 
-  // Mock user following universal database schema: users table
-  const currentUser = {
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    api.get('/profile/me')
+      .then(({ data }) => {
+        if (isMounted && data.user) {
+          setCurrentUser(data.user);
+          window.localStorage.setItem('user', JSON.stringify(data.user));
+          window.localStorage.setItem('user_id', data.user.user_id);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSignOut = () => {
+    window.localStorage.removeItem('token');
+    window.localStorage.removeItem('user_id');
+    window.localStorage.removeItem('user');
+    navigate('/sign-in', { replace: true });
+  };
+
+  const user = currentUser || {
     user_id: 'MMC-1042',
     first_name: 'Juan',
     last_name: 'Dela Cruz',
     username: 'juandelacruz',
     email: 'juan.delacruz@serbisyou.ph',
     contact_number: '+63 912 345 6789',
-    user_type: 'Provider', // 'Provider' | 'Requestor'
+    user_type: 'Provider',
     region: 'NCR',
     province: 'Metro Manila',
     city: 'Quezon City',
     barangay: 'Brgy. Central',
   };
+
+  const displayName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.user_id || 'User';
+  const initial = (user.first_name || displayName || 'U')[0]?.toUpperCase();
 
   return (
     <div className="min-vh-100 d-flex flex-column">
@@ -51,7 +88,7 @@ export default function Layout() {
             </Button>
 
             {/* Brand Logo & Name */}
-            <Navbar.Brand as={Link} to="/" className="fw-bold d-flex align-items-center gap-2 m-0 text-white">
+            <Navbar.Brand as={Link} to="/dashboard" className="fw-bold d-flex align-items-center gap-2 m-0 text-white">
               <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
                 <path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5 8.186 1.113zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z" />
               </svg>
@@ -91,26 +128,26 @@ export default function Layout() {
               title={
                 <span className="text-white d-inline-flex align-items-center gap-2">
                   <span className="d-none d-md-inline small fw-semibold">
-                    {currentUser.first_name}
+                    {displayName}
                   </span>
                   <Badge bg="light" text="dark" className="d-none d-md-inline small rounded-pill">
-                    {currentUser.user_type}
+                    {user.user_type || 'User'}
                   </Badge>
                   <span className="neu-avatar">
-                    {currentUser.first_name[0]}
+                    {initial}
                   </span>
                 </span>
               }
             >
               <div className="px-3 py-2 border-bottom" style={{ borderColor: 'rgba(154, 172, 196, 0.3)' }}>
                 <div className="fw-bold" style={{ color: 'var(--neu-text)' }}>
-                  {currentUser.first_name} {currentUser.last_name}
+                  {displayName}
                 </div>
                 <div className="text-muted small font-monospace">
-                  {currentUser.user_id}
+                  {user.user_id}
                 </div>
                 <div className="text-muted small text-truncate">
-                  {currentUser.email}
+                  {user.email}
                 </div>
               </div>
               <NavDropdown.Item as={Link} to="/profile">
@@ -123,7 +160,7 @@ export default function Layout() {
                 My Transactions
               </NavDropdown.Item>
               <NavDropdown.Divider />
-              <NavDropdown.Item className="text-danger">
+              <NavDropdown.Item as="button" type="button" className="text-danger" onClick={handleSignOut}>
                 Sign Out
               </NavDropdown.Item>
             </NavDropdown>
@@ -139,7 +176,7 @@ export default function Layout() {
             <Sidebar
               show={showMobileSidebar}
               onHide={() => setShowMobileSidebar(false)}
-              currentUser={currentUser}
+              currentUser={user}
             />
           </Col>
 

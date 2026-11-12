@@ -26,6 +26,29 @@ CREATE TABLE IF NOT EXISTS public.users (
     CHECK ((department IS NULL) = (designation IS NULL))
 );
 
+ALTER TABLE public.users
+    ALTER COLUMN user_id SET DEFAULT (
+        'MMC-' || lpad(nextval('public.users_user_id_seq')::text, 4, '0')
+    );
+
+SELECT setval(
+    'public.users_user_id_seq',
+    GREATEST(
+        COALESCE(MAX(
+            CASE
+                WHEN user_id ~ '^MMC-[0-9]{4}$' THEN substring(user_id FROM 5)::integer
+            END
+        ), 0),
+        1
+    ),
+    COALESCE(MAX(
+        CASE
+            WHEN user_id ~ '^MMC-[0-9]{4}$' THEN substring(user_id FROM 5)::integer
+        END
+    ), 0) > 0
+)
+FROM public.users;
+
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_unique
     ON public.users (lower(email));
 

@@ -67,7 +67,15 @@ const INITIAL_SERVICES = [
   },
 ];
 
-export default function ServicesGrid({ services = INITIAL_SERVICES }) {
+export default function ServicesGrid({
+  services = INITIAL_SERVICES,
+  currentUserId,
+  onDeleteService,
+  deletingServiceId,
+  onEditService,
+  onBookService,
+  bookingServiceId,
+}) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [activeModalService, setActiveModalService] = useState(null);
@@ -93,10 +101,10 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
       const query = searchTerm.toLowerCase().trim();
       const matchesSearch =
         !query ||
-        item.subcategory.toLowerCase().includes(query) ||
-        item.service_description.toLowerCase().includes(query) ||
-        item.service_category.toLowerCase().includes(query) ||
-        item.user_id.toLowerCase().includes(query) ||
+        (item.subcategory || '').toLowerCase().includes(query) ||
+        (item.service_description || '').toLowerCase().includes(query) ||
+        (item.service_category || '').toLowerCase().includes(query) ||
+        (item.user_id || '').toLowerCase().includes(query) ||
         (item.provider_name && item.provider_name.toLowerCase().includes(query));
 
       return matchesCategory && matchesSearch;
@@ -108,12 +116,17 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
     setSelectedCategory('ALL');
   };
 
-  const handleBookService = (service) => {
-    setBookingSuccessAlert(
-      `Booking request initiated for "${service.subcategory}". ₱5.00 booking fee applied. Total to pay: ₱${(service.amount_topay + 5).toFixed(2)}.`
-    );
-    setActiveModalService(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleBookService = async (service) => {
+    if (onBookService) {
+      await onBookService(service);
+      setActiveModalService(null);
+    } else {
+      setBookingSuccessAlert(
+        `Booking request initiated for "${service.subcategory}". ₱5.00 booking fee applied. Total to pay: ₱${(Number(service.amount_topay) + 5).toFixed(2)}.`
+      );
+      setActiveModalService(null);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   return (
@@ -242,8 +255,10 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
       ) : (
         <Row xs={1} md={2} lg={3} className="g-4">
           {filteredServices.map((service) => {
+            const amount = Number(service.amount_topay) || 0;
             const bookingFee = 5.0;
-            const totalToPay = service.amount_topay + bookingFee;
+            const totalToPay = amount + bookingFee;
+            const isOwner = Boolean(currentUserId && service.user_id === currentUserId);
             const primaryImage =
               service.picture_proof && service.picture_proof.length > 0
                 ? service.picture_proof[0]
@@ -256,7 +271,7 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
                   <div className="position-relative">
                     <img
                       src={primaryImage}
-                      alt={service.subcategory}
+                      alt={service.subcategory || service.service_category}
                       className="w-100 rounded-top-3"
                       style={{ height: '200px', objectFit: 'cover' }}
                       onError={(e) => {
@@ -272,7 +287,7 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
                         bg={service.service_status === 'active' ? 'success' : 'secondary'}
                         className="shadow-sm text-capitalize"
                       >
-                        {service.service_status}
+                        {service.service_status || 'active'}
                       </Badge>
                     </div>
                     {service.picture_proof && service.picture_proof.length > 1 && (
@@ -317,7 +332,7 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
                       <div className="d-flex justify-content-between align-items-center text-muted small mb-1">
                         <span>Service Rate:</span>
                         <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>
-                          ₱{service.amount_topay.toFixed(2)}
+                          ₱{amount.toFixed(2)}
                         </span>
                       </div>
                       <div className="d-flex justify-content-between align-items-center text-muted small mb-1">
@@ -334,22 +349,44 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
                     </div>
 
                     {/* Card Actions */}
-                    <div className="d-flex gap-2">
-                      <Button
-                        className="neu-btn-outline w-50 fw-semibold"
-                        size="sm"
-                        onClick={() => setActiveModalService(service)}
-                      >
-                        View Details
-                      </Button>
-                      <Button
-                        className="neu-btn-primary w-50 fw-semibold"
-                        size="sm"
-                        onClick={() => handleBookService(service)}
-                      >
-                        Book Now
-                      </Button>
-                    </div>
+                    {isOwner ? (
+                      <div className="d-flex gap-2">
+                        <Button
+                          className="neu-btn-outline w-50 fw-semibold"
+                          size="sm"
+                          onClick={() => onEditService && onEditService(service)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          className="w-50 fw-semibold rounded-pill"
+                          size="sm"
+                          disabled={deletingServiceId === service.service_id}
+                          onClick={() => onDeleteService && onDeleteService(service)}
+                        >
+                          {deletingServiceId === service.service_id ? 'Deleting...' : 'Delete'}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="d-flex gap-2">
+                        <Button
+                          className="neu-btn-outline w-50 fw-semibold"
+                          size="sm"
+                          onClick={() => setActiveModalService(service)}
+                        >
+                          View Details
+                        </Button>
+                        <Button
+                          className="neu-btn-primary w-50 fw-semibold"
+                          size="sm"
+                          disabled={bookingServiceId === service.service_id}
+                          onClick={() => handleBookService(service)}
+                        >
+                          {bookingServiceId === service.service_id ? 'Booking...' : 'Book Now'}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </Col>
@@ -434,7 +471,7 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
               </h6>
               <div className="d-flex justify-content-between small text-muted mb-1">
                 <span>Base Service Rate (<code>amount_topay</code>):</span>
-                <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>₱{activeModalService.amount_topay.toFixed(2)}</span>
+                <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>₱{(Number(activeModalService.amount_topay) || 0).toFixed(2)}</span>
               </div>
               <div className="d-flex justify-content-between small text-muted mb-1">
                 <span>Platform Booking Fee (<code>booking_fee</code>):</span>
@@ -442,13 +479,13 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
               </div>
               <div className="d-flex justify-content-between small text-muted mb-1">
                 <span>Provider Commission (5% of rate):</span>
-                <span className="text-success">₱{(activeModalService.amount_topay * 0.05).toFixed(2)}</span>
+                <span className="text-success">₱{((Number(activeModalService.amount_topay) || 0) * 0.05).toFixed(2)}</span>
               </div>
               <hr className="my-2" />
               <div className="d-flex justify-content-between align-items-center">
                 <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>Total Requestor to Pay (<code>total_topay</code>):</span>
                 <strong className="fs-5" style={{ color: '#063a8f' }}>
-                  ₱{(activeModalService.amount_topay + 5.0).toFixed(2)}
+                  ₱{((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)}
                 </strong>
               </div>
             </div>
@@ -460,9 +497,10 @@ export default function ServicesGrid({ services = INITIAL_SERVICES }) {
             </Button>
             <Button
               className="neu-btn-primary px-4 fw-semibold"
+              disabled={bookingServiceId === activeModalService.service_id}
               onClick={() => handleBookService(activeModalService)}
             >
-              Confirm Booking (₱{(activeModalService.amount_topay + 5.0).toFixed(2)})
+              {bookingServiceId === activeModalService.service_id ? 'Booking...' : `Confirm Booking (₱${((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)})`}
             </Button>
           </Modal.Footer>
         </Modal>

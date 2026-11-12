@@ -39,7 +39,7 @@ const requireAuth = async (req, res, next) => {
         .maybeSingle();
 
     if (error) {
-        console.error('Authentication lookup failed:', error.message);
+        console.error('Authentication user lookup failed:', error.message);
         return res.status(500).json({ error: 'Could not verify the account.' });
     }
     if (!user || !user.is_active) {

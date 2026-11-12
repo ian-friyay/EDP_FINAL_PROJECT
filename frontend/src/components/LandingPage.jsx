@@ -52,10 +52,10 @@ export default function LandingPage() {
             </Nav>
 
             <div className="d-flex align-items-center gap-2 mt-3 mt-lg-0">
-              <Button as={Link} to="/profile" className="neu-btn-outline rounded-pill px-3 fw-semibold">
+              <Button as={Link} to="/sign-in" className="neu-btn-outline rounded-pill px-3 fw-semibold">
                 Sign In
               </Button>
-              <Button as={Link} to="/services" className="neu-btn-primary rounded-pill px-4 fw-semibold">
+              <Button as={Link} to="/sign-up" className="neu-btn-primary rounded-pill px-4 fw-semibold">
                 Get Started
               </Button>
             </div>
@@ -102,7 +102,7 @@ export default function LandingPage() {
                 </Button>
                 <Button
                   as={Link}
-                  to="/profile"
+                  to="/sign-up"
                   className="neu-btn-outline rounded-pill px-4 fw-semibold"
                   size="lg"
                 >
@@ -324,7 +324,7 @@ export default function LandingPage() {
             <Button as={Link} to="/services" variant="light" size="lg" className="rounded-pill px-4 fw-bold text-primary shadow-sm">
               Explore All Services
             </Button>
-            <Button as={Link} to="/profile" variant="outline-light" size="lg" className="rounded-pill px-4 fw-bold">
+            <Button as={Link} to="/sign-up" variant="outline-light" size="lg" className="rounded-pill px-4 fw-bold">
               Register Account
             </Button>
           </div>
@@ -356,7 +356,7 @@ export default function LandingPage() {
                 <li><Link to="/services" className="text-secondary text-decoration-none">Browse Services</Link></li>
                 <li><Link to="/transactions" className="text-secondary text-decoration-none">My Transactions</Link></li>
                 <li><Link to="/messages" className="text-secondary text-decoration-none">Direct Messages</Link></li>
-                <li><Link to="/profile" className="text-secondary text-decoration-none">Provider Registration</Link></li>
+                <li><Link to="/sign-up" className="text-secondary text-decoration-none">Provider Registration</Link></li>
               </ul>
             </Col>
 

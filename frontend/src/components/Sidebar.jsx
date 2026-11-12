@@ -10,24 +10,30 @@ import {
 export default function Sidebar({
   show = false,
   onHide = () => {},
-  currentUser = {
+  currentUser,
+}) {
+  const user = currentUser || {
     user_id: 'MMC-1042',
     first_name: 'Juan',
     last_name: 'Dela Cruz',
     username: 'juandelacruz',
     email: 'juan.delacruz@serbisyou.ph',
     contact_number: '+63 912 345 6789',
-    user_type: 'Provider', // 'Provider' | 'Requestor'
+    user_type: 'Provider',
     region: 'NCR',
     province: 'Metro Manila',
     city: 'Quezon City',
     barangay: 'Brgy. Central',
-  },
-}) {
+  };
+
+  const displayName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.user_id || 'User';
+  const initials = `${(user.first_name || 'U')[0] || ''}${(user.last_name || '')[0] || ''}`.toUpperCase();
+  const locationString = [user.barangay, user.city].filter(Boolean).join(', ') || 'Philippines';
+
   // Navigation links for Dashboard, Services, Transactions, Messages, Profile
   const navItems = [
     {
-      to: '/',
+      to: '/dashboard',
       label: 'Dashboard',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" className="flex-shrink-0">
@@ -103,26 +109,26 @@ export default function Sidebar({
           <Card className="neu-profile-card mb-4">
             <div className="d-flex align-items-center gap-2 mb-2">
               <div className="neu-avatar-sidebar flex-shrink-0">
-                {currentUser.first_name[0]}{currentUser.last_name[0]}
+                {initials}
               </div>
               <div className="overflow-hidden">
                 <div className="fw-bold text-truncate" style={{ color: 'var(--neu-text)' }}>
-                  {currentUser.first_name} {currentUser.last_name}
+                  {displayName}
                 </div>
                 <div className="text-muted small font-monospace">
-                  ID: {currentUser.user_id}
+                  ID: {user.user_id || '---'}
                 </div>
               </div>
             </div>
             <div className="d-flex align-items-center justify-content-between pt-2 border-top">
               <Badge
-                bg={currentUser.user_type === 'Provider' ? 'success' : 'info'}
+                bg={user.user_type === 'Provider' ? 'success' : 'info'}
                 className="text-white"
               >
-                {currentUser.user_type}
+                {user.user_type || 'User'}
               </Badge>
               <span className="text-muted small text-truncate">
-                {currentUser.barangay}, {currentUser.city}
+                {locationString}
               </span>
             </div>
           </Card>
@@ -136,7 +142,7 @@ export default function Sidebar({
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.to === '/'}
+                end={item.to === '/dashboard'}
                 onClick={() => onHide && onHide()}
                 className={({ isActive }) =>
                   isActive ? 'neu-nav-link active' : 'neu-nav-link'
