@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Table, Badge, Modal, Form, Alert, Spinner } from 'react-bootstrap';
 import api from '../api/axios';
+import PayPalModal from './PayPalModal';
 
 const statusVariants = {
   pending: 'warning',
@@ -31,6 +32,9 @@ function TransactionTable({ transactions = [], currentUserId, onRefresh }) {
   const [cancelModalTx, setCancelModalTx] = useState(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState('');
+
+  // PayPal Checkout State
+  const [paypalModalTx, setPaypalModalTx] = useState(null);
 
   // General Action State (Accept / Complete)
   const [actionInProgressId, setActionInProgressId] = useState(null);
@@ -286,6 +290,25 @@ function TransactionTable({ transactions = [], currentUserId, onRefresh }) {
                         </Button>
                       )}
 
+                      {/* Pay with PayPal for Requestors when active */}
+                      {isRequestor && !isCompleted && !isCancelled && (
+                        <Button
+                          size="sm"
+                          className="fw-semibold px-2.5 py-1 d-inline-flex align-items-center gap-1 shadow-sm"
+                          style={{
+                            backgroundColor: '#0070ba',
+                            borderColor: '#0070ba',
+                            color: '#ffffff',
+                            borderRadius: '20px',
+                            fontSize: '0.78rem',
+                          }}
+                          onClick={() => setPaypalModalTx(transaction)}
+                        >
+                          <span style={{ color: '#ffc439', fontWeight: 800 }}>Pay</span>
+                          <span style={{ fontWeight: 800 }}>Pal</span>
+                        </Button>
+                      )}
+
                       {/* 2. Pending Actions */}
                       {isPending && (
                         <>
@@ -370,7 +393,7 @@ function TransactionTable({ transactions = [], currentUserId, onRefresh }) {
       </Table>
 
       {/* Cancel Confirmation Modal */}
-      <Modal show={!!cancelModalTx} onHide={() => setCancelModalTx(null)} centered>
+      <Modal show={!!cancelModalTx} onHide={() => setCancelModalTx(null)} centered scrollable>
         <Modal.Header closeButton style={{ background: '#FFF1F2', borderBottom: '1px solid #FECDD3' }}>
           <Modal.Title className="fw-bold fs-5 text-danger">Cancel Booking</Modal.Title>
         </Modal.Header>
@@ -406,7 +429,7 @@ function TransactionTable({ transactions = [], currentUserId, onRefresh }) {
 
       {/* Rate & Review Modal */}
       {reviewModalTx && (
-        <Modal show={!!reviewModalTx} onHide={handleCloseReviewModal} centered>
+        <Modal show={!!reviewModalTx} onHide={handleCloseReviewModal} centered scrollable>
           <Modal.Header closeButton style={{ background: 'var(--neu-bg-dark)', borderBottom: '1px solid rgba(154, 172, 196, 0.3)' }}>
             <Modal.Title className="fw-bold fs-5" style={{ color: 'var(--neu-text)' }}>
               Rate &amp; Review Service
@@ -484,6 +507,15 @@ function TransactionTable({ transactions = [], currentUserId, onRefresh }) {
           </Form>
         </Modal>
       )}
+      {/* PayPal Sandbox Checkout Modal */}
+      <PayPalModal
+        show={!!paypalModalTx}
+        onHide={() => setPaypalModalTx(null)}
+        transaction={paypalModalTx}
+        onPaymentSuccess={() => {
+          if (onRefresh) onRefresh();
+        }}
+      />
     </div>
   );
 }

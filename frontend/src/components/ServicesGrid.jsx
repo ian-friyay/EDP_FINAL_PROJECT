@@ -84,6 +84,13 @@ export default function ServicesGrid({
   const [activeModalService, setActiveModalService] = useState(null);
   const [bookingSuccessAlert, setBookingSuccessAlert] = useState(null);
 
+  // Booking & Campus Rendezvous Modal State
+  const [bookingModalService, setBookingModalService] = useState(null);
+  const [rendezvousLocation, setRendezvousLocation] = useState('Main Campus - Student Center');
+  const [scheduledDateTime, setScheduledDateTime] = useState('');
+  const [specialInstructions, setSpecialInstructions] = useState('');
+  const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
+
   // Extract unique categories for the dropdown filter
   const categories = useMemo(() => {
     const set = new Set(services.map((s) => s.service_category));
@@ -119,16 +126,37 @@ export default function ServicesGrid({
     setSelectedCategory('ALL');
   };
 
-  const handleBookService = async (service) => {
+  const handleOpenBookingModal = (service) => {
     setActiveModalService(null);
+    setBookingModalService(service);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(10, 0, 0, 0);
+    setScheduledDateTime(tomorrow.toISOString().slice(0, 16));
+  };
+
+  const handleExecuteBooking = async () => {
+    if (!bookingModalService) return;
+    setIsSubmittingBooking(true);
+    const service = bookingModalService;
+    const bookingDetails = {
+      rendezvous_location: rendezvousLocation,
+      scheduled_date: scheduledDateTime || new Date().toISOString(),
+      special_instructions: specialInstructions,
+    };
+
     if (onBookService) {
-      await onBookService(service);
+      await onBookService(service, bookingDetails);
+      setIsSubmittingBooking(false);
+      setBookingModalService(null);
     } else {
       try {
         const { data } = await api.post('/transactions', {
           service_id: service.service_id,
+          ...bookingDetails,
         });
         const txId = data.transaction?.transaction_id;
+        setBookingModalService(null);
         if (txId) {
           navigate(`/transactions/${txId}/qr`);
           return;
@@ -136,6 +164,7 @@ export default function ServicesGrid({
       } catch {
         // ignore
       }
+      setIsSubmittingBooking(false);
       navigate('/transactions');
     }
   };
@@ -396,7 +425,7 @@ export default function ServicesGrid({
                             className="neu-btn-primary w-50 fw-semibold"
                             size="sm"
                             disabled={bookingServiceId === service.service_id}
-                            onClick={() => handleBookService(service)}
+                            onClick={() => handleOpenBookingModal(service)}
                           >
                             {bookingServiceId === service.service_id ? 'Booking...' : 'Book Now'}
                           </Button>
@@ -437,6 +466,7 @@ export default function ServicesGrid({
           onHide={() => setActiveModalService(null)}
           size="lg"
           centered
+          scrollable
         >
           <Modal.Header closeButton className="border-bottom px-4 py-3" style={{ background: 'var(--neu-bg-dark)' }}>
             <Modal.Title className="fw-bold fs-5" style={{ color: 'var(--neu-text)' }}>
@@ -444,7 +474,7 @@ export default function ServicesGrid({
             </Modal.Title>
           </Modal.Header>
 
-          <Modal.Body className="p-4" style={{ background: 'var(--neu-bg)' }}>
+          <Modal.Body className="p-4" style={{ background: 'var(--neu-bg)', maxHeight: 'calc(85vh - 130px)', overflowY: 'auto' }}>
             {/* Picture Proof Gallery */}
             <div className="mb-4">
               <h6 className="fw-bold text-uppercase text-muted small mb-2">
@@ -605,13 +635,170 @@ export default function ServicesGrid({
               <Button
                 className="neu-btn-primary px-4 fw-semibold"
                 disabled={bookingServiceId === activeModalService.service_id}
-                onClick={() => handleBookService(activeModalService)}
+                onClick={() => handleOpenBookingModal(activeModalService)}
               >
                 {bookingServiceId === activeModalService.service_id
                   ? 'Booking...'
-                  : `Confirm Booking (₱${((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)})`}
+                  : `Select Rendezvous & Book (₱${((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)})`}
               </Button>
             </div>
+          </Modal.Footer>
+        </Modal>
+      )}
+
+      {/* Booking & Rendezvous Modal */}
+      {bookingModalService && (
+        <Modal
+          show={!!bookingModalService}
+          onHide={() => setBookingModalService(null)}
+          centered
+          scrollable
+          size="md"
+        >
+          <Modal.Header
+            closeButton
+            style={{
+              background: 'var(--neu-bg-dark)',
+              borderBottom: '1px solid rgba(154, 172, 196, 0.35)',
+            }}
+          >
+            <Modal.Title className="fw-bold fs-5" style={{ color: 'var(--neu-text)' }}>
+              Confirm Booking &amp; Rendezvous
+            </Modal.Title>
+          </Modal.Header>
+
+          <Modal.Body
+            style={{
+              background: 'var(--neu-bg)',
+              maxHeight: 'calc(85vh - 130px)',
+              overflowY: 'auto',
+            }}
+          >
+            {/* Service Summary */}
+            <div
+              className="p-3 rounded-4 mb-3"
+              style={{
+                background: 'var(--neu-bg-dark)',
+                border: '1px solid rgba(154, 172, 196, 0.35)',
+              }}
+            >
+              <div className="small text-muted mb-1">Service:</div>
+              <h6 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>
+                {bookingModalService.subcategory || bookingModalService.service_category}
+              </h6>
+              <div className="small text-muted mb-2">
+                Provider: <strong>{bookingModalService.provider_name || bookingModalService.user_id}</strong>
+              </div>
+              <hr className="my-2 border-secondary opacity-25" />
+              <div className="d-flex justify-content-between text-muted small mb-1">
+                <span>Service Rate:</span>
+                <span>₱{Number(bookingModalService.amount_topay || 0).toFixed(2)}</span>
+              </div>
+              <div className="d-flex justify-content-between text-muted small mb-1">
+                <span>Platform Booking Fee:</span>
+                <span>₱5.00</span>
+              </div>
+              <hr className="my-1 border-secondary opacity-25" />
+              <div className="d-flex justify-content-between align-items-center">
+                <span className="fw-bold small" style={{ color: 'var(--neu-text)' }}>Total to Pay:</span>
+                <strong className="fs-5" style={{ color: '#063a8f' }}>
+                  ₱{(Number(bookingModalService.amount_topay || 0) + 5.0).toFixed(2)}
+                </strong>
+              </div>
+            </div>
+
+            {/* Campus Weather Note */}
+            <div
+              className="p-2.5 px-3 rounded-3 mb-3 d-flex align-items-center gap-2 small"
+              style={{
+                background: 'rgba(25, 135, 84, 0.08)',
+                border: '1px solid rgba(25, 135, 84, 0.25)',
+                color: '#146c43',
+              }}
+            >
+              <span>🌤️</span>
+              <div>
+                <strong>Campus Weather Advisory:</strong> Suitable conditions for campus landmark meetings &amp; photography handovers.
+              </div>
+            </div>
+
+            {/* Rendezvous Location Selector */}
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-semibold text-muted">
+                📍 Campus Rendezvous Meeting Location <span className="text-danger">*</span>
+              </Form.Label>
+              <Form.Select
+                className="neu-input"
+                value={rendezvousLocation}
+                onChange={(e) => setRendezvousLocation(e.target.value)}
+              >
+                <option value="Main Campus - Student Center">
+                  Main Campus - Student Center (Hub for creative &amp; event meetings)
+                </option>
+                <option value="IT &amp; Engineering Building">
+                  IT &amp; Engineering Building (Tech support &amp; diagnostics)
+                </option>
+                <option value="Campus Gymnasium &amp; Auditorium">
+                  Campus Gymnasium &amp; Auditorium (Photography &amp; sports)
+                </option>
+                <option value="University Library Commons">
+                  University Library Commons (Consultations &amp; quiet review)
+                </option>
+              </Form.Select>
+              <Form.Text className="text-muted" style={{ fontSize: '0.75rem' }}>
+                Official campus rendezvous landmark where you and the student provider will meet.
+              </Form.Text>
+            </Form.Group>
+
+            {/* Date and Time Selector */}
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-semibold text-muted">
+                📅 Preferred Meeting Date &amp; Time
+              </Form.Label>
+              <Form.Control
+                type="datetime-local"
+                className="neu-input"
+                value={scheduledDateTime}
+                onChange={(e) => setScheduledDateTime(e.target.value)}
+              />
+            </Form.Group>
+
+            {/* Special Instructions */}
+            <Form.Group className="mb-2">
+              <Form.Label className="small fw-semibold text-muted">
+                Notes for Provider (Optional)
+              </Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={2}
+                className="neu-input"
+                placeholder="e.g. I will be wearing a blue cap near the lobby entrance."
+                value={specialInstructions}
+                onChange={(e) => setSpecialInstructions(e.target.value)}
+              />
+            </Form.Group>
+          </Modal.Body>
+
+          <Modal.Footer
+            style={{
+              background: 'var(--neu-bg-dark)',
+              borderTop: '1px solid rgba(154, 172, 196, 0.35)',
+            }}
+          >
+            <Button
+              className="neu-btn-ghost"
+              onClick={() => setBookingModalService(null)}
+              disabled={isSubmittingBooking}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="neu-btn-primary px-4 fw-semibold"
+              disabled={isSubmittingBooking}
+              onClick={handleExecuteBooking}
+            >
+              {isSubmittingBooking ? 'Confirming...' : 'Confirm & View QR Code'}
+            </Button>
           </Modal.Footer>
         </Modal>
       )}

@@ -117,6 +117,31 @@ const initSocket = (server) => {
       }
     });
 
+    socket.on('typing', (payload) => {
+      const { sender_id: senderId, receiver_id: receiverId, is_typing: isTyping } = payload || {};
+      if (receiverId) {
+        const isBool = Boolean(isTyping || payload?.isTyping || payload?.typing);
+        io.to(String(receiverId)).emit('user_typing', { sender_id: senderId, is_typing: isBool, isTyping: isBool });
+        io.to(String(receiverId)).emit('typing', { sender_id: senderId, is_typing: isBool, isTyping: isBool });
+      }
+    });
+
+    socket.on('mark_read', async (payload) => {
+      const { user_id: userId, sender_id: senderId } = payload || {};
+      if (userId && senderId) {
+        try {
+          await supabase
+            .from('messages')
+            .update({ is_read: true })
+            .eq('sender_id', String(senderId))
+            .eq('receiver_id', String(userId));
+        } catch {
+          // ignore
+        }
+        io.to(String(senderId)).emit('messages_read', { by: userId });
+      }
+    });
+
     socket.on('disconnect', (reason) => {
       if (socket.userId && userSockets.get(socket.userId) === socket.id) {
         userSockets.delete(socket.userId);

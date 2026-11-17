@@ -161,6 +161,7 @@ export default function ChatPage() {
     socket.on('connect', registerUser);
     socket.on('receive_message', handleReceiveMessage);
     socket.on('typing', handleTyping);
+    socket.on('user_typing', handleTyping);
     socket.connect();
 
     if (socket.connected) {
@@ -171,6 +172,7 @@ export default function ChatPage() {
       socket.off('connect', registerUser);
       socket.off('receive_message', handleReceiveMessage);
       socket.off('typing', handleTyping);
+      socket.off('user_typing', handleTyping);
       socket.disconnect();
     };
   }, [currentUserId]);

@@ -13,6 +13,7 @@ export default function AdminPage() {
 
   const [verifications, setVerifications] = useState([]);
   const [users, setUsers] = useState([]);
+  const [advertisements, setAdvertisements] = useState([]);
   const [activeTab, setActiveTab] = useState('verifications');
   const [isLoading, setIsLoading] = useState(true);
   const [actionError, setActionError] = useState('');
@@ -33,10 +34,11 @@ export default function AdminPage() {
     setIsLoading(true);
     setActionError('');
     try {
-      const [statsRes, verifRes, usersRes] = await Promise.all([
+      const [statsRes, verifRes, usersRes, adsRes] = await Promise.all([
         api.get('/admin/stats').catch(() => ({ data: {} })),
         api.get('/admin/verifications').catch(() => ({ data: { pendingVerifications: [] } })),
         api.get('/admin/users').catch(() => ({ data: { users: [] } })),
+        api.get('/admin/advertisements').catch(() => ({ data: { data: [] } })),
       ]);
 
       setStats({
@@ -49,6 +51,7 @@ export default function AdminPage() {
 
       setVerifications(verifRes.data.pendingVerifications || []);
       setUsers(usersRes.data.users || []);
+      setAdvertisements(adsRes.data.data || adsRes.data || []);
     } catch (err) {
       setActionError('Failed to load administrative console data.');
     } finally {
@@ -92,6 +95,23 @@ export default function AdminPage() {
       await fetchAdminData();
     } catch (err) {
       setActionError(err.response?.data?.error || err.message || 'Failed to update user status.');
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
+  // Handle Advertisement Status Update
+  const handleUpdateAdStatus = async (adId, status) => {
+    setIsProcessingAction(true);
+    setActionError('');
+    setActionSuccess('');
+
+    try {
+      const { data } = await api.patch(`/admin/advertisements/${adId}/status`, { status });
+      setActionSuccess(data.message || `Advertisement marked as ${status}.`);
+      await fetchAdminData();
+    } catch (err) {
+      setActionError(err.response?.data?.error || err.message || 'Failed to update advertisement status.');
     } finally {
       setIsProcessingAction(false);
     }
@@ -181,6 +201,10 @@ export default function AdminPage() {
         <Tab
           eventKey="users"
           title={`User Management (${users.length})`}
+        />
+        <Tab
+          eventKey="advertisements"
+          title={`Campus Ads (${advertisements.length})`}
         />
         <Tab
           eventKey="system"
@@ -380,7 +404,156 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* TAB 3: System Health */}
+      {/* TAB 3: Campus Advertisements */}
+      {activeTab === 'advertisements' && (
+        <div className="neu-card p-3 p-md-4">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h5 className="fw-bold mb-0" style={{ color: 'var(--neu-text)' }}>
+                Campus Marketplace Advertisements
+              </h5>
+              <small className="text-muted">Review, approve, and manage student promo banners (₱2.00/day)</small>
+            </div>
+            <Badge bg="primary" className="px-3 py-2 rounded-pill">
+              {advertisements.filter((a) => a.status === 'active').length} Active Ads
+            </Badge>
+          </div>
+
+          <div className="table-responsive">
+            <Table hover className="align-middle mb-0">
+              <thead>
+                <tr style={{ background: 'var(--neu-bg-dark)' }}>
+                  <th>Banner</th>
+                  <th>Title / Advertiser</th>
+                  <th>Duration</th>
+                  <th>Cost &amp; Payment</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {advertisements.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-4 text-muted">
+                      No advertisements submitted yet.
+                    </td>
+                  </tr>
+                ) : (
+                  advertisements.map((ad) => {
+                    const isPending = ad.status === 'pending';
+                    const isActive = ad.status === 'active';
+                    return (
+                      <tr key={ad.id}>
+                        <td style={{ width: 120 }}>
+                          {ad.banner_url ? (
+                            <img
+                              src={ad.banner_url}
+                              alt="Ad Banner"
+                              className="rounded border"
+                              style={{ width: 110, height: 50, objectFit: 'cover', cursor: 'pointer' }}
+                              onClick={() => setInspectDocUrl(ad.banner_url)}
+                            />
+                          ) : (
+                            <span className="text-muted small">No image</span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="fw-bold" style={{ color: 'var(--neu-text)' }}>{ad.title}</div>
+                          <small className="text-muted">
+                            By {ad.advertiser_name || ad.user_id || 'Student Sponsor'} &bull; {ad.target_url || '/services'}
+                          </small>
+                        </td>
+                        <td>
+                          <div className="small fw-semibold">{ad.duration_days || 7} Days</div>
+                          <small className="text-muted">{ad.duration_type || 'custom'}</small>
+                        </td>
+                        <td>
+                          <div className="fw-bold text-primary">₱{Number(ad.computed_cost || 0).toFixed(2)}</div>
+                          <Badge
+                            bg={ad.payment_status === 'paid' ? 'success' : 'secondary'}
+                            className="rounded-pill"
+                            style={{ fontSize: '0.7rem' }}
+                          >
+                            {ad.payment_status || 'unpaid'}
+                          </Badge>
+                        </td>
+                        <td>
+                          <Badge
+                            bg={
+                              isActive
+                                ? 'success'
+                                : isPending
+                                ? 'warning'
+                                : ad.status === 'rejected'
+                                ? 'danger'
+                                : 'secondary'
+                            }
+                            text={isPending ? 'dark' : 'white'}
+                            className="rounded-pill"
+                          >
+                            {ad.status || 'pending'}
+                          </Badge>
+                        </td>
+                        <td>
+                          <div className="d-flex gap-1.5 flex-wrap">
+                            {isPending && (
+                              <Button
+                                variant="success"
+                                size="sm"
+                                className="rounded-pill px-2.5 py-0.5 small"
+                                disabled={isProcessingAction}
+                                onClick={() => handleUpdateAdStatus(ad.id, 'active')}
+                              >
+                                Approve
+                              </Button>
+                            )}
+                            {isActive ? (
+                              <Button
+                                variant="outline-warning"
+                                size="sm"
+                                className="rounded-pill px-2.5 py-0.5 small"
+                                disabled={isProcessingAction}
+                                onClick={() => handleUpdateAdStatus(ad.id, 'inactive')}
+                              >
+                                Pause
+                              </Button>
+                            ) : (
+                              !isPending && (
+                                <Button
+                                  variant="outline-success"
+                                  size="sm"
+                                  className="rounded-pill px-2.5 py-0.5 small"
+                                  disabled={isProcessingAction}
+                                  onClick={() => handleUpdateAdStatus(ad.id, 'active')}
+                                >
+                                  Activate
+                                </Button>
+                              )
+                            )}
+                            {isPending && (
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                className="rounded-pill px-2.5 py-0.5 small"
+                                disabled={isProcessingAction}
+                                onClick={() => handleUpdateAdStatus(ad.id, 'rejected')}
+                              >
+                                Reject
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </Table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: System Health */}
       {activeTab === 'system' && (
         <div className="neu-card p-4">
           <h5 className="fw-bold mb-3" style={{ color: 'var(--neu-text)' }}>System Diagnostics &amp; Operational Status</h5>
@@ -434,11 +607,11 @@ export default function AdminPage() {
       )}
 
       {/* Document Inspector Modal */}
-      <Modal show={!!inspectDocUrl} onHide={() => setInspectDocUrl(null)} size="lg" centered>
+      <Modal show={!!inspectDocUrl} onHide={() => setInspectDocUrl(null)} size="lg" centered scrollable>
         <Modal.Header closeButton style={{ background: 'var(--neu-bg-dark)', borderBottom: '1px solid rgba(154, 172, 196, 0.3)' }}>
           <Modal.Title className="fw-bold fs-5">Inspect Provider Verification Document</Modal.Title>
         </Modal.Header>
-        <Modal.Body className="p-4 text-center" style={{ background: 'var(--neu-bg)' }}>
+        <Modal.Body className="p-4 text-center" style={{ background: 'var(--neu-bg)', maxHeight: 'calc(85vh - 130px)', overflowY: 'auto' }}>
           {inspectDocUrl && (inspectDocUrl.startsWith('data:application/pdf') || inspectDocUrl.includes('.pdf')) ? (
             <div className="py-4">
               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" viewBox="0 0 16 16" className="text-danger mb-3">
@@ -464,7 +637,7 @@ export default function AdminPage() {
       </Modal>
 
       {/* Rejection Notes Modal */}
-      <Modal show={!!rejectingUser} onHide={() => setRejectingUser(null)} centered>
+      <Modal show={!!rejectingUser} onHide={() => setRejectingUser(null)} centered scrollable>
         <Modal.Header closeButton style={{ background: '#FFF1F2', borderBottom: '1px solid #FECDD3' }}>
           <Modal.Title className="fw-bold fs-5 text-danger">Reject Provider Application</Modal.Title>
         </Modal.Header>

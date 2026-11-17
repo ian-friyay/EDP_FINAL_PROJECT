@@ -15,6 +15,10 @@ const messageRoutes = require('./routes/messageRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const reviewsRoutes = require('./routes/reviewsRoutes');
 const storageRoutes = require('./routes/storageRoutes');
+const weatherRoutes = require('./routes/weatherRoutes');
+const mapRoutes = require('./routes/mapRoutes');
+const advertisementRoutes = require('./routes/advertisementRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 const { initSocket } = require('./socket/socketServer');
 
 const app = express();
@@ -49,6 +53,10 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/storage', storageRoutes);
+app.use('/api/weather', weatherRoutes);
+app.use('/api/maps', mapRoutes);
+app.use('/api/advertisements', advertisementRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Test Route
 app.get('/', (req, res) => {

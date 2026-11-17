@@ -7,6 +7,7 @@ const {
     getUsersList,
     toggleUserStatus
 } = require('../controllers/adminController');
+const { getAllAds, updateAdStatus } = require('../controllers/advertisementController');
 
 const router = express.Router();
 
@@ -16,5 +17,7 @@ router.get('/verifications/pending', requireAuth, requireAdmin, getPendingVerifi
 router.patch('/verifications/:userId', requireAuth, requireAdmin, updateVerificationStatus);
 router.get('/users', requireAuth, requireAdmin, getUsersList);
 router.patch('/users/:userId/toggle-status', requireAuth, requireAdmin, toggleUserStatus);
+router.get('/advertisements', requireAuth, requireAdmin, getAllAds);
+router.patch('/advertisements/:id/status', requireAuth, requireAdmin, updateAdStatus);
 
 module.exports = router;

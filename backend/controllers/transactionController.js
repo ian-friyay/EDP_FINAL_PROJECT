@@ -8,7 +8,7 @@ const COMMISSION_RATE = 0.05;
 const createTransaction = async (req, res) => {
   try {
     const requestor_id = req.user && req.user.user_id;
-    const { service_id } = req.body;
+    const { service_id, rendezvous_location, scheduled_date } = req.body;
 
     if (!requestor_id) {
       return res.status(401).json({ error: 'Unauthorized. Please log in again.' });
@@ -67,23 +67,37 @@ const createTransaction = async (req, res) => {
     const total_topay = Number((amount_topay + booking_fee).toFixed(2));
     const qr_code = `SERBISYOU-${crypto.randomUUID()}`;
 
-    const { data: transaction, error: insertError } = await supabase
+    const insertPayload = {
+      provider_id,
+      requestor_id,
+      service_id: normalizedServiceId,
+      amount_topay,
+      booking_fee,
+      total_topay,
+      commission_fee,
+      service_status: 'pending',
+      qr_code,
+    };
+    if (rendezvous_location) insertPayload.rendezvous_location = rendezvous_location;
+    if (scheduled_date) insertPayload.scheduled_date = scheduled_date;
+
+    let { data: transaction, error: insertError } = await supabase
       .from('transactions')
-      .insert([
-        {
-          provider_id,
-          requestor_id,
-          service_id: normalizedServiceId,
-          amount_topay,
-          booking_fee,
-          total_topay,
-          commission_fee,
-          service_status: 'pending',
-          qr_code,
-        },
-      ])
+      .insert([insertPayload])
       .select()
       .single();
+
+    if (insertError && (insertError.message?.includes('rendezvous_location') || insertError.message?.includes('column'))) {
+      delete insertPayload.rendezvous_location;
+      delete insertPayload.scheduled_date;
+      const retryResult = await supabase
+        .from('transactions')
+        .insert([insertPayload])
+        .select()
+        .single();
+      transaction = retryResult.data;
+      insertError = retryResult.error;
+    }
 
     if (insertError) {
       return res.status(500).json({

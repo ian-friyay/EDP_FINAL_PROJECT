@@ -11,6 +11,8 @@ import {
 } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import heroImg from '../assets/hero.png';
+import WeatherWidget from './WeatherWidget';
+import AdBanner from './AdBanner';
 
 export default function LandingPage() {
   return (
@@ -186,6 +188,14 @@ export default function LandingPage() {
               </div>
             </Col>
           </Row>
+        </Container>
+      </section>
+
+      {/* Campus Weather & Active Advertisements Spotlight */}
+      <section className="py-4 border-bottom" style={{ background: 'var(--neu-bg)' }}>
+        <Container>
+          <WeatherWidget compact={true} />
+          <AdBanner />
         </Container>
       </section>
 

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Alert, Button, Form, Modal, InputGroup } from 'react-bootstrap';
 import api from '../api/axios';
 import ServicesGrid from '../components/ServicesGrid';
+import WeatherWidget from '../components/WeatherWidget';
+import AdBanner from '../components/AdBanner';
 import { DEFAULT_SERVICE_PLACEHOLDER } from '../utils/placeholder';
 
 const emptyService = {
@@ -338,7 +340,7 @@ export default function ServicesPage() {
     }
   };
 
-  const handleBookService = async (service) => {
+  const handleBookService = async (service, bookingDetails = {}) => {
     setError('');
     setMessage('');
     setBookingServiceId(service.service_id);
@@ -346,6 +348,8 @@ export default function ServicesPage() {
     try {
       const { data } = await api.post('/transactions', {
         service_id: service.service_id,
+        rendezvous_location: bookingDetails.rendezvous_location || 'Main Campus - Student Center',
+        scheduled_date: bookingDetails.scheduled_date || new Date().toISOString(),
       });
       const txId = data.transaction?.transaction_id;
       if (txId) {
@@ -366,6 +370,12 @@ export default function ServicesPage() {
 
   return (
     <div>
+      {/* Campus Weather & Events Advisory */}
+      <WeatherWidget compact={true} />
+
+      {/* Campus Advertisements Spotlight Carousel */}
+      <AdBanner />
+
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
           <h2 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>Services Marketplace</h2>
@@ -399,12 +409,12 @@ export default function ServicesPage() {
       )}
 
       {/* Create Service Modal */}
-      <Modal show={showCreateModal} onHide={() => setShowCreateModal(false)} centered size="lg">
+      <Modal show={showCreateModal} onHide={() => setShowCreateModal(false)} centered scrollable size="lg">
         <Modal.Header closeButton style={{ background: 'var(--neu-bg-dark)', borderBottom: '1px solid rgba(154, 172, 196, 0.35)' }}>
           <Modal.Title className="fw-bold fs-5" style={{ color: 'var(--neu-text)' }}>Add a Service</Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleCreateService}>
-          <Modal.Body style={{ background: 'var(--neu-bg)' }}>
+          <Modal.Body style={{ background: 'var(--neu-bg)', maxHeight: 'calc(85vh - 130px)', overflowY: 'auto' }}>
             <Form.Group className="mb-3" controlId="serviceCategory">
               <Form.Label className="small fw-semibold text-muted">Category</Form.Label>
               <Form.Control
@@ -469,12 +479,12 @@ export default function ServicesPage() {
       </Modal>
 
       {/* Edit Service Modal */}
-      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered size="lg">
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered scrollable size="lg">
         <Modal.Header closeButton style={{ background: 'var(--neu-bg-dark)', borderBottom: '1px solid rgba(154, 172, 196, 0.35)' }}>
           <Modal.Title className="fw-bold fs-5" style={{ color: 'var(--neu-text)' }}>Edit Service</Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleUpdateService}>
-          <Modal.Body style={{ background: 'var(--neu-bg)' }}>
+          <Modal.Body style={{ background: 'var(--neu-bg)', maxHeight: 'calc(85vh - 130px)', overflowY: 'auto' }}>
             <Form.Group className="mb-3" controlId="editServiceCategory">
               <Form.Label className="small fw-semibold text-muted">Category</Form.Label>
               <Form.Control
