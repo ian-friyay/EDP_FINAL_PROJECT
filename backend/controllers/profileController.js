@@ -1,3 +1,4 @@
+const bcrypt = require('bcrypt');
 const supabase = require('../db');
 
 const editableFields = [
@@ -8,7 +9,8 @@ const editableFields = [
     'region',
     'province',
     'city',
-    'barangay'
+    'barangay',
+    'profile_picture'
 ];
 
 const updateProfile = async (req, res) => {
@@ -39,7 +41,7 @@ const updateProfile = async (req, res) => {
         .update(updates)
         .eq('user_id', req.user.user_id)
         .eq('is_active', true)
-        .select('user_id, first_name, last_name, username, contact_number, email, region, province, city, barangay, user_type, is_active')
+        .select('user_id, first_name, last_name, username, contact_number, email, region, province, city, barangay, user_type, department, designation, profile_picture, is_active')
         .maybeSingle();
 
     if (error) {
@@ -65,7 +67,7 @@ const getProfile = async (req, res) => {
 
         const { data: user, error } = await supabase
             .from('users')
-            .select('user_id, first_name, last_name, username, contact_number, email, region, province, city, barangay, user_type, department, designation, is_active')
+            .select('user_id, first_name, last_name, username, contact_number, email, region, province, city, barangay, user_type, department, designation, profile_picture, is_active')
             .eq('user_id', userId)
             .maybeSingle();
 
@@ -80,4 +82,110 @@ const getProfile = async (req, res) => {
     }
 };
 
-module.exports = { getProfile, updateProfile };
+const changePassword = async (req, res) => {
+    try {
+        const userId = req.user && req.user.user_id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized.' });
+        }
+
+        const { currentPassword, newPassword } = req.body || {};
+        if (!currentPassword || typeof currentPassword !== 'string') {
+            return res.status(400).json({ error: 'Current password is required.' });
+        }
+        if (!newPassword || typeof newPassword !== 'string') {
+            return res.status(400).json({ error: 'New password is required.' });
+        }
+        if (newPassword.length < 8) {
+            return res.status(400).json({ error: 'New password must be at least 8 characters long.' });
+        }
+
+        const { data: user, error: userError } = await supabase
+            .from('users')
+            .select('user_id, password')
+            .eq('user_id', userId)
+            .eq('is_active', true)
+            .maybeSingle();
+
+        if (userError || !user) {
+            return res.status(404).json({ error: 'User account not found.' });
+        }
+
+        const isMatch = user.password && (
+            user.password.startsWith('$2')
+                ? await bcrypt.compare(currentPassword, user.password)
+                : currentPassword === user.password
+        );
+
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Incorrect current password.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({ password: hashedPassword })
+            .eq('user_id', userId);
+
+        if (updateError) {
+            console.error('Password update failed:', updateError.message);
+            return res.status(500).json({ error: 'Failed to update password.' });
+        }
+
+        return res.status(200).json({ message: 'Password updated successfully.' });
+    } catch (err) {
+        console.error('changePassword error:', err);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+};
+
+const deleteAccount = async (req, res) => {
+    try {
+        const userId = req.user && req.user.user_id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized.' });
+        }
+
+        const { password } = req.body || {};
+
+        const { data: user, error: userError } = await supabase
+            .from('users')
+            .select('user_id, password')
+            .eq('user_id', userId)
+            .eq('is_active', true)
+            .maybeSingle();
+
+        if (userError || !user) {
+            return res.status(404).json({ error: 'User account not found.' });
+        }
+
+        if (password) {
+            const isMatch = user.password && (
+                user.password.startsWith('$2')
+                    ? await bcrypt.compare(password, user.password)
+                    : password === user.password
+            );
+            if (!isMatch) {
+                return res.status(401).json({ error: 'Incorrect password verification.' });
+            }
+        }
+
+        // Soft delete user account
+        const { error: deleteError } = await supabase
+            .from('users')
+            .update({ is_active: false })
+            .eq('user_id', userId);
+
+        if (deleteError) {
+            console.error('Delete account error:', deleteError.message);
+            return res.status(500).json({ error: 'Failed to delete account.' });
+        }
+
+        return res.status(200).json({ message: 'Account deleted successfully.' });
+    } catch (err) {
+        console.error('deleteAccount error:', err);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+};
+
+module.exports = { getProfile, updateProfile, changePassword, deleteAccount };

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { DEFAULT_SERVICE_PLACEHOLDER } from '../utils/placeholder';
 import {
   Container,
   Row,
@@ -280,10 +281,13 @@ export default function ServicesGrid({
             const bookingFee = 5.0;
             const totalToPay = amount + bookingFee;
             const isOwner = Boolean(currentUserId && service.user_id === currentUserId);
-            const primaryImage =
-              service.picture_proof && service.picture_proof.length > 0
-                ? service.picture_proof[0]
-                : 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fit=crop&q=80';
+            const hasCustomImage =
+              Array.isArray(service.picture_proof) &&
+              service.picture_proof.length > 0 &&
+              Boolean(service.picture_proof[0]?.trim());
+            const primaryImage = hasCustomImage
+              ? service.picture_proof[0]
+              : DEFAULT_SERVICE_PLACEHOLDER;
 
             return (
               <Col key={service.service_id}>
@@ -296,8 +300,8 @@ export default function ServicesGrid({
                       className="w-100 rounded-top-3"
                       style={{ height: '200px', objectFit: 'cover' }}
                       onError={(e) => {
-                        e.target.src =
-                          'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fit=crop&q=80';
+                        e.target.onerror = null;
+                        e.target.src = DEFAULT_SERVICE_PLACEHOLDER;
                       }}
                     />
                     <div className="position-absolute top-0 start-0 m-3 d-flex gap-1 flex-wrap">
@@ -436,19 +440,34 @@ export default function ServicesGrid({
               <h6 className="fw-bold text-uppercase text-muted small mb-2">
                 Service Proof Gallery (<code>picture_proof</code>)
               </h6>
-              <Row className="g-2">
-                {activeModalService.picture_proof &&
-                  activeModalService.picture_proof.map((imgUrl, idx) => (
+              {Array.isArray(activeModalService.picture_proof) &&
+              activeModalService.picture_proof.filter(Boolean).length > 0 ? (
+                <Row className="g-2">
+                  {activeModalService.picture_proof.filter(Boolean).map((imgUrl, idx) => (
                     <Col key={idx} xs={6} md={6}>
                       <img
                         src={imgUrl}
                         alt={`Proof ${idx + 1}`}
                         className="img-fluid rounded-3 border"
                         style={{ height: '180px', width: '100%', objectFit: 'cover' }}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = DEFAULT_SERVICE_PLACEHOLDER;
+                        }}
                       />
                     </Col>
                   ))}
-              </Row>
+                </Row>
+              ) : (
+                <div className="rounded-3 overflow-hidden border">
+                  <img
+                    src={DEFAULT_SERVICE_PLACEHOLDER}
+                    alt="No picture provided"
+                    className="w-100"
+                    style={{ height: '200px', objectFit: 'cover' }}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Provider Details Card */}

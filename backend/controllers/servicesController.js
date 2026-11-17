@@ -10,8 +10,13 @@ const isValidPictureProof = (pictureProof) => {
             return false;
         }
 
+        const trimmed = pictureUrl.trim();
+        if (trimmed.startsWith('data:image/')) {
+            return true;
+        }
+
         try {
-            const url = new URL(pictureUrl);
+            const url = new URL(trimmed);
             return url.protocol === 'http:' || url.protocol === 'https:';
         } catch {
             return false;
