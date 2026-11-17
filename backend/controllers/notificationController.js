@@ -9,7 +9,7 @@ const KNOWN_USERS = {
   'MMC-3046': 'Keizy Lara',
 };
 
-// In-memory set of read notification IDs per user (persists during server uptime)
+// In-memory set of read notification IDs per user (fallback persistence)
 const readNotificationIds = new Set();
 
 const getCurrentUserId = (req) =>
@@ -18,6 +18,21 @@ const getCurrentUserId = (req) =>
   req.headers['x-user-id'] ||
   (req.body && req.body.currentUserId) ||
   null;
+
+const createNotification = async (userId, type, title, description, link) => {
+  try {
+    await supabase.from('notifications').insert([{
+      user_id: String(userId),
+      type: type || 'system',
+      title,
+      description,
+      link,
+      is_read: false,
+    }]);
+  } catch (err) {
+    console.warn('[Notification notice] Could not insert persistent notification:', err.message);
+  }
+};
 
 const getNotifications = async (req, res) => {
   try {
@@ -28,7 +43,33 @@ const getNotifications = async (req, res) => {
 
     const normalizedUser = String(currentUserId);
 
-    // 1. Fetch received messages for current user
+    // 1. Try fetching from persistent 'notifications' table first
+    try {
+      const { data: dbNotifs, error: dbErr } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', normalizedUser)
+        .order('created_at', { ascending: false })
+        .limit(30);
+
+      if (!dbErr && Array.isArray(dbNotifs) && dbNotifs.length > 0) {
+        return res.json({
+          notifications: dbNotifs.map((n) => ({
+            id: n.notification_id,
+            type: n.type,
+            title: n.title,
+            description: n.description,
+            timestamp: n.created_at,
+            read: n.is_read || readNotificationIds.has(String(n.notification_id)),
+            link: n.link,
+          })),
+        });
+      }
+    } catch {
+      // Table may not exist yet, continue with live synthesizer fallback
+    }
+
+    // 2. Fallback live synthesis: Fetch received messages
     const { data: messages, error: msgError } = await supabase
       .from('messages')
       .select('*')
@@ -40,7 +81,7 @@ const getNotifications = async (req, res) => {
       console.error('Error fetching messages for notifications:', msgError.message);
     }
 
-    // 2. Fetch transactions for current user (as requestor or provider)
+    // 3. Fetch transactions for current user (as requestor or provider)
     let transactions = [];
     try {
       const { data: txList, error: txErr } = await supabase
@@ -57,7 +98,7 @@ const getNotifications = async (req, res) => {
       console.error('Error fetching transactions for notifications:', err.message);
     }
 
-    // 3. Collect all user IDs and service IDs to get names in one go
+    // 4. Collect user IDs and service IDs to get names in one go
     const userIds = new Set();
     (messages || []).forEach((m) => m.sender_id && userIds.add(String(m.sender_id)));
     transactions.forEach((tx) => {
@@ -84,88 +125,92 @@ const getNotifications = async (req, res) => {
 
     const servicesMap = new Map();
     if (serviceIds.length > 0) {
-      const { data: srvData } = await supabase
+      const { data: servicesData } = await supabase
         .from('services')
         .select('service_id, subcategory, service_category')
         .in('service_id', serviceIds);
 
-      (srvData || []).forEach((s) => {
-        servicesMap.set(Number(s.service_id), s.subcategory || s.service_category);
+      (servicesData || []).forEach((s) => {
+        servicesMap.set(
+          String(s.service_id),
+          s.subcategory || s.service_category || 'Service'
+        );
       });
     }
 
-    // 4. Map message notifications
-    const messageNotifications = (messages || []).map((msg) => {
-      const notifId = `msg_${msg.message_id}`;
+    const synthesizedNotifications = [];
+
+    // Message notifications
+    (messages || []).forEach((msg) => {
       const senderName =
         usersMap.get(String(msg.sender_id)) ||
         KNOWN_USERS[String(msg.sender_id)] ||
-        msg.sender_id;
+        `User ${msg.sender_id}`;
 
-      const isRead = Boolean(msg.is_read) || readNotificationIds.has(notifId);
-
-      return {
+      const notifId = `msg_${msg.message_id}`;
+      synthesizedNotifications.push({
         id: notifId,
         type: 'message',
-        title: `New message from ${senderName}`,
-        description: msg.content,
+        title: `Message from ${senderName}`,
+        description: msg.content || 'Sent you a message.',
         timestamp: msg.timestamp,
-        read: isRead,
+        read: msg.is_read || readNotificationIds.has(notifId),
         link: `/messages/${msg.sender_id}`,
         target_id: msg.sender_id,
-      };
+      });
     });
 
-    // 5. Map transaction/booking notifications (only actionable events)
-    const transactionNotifications = transactions.map((tx) => {
-      const notifId = `tx_${tx.transaction_id}`;
-      const isRead = readNotificationIds.has(notifId);
-      const isProvider = String(tx.provider_id) === normalizedUser;
-      const partnerId = isProvider ? tx.requestor_id : tx.provider_id;
+    // Transaction notifications
+    transactions.forEach((tx) => {
+      const isRequestor = String(tx.requestor_id) === normalizedUser;
+      const partnerId = isRequestor ? tx.provider_id : tx.requestor_id;
       const partnerName =
         usersMap.get(String(partnerId)) ||
         KNOWN_USERS[String(partnerId)] ||
-        partnerId;
-      const serviceTitle = servicesMap.get(Number(tx.service_id)) || `Service #${tx.service_id}`;
-      const status = tx.service_status || 'pending';
-      const formattedStatus = status.charAt(0).toUpperCase() + status.slice(1);
+        `User ${partnerId}`;
+      const serviceName =
+        servicesMap.get(String(tx.service_id)) || 'Marketplace Service';
 
-      let title = '';
+      const notifId = `tx_${tx.transaction_id}`;
+      let title = `Transaction #${tx.transaction_id}`;
       let description = '';
 
-      if (isProvider) {
-        title = `New Booking Request: ${serviceTitle}`;
-        description = `Booking from ${partnerName}. Total: ₱${Number(tx.total_topay || 0).toFixed(2)} (${formattedStatus})`;
+      const status = (tx.transaction_status || '').toLowerCase();
+      if (status === 'completed') {
+        title = `Transaction #${tx.transaction_id} Completed`;
+        description = isRequestor
+          ? `Service for "${serviceName}" with ${partnerName} has been completed.`
+          : `You completed "${serviceName}" for ${partnerName}.`;
+      } else if (status === 'cancelled') {
+        title = `Transaction #${tx.transaction_id} Cancelled`;
+        description = `Booking for "${serviceName}" was cancelled.`;
       } else {
-        title = `Booking ${formattedStatus}: ${serviceTitle}`;
-        description = `Booking with ${partnerName}. Total: ₱${Number(tx.total_topay || 0).toFixed(2)}`;
+        title = `Booking Accepted`;
+        description = isRequestor
+          ? `Your booking for "${serviceName}" has been placed with ${partnerName}.`
+          : `New booking request from ${partnerName} for "${serviceName}".`;
       }
 
-      return {
+      synthesizedNotifications.push({
         id: notifId,
         type: 'transaction',
         title,
         description,
-        timestamp: new Date().toISOString(), // Fallback if no created_at
-        read: isRead,
-        link: '/transactions',
+        timestamp: tx.created_at || new Date().toISOString(),
+        read: readNotificationIds.has(notifId),
+        link: `/transactions/${tx.transaction_id}/qr`,
         target_id: tx.transaction_id,
-      };
+      });
     });
 
-    // 6. Merge and sort
-    const allNotifications = [
-      ...messageNotifications,
-      ...transactionNotifications,
-    ].sort(
-      (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    synthesizedNotifications.sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
 
-    return res.json({ notifications: allNotifications });
+    return res.json({ notifications: synthesizedNotifications });
   } catch (err) {
     console.error('getNotifications error:', err);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Failed to fetch notifications.' });
   }
 };
 
@@ -178,17 +223,27 @@ const markAllAsRead = async (req, res) => {
 
     const normalizedUser = String(currentUserId);
 
-    // 1. Mark all received messages as read in Supabase
-    const { error: msgErr } = await supabase
-      .from('messages')
-      .update({ is_read: true })
-      .eq('receiver_id', normalizedUser);
-
-    if (msgErr) {
-      console.error('Error marking messages as read in Supabase:', msgErr.message);
+    // 1. Mark in notifications table
+    try {
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', normalizedUser);
+    } catch {
+      // ignore
     }
 
-    // 2. Fetch current notifications to mark their IDs as read in backend memory
+    // 2. Mark in messages table
+    try {
+      await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('receiver_id', normalizedUser);
+    } catch {
+      // ignore
+    }
+
+    // 3. Mark in-memory fallback
     const { data: messages } = await supabase
       .from('messages')
       .select('message_id')
@@ -224,10 +279,23 @@ const markOneAsRead = async (req, res) => {
 
     if (id.startsWith('msg_')) {
       const messageId = id.replace('msg_', '');
-      await supabase
-        .from('messages')
-        .update({ is_read: true })
-        .eq('message_id', messageId);
+      try {
+        await supabase
+          .from('messages')
+          .update({ is_read: true })
+          .eq('message_id', messageId);
+      } catch {
+        // ignore
+      }
+    } else {
+      try {
+        await supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .eq('notification_id', id);
+      } catch {
+        // ignore
+      }
     }
 
     return res.json({ success: true, message: `Notification ${id} marked as read.` });
@@ -240,4 +308,5 @@ module.exports = {
   getNotifications,
   markAllAsRead,
   markOneAsRead,
+  createNotification,
 };

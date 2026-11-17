@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const supabase = require('./db'); // Imports your Supabase connection
-const { register, verifyOtp, resendOtp, login } = require('./controllers/authController');
+const { register, verifyOtp, resendOtp, forgotPassword, resetPassword, login } = require('./controllers/authController');
 const validatePassword = require('./middleware/validatePassword');
 const { requireAuth } = require('./middleware/authMiddleware');
 const { rateLimit } = require('express-rate-limit');
@@ -13,6 +13,8 @@ const transactionRoutes = require('./routes/transactionRoutes');
 const cancelTransactionRoutes = require('./routes/cancelTransactionRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const reviewsRoutes = require('./routes/reviewsRoutes');
+const storageRoutes = require('./routes/storageRoutes');
 const { initSocket } = require('./socket/socketServer');
 
 const app = express();
@@ -37,7 +39,7 @@ const otpVerificationLimiter = rateLimit({
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use('/api/services', servicesRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/admin', adminRoutes);
@@ -45,6 +47,8 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/transactions', cancelTransactionRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/reviews', reviewsRoutes);
+app.use('/api/storage', storageRoutes);
 
 // Test Route
 app.get('/', (req, res) => {
@@ -77,6 +81,8 @@ app.get('/api/test-db', async (req, res) => {
 app.post('/api/auth/register', registrationRateLimiter, validatePassword, register);
 app.post('/api/auth/verify-otp', otpVerificationLimiter, verifyOtp);
 app.post('/api/auth/resend-otp', otpVerificationLimiter, resendOtp);
+app.post('/api/auth/forgot-password', otpVerificationLimiter, forgotPassword);
+app.post('/api/auth/reset-password', otpVerificationLimiter, validatePassword, resetPassword);
 app.post('/api/auth/login', login);
 
 // Start Server

@@ -11,6 +11,7 @@ import ChatPage from './pages/ChatPage';
 import TransactionQRPage from './pages/TransactionQRPage';
 import AuthPage from './pages/AuthPage';
 import ProfilePage from './pages/ProfilePage';
+import AdminPage from './pages/AdminPage';
 import { Row, Col, Badge, Table, Button, Form, Alert } from 'react-bootstrap';
 import api from './api/axios';
 
@@ -245,6 +246,44 @@ function RequireAuth({ children }) {
   return children;
 }
 
+function RequireAdmin({ children }) {
+  const [isAdmin, setIsAdmin] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem('user');
+      if (!stored) return false;
+      const u = JSON.parse(stored);
+      return Boolean((u.department && u.designation) || u.user_type === 'Admin' || u.role === 'admin');
+    } catch {
+      return false;
+    }
+  });
+
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    api.get('/profile/me')
+      .then(({ data }) => {
+        const u = data.user;
+        if (u) {
+          const adminCheck = Boolean((u.department && u.designation) || u.user_type === 'Admin' || u.role === 'admin');
+          setIsAdmin(adminCheck);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setChecking(false));
+  }, []);
+
+  if (checking) {
+    return <div className="text-center py-5 text-muted">Checking administrator privileges...</div>;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -265,6 +304,7 @@ export default function App() {
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/messages/:id" element={<ChatPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/admin" element={<RequireAdmin><AdminPage /></RequireAdmin>} />
         </Route>
 
         {/* Catch-all redirect to public landing page */}

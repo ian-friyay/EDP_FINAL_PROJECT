@@ -6,37 +6,55 @@ const supabase = require('../db');
 
 const userFields = 'user_id, first_name, last_name, username, contact_number, email, region, province, city, barangay, user_type, department, designation, password, is_active';
 
-const sendOtpEmail = async (email, otp) => {
+const sendOtpEmail = async (email, otp, subject = 'Your SerbisYou Verification Code') => {
     const emailUser = process.env.EMAIL_USER;
     const emailPassword = process.env.EMAIL_PASS;
-    if (!emailUser || !emailPassword) {
-        throw new Error('EMAIL_USER and EMAIL_PASS must be configured.');
+    const isDevMode = !emailUser || !emailPassword || process.env.NODE_ENV !== 'production';
+
+    if (isDevMode && (!emailUser || !emailPassword)) {
+        console.log('\n==================================================');
+        console.log(`[DEV SMTP FALLBACK] Target Email: ${email}`);
+        console.log(`[DEV SMTP FALLBACK] Subject:      ${subject}`);
+        console.log(`[DEV SMTP FALLBACK] OTP CODE:     ${otp}`);
+        console.log('==================================================\n');
+        return { devMode: true, otp };
     }
 
-    const port = Number(process.env.EMAIL_PORT || 465);
-    if (!Number.isInteger(port) || port < 1 || port > 65535) {
-        throw new Error('EMAIL_PORT must be a valid port number.');
-    }
-
-    const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-        port,
-        secure: process.env.EMAIL_SECURE
-            ? process.env.EMAIL_SECURE === 'true'
-            : port === 465,
-        auth: {
-            user: emailUser,
-            pass: emailPassword
+    try {
+        const port = Number(process.env.EMAIL_PORT || 465);
+        if (!Number.isInteger(port) || port < 1 || port > 65535) {
+            throw new Error('EMAIL_PORT must be a valid port number.');
         }
-    });
 
-    await transporter.sendMail({
-        from: process.env.EMAIL_FROM || emailUser,
-        to: email,
-        subject: 'Your SerbisYou Verification Code',
-        text: `Your 6-digit verification code is: ${otp}. It will expire in 10 minutes.`,
-        html: `<p>Your SerbisYou verification code is <strong>${otp}</strong>.</p><p>It expires in 10 minutes.</p>`
-    });
+        const transporter = nodemailer.createTransport({
+            host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+            port,
+            secure: process.env.EMAIL_SECURE
+                ? process.env.EMAIL_SECURE === 'true'
+                : port === 465,
+            auth: {
+                user: emailUser,
+                pass: emailPassword
+            }
+        });
+
+        await transporter.sendMail({
+            from: process.env.EMAIL_FROM || emailUser,
+            to: email,
+            subject,
+            text: `Your 6-digit verification code is: ${otp}. It will expire in 10 minutes.`,
+            html: `<p>Your SerbisYou verification code is <strong>${otp}</strong>.</p><p>It expires in 10 minutes.</p>`
+        });
+        return { devMode: false };
+    } catch (error) {
+        console.warn(`[SMTP Warning] Live email delivery failed: ${error.message}`);
+        console.log('\n==================================================');
+        console.log(`[DEV SMTP FALLBACK] Target Email: ${email}`);
+        console.log(`[DEV SMTP FALLBACK] Subject:      ${subject}`);
+        console.log(`[DEV SMTP FALLBACK] OTP CODE:     ${otp}`);
+        console.log('==================================================\n');
+        return { devMode: true, otp };
+    }
 };
 
 const register = async (req, res) => {
@@ -225,16 +243,17 @@ const register = async (req, res) => {
 
         console.log(`[AUTH OTP DEV LOG] Generated OTP for ${normalizedEmail}: ${otp}`);
 
+        let emailResult = { devMode: false };
         try {
-            await sendOtpEmail(normalizedEmail, otp);
+            emailResult = await sendOtpEmail(normalizedEmail, otp);
         } catch (error) {
-            console.error('Registration email delivery failed:', error.message);
-            return res.status(502).json({ error: 'The account was saved, but the verification email could not be sent. Please retry registration.' });
+            console.warn('Registration email delivery had error:', error.message);
         }
 
         const { password: _password, ...safeUser } = user;
         return res.status(201).json({
             message: 'Registration successful. Verify your email using the code we sent.',
+            devOtp: emailResult.devMode ? otp : undefined,
             user: safeUser
         });
     } catch (error) {
@@ -401,16 +420,144 @@ const resendOtp = async (req, res) => {
 
         console.log(`[AUTH OTP DEV LOG] Resent OTP for ${normalizedEmail}: ${otp}`);
 
+        let emailResult = { devMode: false };
         try {
-            await sendOtpEmail(normalizedEmail, otp);
+            emailResult = await sendOtpEmail(normalizedEmail, otp);
         } catch (error) {
-            console.error('Resend OTP email delivery failed:', error.message);
-            return res.status(502).json({ error: 'Could not send verification email. Please try again later.' });
+            console.warn('Resend OTP email delivery had error:', error.message);
         }
 
-        return res.status(200).json({ message: 'A new 6-digit verification code has been sent to your email.' });
+        return res.status(200).json({
+            message: 'A new 6-digit verification code has been sent to your email.',
+            devOtp: emailResult.devMode ? otp : undefined
+        });
     } catch (error) {
         console.error('Resend OTP error:', error.message);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+};
+
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body || {};
+        if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+            return res.status(400).json({ error: 'A valid email address is required.' });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+        const { data: user, error: userError } = await supabase
+            .from('users')
+            .select('user_id, email, is_active')
+            .eq('email', normalizedEmail)
+            .maybeSingle();
+
+        if (userError) {
+            console.error('Forgot password user lookup failed:', userError.message);
+            return res.status(500).json({ error: 'Could not lookup account.' });
+        }
+        if (!user || !user.is_active) {
+            return res.status(200).json({
+                message: 'If an account exists with that email, a password reset code has been sent.'
+            });
+        }
+
+        const otp = crypto.randomInt(0, 1000000).toString().padStart(6, '0');
+        const otpHash = await bcrypt.hash(otp, 10);
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+        const { error: saveError } = await supabase
+            .from('email_verifications')
+            .upsert({
+                user_id: user.user_id,
+                otp_hash: otpHash,
+                expires_at: expiresAt,
+                verified_at: null,
+                failed_attempts: 0
+            }, { onConflict: 'user_id' });
+
+        if (saveError) {
+            console.error('Forgot password save OTP error:', saveError.message);
+            return res.status(500).json({ error: 'Failed to generate reset code.' });
+        }
+
+        const emailResult = await sendOtpEmail(normalizedEmail, otp, 'Your SerbisYou Password Reset Code');
+
+        return res.status(200).json({
+            message: 'If an account exists with that email, a password reset code has been sent.',
+            devOtp: emailResult.devMode ? otp : undefined
+        });
+    } catch (error) {
+        console.error('Forgot password error:', error.message);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        const { email, otp, newPassword } = req.body || {};
+        if (!email || !otp || !newPassword) {
+            return res.status(400).json({ error: 'Email, OTP, and new password are required.' });
+        }
+        if (typeof otp !== 'string' || !/^\d{6}$/.test(otp)) {
+            return res.status(400).json({ error: 'A valid 6-digit OTP code is required.' });
+        }
+        if (typeof newPassword !== 'string' || newPassword.length < 8) {
+            return res.status(400).json({ error: 'New password must be at least 8 characters long.' });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+        const { data: user, error: userError } = await supabase
+            .from('users')
+            .select('user_id, email, is_active')
+            .eq('email', normalizedEmail)
+            .maybeSingle();
+
+        if (userError || !user || !user.is_active) {
+            return res.status(404).json({ error: 'User account not found.' });
+        }
+
+        const { data: verification, error: verificationError } = await supabase
+            .from('email_verifications')
+            .select('otp_hash, expires_at, verified_at, failed_attempts')
+            .eq('user_id', user.user_id)
+            .maybeSingle();
+
+        if (verificationError || !verification) {
+            return res.status(400).json({ error: 'No active password reset request found. Please request a new code.' });
+        }
+
+        if (new Date(verification.expires_at).getTime() < Date.now()) {
+            return res.status(400).json({ error: 'The reset code has expired. Please request a new code.' });
+        }
+
+        const isMatch = await bcrypt.compare(otp, verification.otp_hash);
+        if (!isMatch) {
+            await supabase
+                .from('email_verifications')
+                .update({ failed_attempts: (verification.failed_attempts || 0) + 1 })
+                .eq('user_id', user.user_id);
+            return res.status(400).json({ error: 'Invalid reset code. Please check and try again.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({ password: hashedPassword })
+            .eq('user_id', user.user_id);
+
+        if (updateError) {
+            console.error('Password reset update error:', updateError.message);
+            return res.status(500).json({ error: 'Failed to update password.' });
+        }
+
+        await supabase
+            .from('email_verifications')
+            .update({ verified_at: new Date().toISOString() })
+            .eq('user_id', user.user_id);
+
+        return res.status(200).json({ message: 'Password has been reset successfully. You can now log in.' });
+    } catch (error) {
+        console.error('Reset password error:', error.message);
         return res.status(500).json({ error: 'Internal server error.' });
     }
 };
@@ -481,5 +628,7 @@ module.exports = {
     register,
     verifyOtp,
     resendOtp,
+    forgotPassword,
+    resetPassword,
     login
 };

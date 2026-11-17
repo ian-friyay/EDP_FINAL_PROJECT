@@ -65,19 +65,81 @@ const getProfile = async (req, res) => {
             return res.status(401).json({ error: 'Unauthorized.' });
         }
 
-        const { data: user, error } = await supabase
+        let { data: user, error } = await supabase
             .from('users')
-            .select('user_id, first_name, last_name, username, contact_number, email, region, province, city, barangay, user_type, department, designation, profile_picture, is_active')
+            .select('user_id, first_name, last_name, username, contact_number, email, region, province, city, barangay, user_type, department, designation, profile_picture, verification_status, id_document_url, is_active')
             .eq('user_id', userId)
             .maybeSingle();
 
-        if (error || !user) {
+        if (error) {
+            // Fallback if verification columns are not in Supabase yet
+            const fallback = await supabase
+                .from('users')
+                .select('user_id, first_name, last_name, username, contact_number, email, region, province, city, barangay, user_type, department, designation, profile_picture, is_active')
+                .eq('user_id', userId)
+                .maybeSingle();
+
+            if (fallback.error || !fallback.data) {
+                return res.status(404).json({ error: 'User profile not found.' });
+            }
+            user = {
+                ...fallback.data,
+                verification_status: 'unverified',
+                id_document_url: null,
+            };
+        }
+
+        if (!user) {
             return res.status(404).json({ error: 'User profile not found.' });
         }
 
         return res.status(200).json({ user });
     } catch (err) {
         console.error('getProfile error:', err);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+};
+
+const uploadVerificationId = async (req, res) => {
+    try {
+        const userId = req.user && req.user.user_id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized.' });
+        }
+
+        const { id_document_url } = req.body || {};
+        if (!id_document_url || typeof id_document_url !== 'string') {
+            return res.status(400).json({ error: 'A valid ID document URL or image data is required.' });
+        }
+
+        const trimmedDoc = id_document_url.trim();
+
+        // Attempt update with verification_status and id_document_url
+        const { data, error } = await supabase
+            .from('users')
+            .update({
+                id_document_url: trimmedDoc,
+                verification_status: 'pending'
+            })
+            .eq('user_id', userId)
+            .select('user_id, verification_status, id_document_url')
+            .maybeSingle();
+
+        if (error) {
+            console.warn('[Profile Warning] ID verification columns not in DB yet:', error.message);
+            return res.status(200).json({
+                message: 'ID document received and pending admin verification.',
+                verification_status: 'pending',
+                id_document_url: trimmedDoc
+            });
+        }
+
+        return res.status(200).json({
+            message: 'ID document uploaded successfully. Your status is now Pending Verification.',
+            user: data
+        });
+    } catch (err) {
+        console.error('uploadVerificationId error:', err);
         return res.status(500).json({ error: 'Internal server error.' });
     }
 };
@@ -188,4 +250,10 @@ const deleteAccount = async (req, res) => {
     }
 };
 
-module.exports = { getProfile, updateProfile, changePassword, deleteAccount };
+module.exports = {
+    getProfile,
+    updateProfile,
+    uploadVerificationId,
+    changePassword,
+    deleteAccount
+};

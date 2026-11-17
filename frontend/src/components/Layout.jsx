@@ -81,6 +81,11 @@ export default function Layout() {
 
   const displayName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.user_id || 'User';
   const initial = (user.first_name || displayName || 'U')[0]?.toUpperCase();
+  const isAdmin = Boolean(
+    (user.department && user.designation) ||
+    user.user_type === 'Admin' ||
+    user.role === 'admin'
+  );
 
   return (
     <div className="min-vh-100 d-flex flex-column">
@@ -169,6 +174,11 @@ export default function Layout() {
               <NavDropdown.Item as={Link} to="/transactions">
                 My Transactions
               </NavDropdown.Item>
+              {isAdmin && (
+                <NavDropdown.Item as={Link} to="/admin" className="fw-semibold text-primary">
+                  🛡️ Admin Console
+                </NavDropdown.Item>
+              )}
               <NavDropdown.Divider />
               <NavDropdown.Item as="button" type="button" className="text-danger" onClick={handleSignOut}>
                 Sign Out

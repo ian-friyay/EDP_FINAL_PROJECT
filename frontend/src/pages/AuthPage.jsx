@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Alert, Button, Col, Container, Form, InputGroup, ProgressBar, Row } from 'react-bootstrap';
+import { Alert, Button, Col, Container, Form, InputGroup, ProgressBar, Row, Modal } from 'react-bootstrap';
 import api from '../api/axios';
 import { philippineRegions } from '../data/philippinesLocations';
 
@@ -41,6 +41,18 @@ export default function AuthPage({ mode }) {
   const [message, setMessage] = useState(location.state?.message || '');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Forgot Password Modal States
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotStep, setForgotStep] = useState(1);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [forgotDevOtp, setForgotDevOtp] = useState('');
+  const [isForgotSubmitting, setIsForgotSubmitting] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotMessage, setForgotMessage] = useState('');
 
   // Load remembered email on mount
   useEffect(() => {
@@ -259,7 +271,7 @@ export default function AuthPage({ mode }) {
 
       setIsSubmitting(true);
       try {
-        await api.post('/auth/register', {
+        const { data } = await api.post('/auth/register', {
           student_id: normalizedStudentId,
           email,
           password,
@@ -275,7 +287,11 @@ export default function AuthPage({ mode }) {
         });
         setVerificationPending(true);
         setResendCooldown(60);
-        setMessage('We sent a 6-digit verification code to your email.');
+        if (data.devOtp) {
+          setMessage(`Verification code generated! (Dev OTP: ${data.devOtp})`);
+        } else {
+          setMessage('We sent a 6-digit verification code to your email.');
+        }
       } catch (err) {
         setError(err.response?.data?.error || err.message || 'Registration failed.');
       } finally {
@@ -311,6 +327,72 @@ export default function AuthPage({ mode }) {
       setError(err.response?.data?.error || err.message || 'Failed to sign in.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenForgotModal = () => {
+    setForgotStep(1);
+    setForgotEmail(email || '');
+    setForgotOtp('');
+    setForgotNewPassword('');
+    setForgotConfirmPassword('');
+    setForgotDevOtp('');
+    setForgotError('');
+    setForgotMessage('');
+    setShowForgotModal(true);
+  };
+
+  const handleSendForgotOtp = async (e) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotMessage('');
+    setIsForgotSubmitting(true);
+    try {
+      const { data } = await api.post('/auth/forgot-password', { email: forgotEmail });
+      setForgotStep(2);
+      if (data.devOtp) {
+        setForgotDevOtp(data.devOtp);
+        setForgotMessage(`Reset code generated! (Dev Code: ${data.devOtp})`);
+      } else {
+        setForgotMessage(data.message || `Reset code sent to ${forgotEmail}. Check your inbox.`);
+      }
+    } catch (err) {
+      setForgotError(err.response?.data?.error || err.message || 'Failed to send reset code.');
+    } finally {
+      setIsForgotSubmitting(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotMessage('');
+
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      setForgotError('Passwords do not match.');
+      return;
+    }
+
+    if (forgotNewPassword.length < 8) {
+      setForgotError('New password must be at least 8 characters long.');
+      return;
+    }
+
+    setIsForgotSubmitting(true);
+    try {
+      const { data } = await api.post('/auth/reset-password', {
+        email: forgotEmail,
+        otp: forgotOtp,
+        newPassword: forgotNewPassword,
+      });
+
+      setShowForgotModal(false);
+      setEmail(forgotEmail);
+      setMessage(data.message || 'Password has been reset successfully! You can now sign in.');
+    } catch (err) {
+      setForgotError(err.response?.data?.error || err.message || 'Failed to reset password.');
+    } finally {
+      setIsForgotSubmitting(false);
     }
   };
 
@@ -1008,17 +1090,26 @@ export default function AuthPage({ mode }) {
                 </Col>
               </Form.Group>
 
-              {/* Remember Me Checkbox */}
-              <Row className="mb-4">
-                <Col sm={{ span: 8, offset: 4 }}>
+              {/* Remember Me Checkbox & Forgot Password */}
+              <Row className="mb-4 align-items-center">
+                <Col sm={{ span: 8, offset: 4 }} className="d-flex justify-content-between align-items-center flex-wrap gap-2">
                   <Form.Check
                     type="checkbox"
                     id="rememberMeCheckbox"
-                    label="Remember me on this device"
+                    label="Remember me"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="text-muted small"
+                    className="text-muted small mb-0"
                   />
+                  <Button
+                    variant="link"
+                    className="p-0 text-decoration-none small fw-semibold"
+                    style={{ color: '#063a8f' }}
+                    onClick={handleOpenForgotModal}
+                    type="button"
+                  >
+                    Forgot Password?
+                  </Button>
                 </Col>
               </Row>
 
@@ -1048,6 +1139,99 @@ export default function AuthPage({ mode }) {
           )}
         </div>
       </Container>
+
+      {/* Forgot / Reset Password Modal */}
+      <Modal show={showForgotModal} onHide={() => setShowForgotModal(false)} centered>
+        <Modal.Header closeButton style={{ background: 'var(--neu-bg-dark)', borderBottom: '1px solid rgba(154, 172, 196, 0.35)' }}>
+          <Modal.Title className="fw-bold fs-5" style={{ color: 'var(--neu-text)' }}>
+            {forgotStep === 1 ? 'Reset Your Password' : 'Enter Verification Code'}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ background: 'var(--neu-bg)' }} className="p-4">
+          {forgotMessage && <Alert variant="info" className="neu-alert mb-3 small">{forgotMessage}</Alert>}
+          {forgotError && <Alert variant="danger" className="neu-alert mb-3 small">{forgotError}</Alert>}
+
+          {forgotStep === 1 ? (
+            <Form onSubmit={handleSendForgotOtp}>
+              <p className="text-muted small mb-3">
+                Enter your registered SerbisYou email address. We will generate and send a 6-digit password reset code.
+              </p>
+              <Form.Group className="mb-4" controlId="forgotEmailInput">
+                <Form.Label className="small fw-semibold text-muted">Email Address</Form.Label>
+                <Form.Control
+                  type="email"
+                  className="neu-input"
+                  placeholder="name@example.com"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  required
+                />
+              </Form.Group>
+              <div className="d-flex justify-content-end gap-2">
+                <Button className="neu-btn-ghost" onClick={() => setShowForgotModal(false)} type="button">
+                  Cancel
+                </Button>
+                <Button type="submit" className="neu-btn-primary px-4 fw-semibold" disabled={isForgotSubmitting}>
+                  {isForgotSubmitting ? 'Sending...' : 'Send Reset Code'}
+                </Button>
+              </div>
+            </Form>
+          ) : (
+            <Form onSubmit={handleResetPassword}>
+              <Form.Group className="mb-3" controlId="forgotOtpInput">
+                <Form.Label className="small fw-semibold text-muted">6-Digit Reset Code (OTP)</Form.Label>
+                <Form.Control
+                  type="text"
+                  maxLength={6}
+                  placeholder="123456"
+                  className="neu-input font-monospace fs-5 text-center"
+                  value={forgotOtp}
+                  onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, ''))}
+                  required
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="forgotNewPasswordInput">
+                <Form.Label className="small fw-semibold text-muted">New Password (Min. 8 characters)</Form.Label>
+                <Form.Control
+                  type="password"
+                  placeholder="Enter new password"
+                  className="neu-input"
+                  value={forgotNewPassword}
+                  onChange={(e) => setForgotNewPassword(e.target.value)}
+                  required
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-4" controlId="forgotConfirmPasswordInput">
+                <Form.Label className="small fw-semibold text-muted">Confirm New Password</Form.Label>
+                <Form.Control
+                  type="password"
+                  placeholder="Confirm new password"
+                  className="neu-input"
+                  value={forgotConfirmPassword}
+                  onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                  required
+                />
+              </Form.Group>
+
+              <div className="d-flex justify-content-between align-items-center">
+                <Button variant="link" className="p-0 text-muted small text-decoration-none" onClick={() => setForgotStep(1)} type="button">
+                  ← Back to Email
+                </Button>
+                <div className="d-flex gap-2">
+                  <Button className="neu-btn-ghost" onClick={() => setShowForgotModal(false)} type="button">
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="neu-btn-primary px-4 fw-semibold" disabled={isForgotSubmitting}>
+                    {isForgotSubmitting ? 'Resetting...' : 'Reset Password'}
+                  </Button>
+                </div>
+              </div>
+            </Form>
+          )}
+        </Modal.Body>
+      </Modal>
     </main>
   );
 }

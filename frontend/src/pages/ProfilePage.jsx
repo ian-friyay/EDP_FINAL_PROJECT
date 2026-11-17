@@ -45,6 +45,8 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const [idDocumentFile, setIdDocumentFile] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -138,6 +140,55 @@ export default function ProfilePage() {
     }
   };
 
+  // Handle Document File Upload
+  const handleDocFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      setError('Please select an image (JPG, PNG) or PDF document.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Document file size should be less than 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result;
+      if (typeof base64 === 'string') {
+        setIdDocumentFile(base64);
+        setError('');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmitVerification = async (e) => {
+    e.preventDefault();
+    if (!idDocumentFile) {
+      setError('Please select or upload an ID document first.');
+      return;
+    }
+
+    setIsUploadingDoc(true);
+    setError('');
+    setMessage('');
+    try {
+      const { data } = await api.post('/profile/verification-id', {
+        id_document_url: idDocumentFile,
+      });
+      setMessage(data.message || 'ID document submitted for review!');
+      await fetchProfile();
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Failed to submit ID document.');
+    } finally {
+      setIsUploadingDoc(false);
+    }
+  };
+
   // Handle Password Change
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -221,6 +272,7 @@ export default function ProfilePage() {
         className="mb-4 neu-tabs"
       >
         <Tab eventKey="details" title="Profile Details" />
+        <Tab eventKey="verification" title="Provider Verification" />
         <Tab eventKey="security" title="Security & Password" />
         <Tab eventKey="danger" title="Account Management" />
       </Tabs>
@@ -493,7 +545,131 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* TAB 2: Security & Password */}
+      {/* TAB 2: Provider Verification */}
+      {activeTab === 'verification' && (
+        <div className="neu-card p-4 p-md-5">
+          <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom flex-wrap gap-3" style={{ borderColor: 'rgba(154, 172, 196, 0.3)' }}>
+            <div>
+              <h5 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>Provider Verification &amp; Trust Badge</h5>
+              <p className="text-muted small mb-0">
+                Upload a government-issued ID, Barangay Clearance, or official certificate to earn a Verified Provider badge.
+              </p>
+            </div>
+            <div>
+              {p.verification_status === 'verified' && (
+                <Badge bg="success" className="px-3 py-2 rounded-pill fs-6">
+                  ✓ Verified Provider
+                </Badge>
+              )}
+              {p.verification_status === 'pending' && (
+                <Badge bg="warning" text="dark" className="px-3 py-2 rounded-pill fs-6">
+                  ⏳ Verification In Review
+                </Badge>
+              )}
+              {p.verification_status === 'rejected' && (
+                <Badge bg="danger" className="px-3 py-2 rounded-pill fs-6">
+                  ✕ Verification Rejected
+                </Badge>
+              )}
+              {(!p.verification_status || p.verification_status === 'unverified') && (
+                <Badge bg="secondary" className="px-3 py-2 rounded-pill fs-6">
+                  Unverified
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          {p.verification_notes && (
+            <Alert variant={p.verification_status === 'rejected' ? 'danger' : 'info'} className="neu-alert mb-4">
+              <strong>Admin Notes:</strong> {p.verification_notes}
+            </Alert>
+          )}
+
+          {p.id_document_url && (
+            <div className="p-3 mb-4 rounded-3" style={{ background: 'var(--neu-bg-dark)' }}>
+              <h6 className="fw-bold text-muted small text-uppercase mb-2">Currently Submitted Document</h6>
+              {p.id_document_url.startsWith('data:application/pdf') || p.id_document_url.includes('.pdf') ? (
+                <div className="d-flex align-items-center gap-2 text-muted">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
+                  </svg>
+                  <span>PDF Document on file</span>
+                </div>
+              ) : (
+                <img
+                  src={p.id_document_url}
+                  alt="Submitted ID Document"
+                  className="rounded-3 border"
+                  style={{ maxHeight: '200px', objectFit: 'contain' }}
+                />
+              )}
+            </div>
+          )}
+
+          <Form onSubmit={handleSubmitVerification} style={{ maxWidth: '600px' }}>
+            <div className="p-3 mb-4 rounded-3" style={{ background: 'var(--neu-bg-dark)', border: '2px dashed rgba(154, 172, 196, 0.45)' }}>
+              <div className="text-center py-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor" viewBox="0 0 16 16" className="text-muted mb-2">
+                  <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                  <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                </svg>
+                <div className="fw-semibold small" style={{ color: 'var(--neu-text)' }}>
+                  Upload Government ID or Proof Document
+                </div>
+                <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                  PNG, JPG, or PDF up to 5MB
+                </div>
+                <Form.Label className="btn neu-btn-primary btn-sm mt-3 mb-0 cursor-pointer">
+                  Select File
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="d-none"
+                    onChange={handleDocFileUpload}
+                  />
+                </Form.Label>
+              </div>
+
+              {idDocumentFile && (
+                <div className="mt-3 pt-3 border-top text-center">
+                  <span className="badge bg-success me-2">File Ready</span>
+                  <small className="text-muted">Document selected and ready for upload.</small>
+                  {idDocumentFile.startsWith('data:image') && (
+                    <div className="mt-2">
+                      <img
+                        src={idDocumentFile}
+                        alt="Preview"
+                        className="rounded-2 border"
+                        style={{ maxHeight: '120px' }}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="mb-4">
+              <Form.Label className="small fw-semibold text-muted">Or Paste Document URL</Form.Label>
+              <Form.Control
+                className="neu-input"
+                placeholder="https://... (direct link to document)"
+                value={idDocumentFile.startsWith('data:') ? '' : idDocumentFile}
+                onChange={(e) => setIdDocumentFile(e.target.value)}
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="neu-btn-primary px-4 fw-semibold"
+              disabled={isUploadingDoc || !idDocumentFile}
+            >
+              {isUploadingDoc ? 'Submitting Document...' : 'Submit ID for Verification'}
+            </Button>
+          </Form>
+        </div>
+      )}
+
+      {/* TAB 3: Security & Password */}
       {activeTab === 'security' && (
         <div className="neu-card p-4 p-md-5">
           <div className="mb-4 pb-3 border-bottom" style={{ borderColor: 'rgba(154, 172, 196, 0.3)' }}>
