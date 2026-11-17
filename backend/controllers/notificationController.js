@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const supabase = require('../supabaseClient');
 
 const KNOWN_USERS = {
@@ -9,8 +11,40 @@ const KNOWN_USERS = {
   'MMC-3046': 'Keizy Lara',
 };
 
-// In-memory set of read notification IDs per user (fallback persistence)
-const readNotificationIds = new Set();
+// Persistent storage for read notification IDs across server restarts
+const DATA_DIR = path.join(__dirname, '../data');
+const READ_CACHE_FILE = path.join(DATA_DIR, 'read_notifications.json');
+
+const loadReadCache = () => {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (fs.existsSync(READ_CACHE_FILE)) {
+      const raw = fs.readFileSync(READ_CACHE_FILE, 'utf8');
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        return new Set(arr);
+      }
+    }
+  } catch (err) {
+    console.warn('Could not load persistent read notification cache:', err.message);
+  }
+  return new Set();
+};
+
+const saveReadCache = (cacheSet) => {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(READ_CACHE_FILE, JSON.stringify(Array.from(cacheSet)), 'utf8');
+  } catch (err) {
+    console.warn('Could not save persistent read notification cache:', err.message);
+  }
+};
+
+const readNotificationIds = loadReadCache();
 
 const getCurrentUserId = (req) =>
   (req.user && (req.user.id || req.user.user_id)) ||
@@ -257,6 +291,7 @@ const markAllAsRead = async (req, res) => {
       .or(`requestor_id.eq.${normalizedUser},provider_id.eq.${normalizedUser}`);
 
     (txList || []).forEach((t) => readNotificationIds.add(`tx_${t.transaction_id}`));
+    saveReadCache(readNotificationIds);
 
     return res.json({
       success: true,
@@ -276,6 +311,7 @@ const markOneAsRead = async (req, res) => {
     }
 
     readNotificationIds.add(String(id));
+    saveReadCache(readNotificationIds);
 
     if (id.startsWith('msg_')) {
       const messageId = id.replace('msg_', '');

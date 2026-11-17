@@ -394,21 +394,42 @@ export default function ServicesGrid({
                         </Button>
                       </div>
                     ) : (
-                      <div className="d-flex gap-2">
+                      <div className="d-flex flex-column gap-2">
+                        <div className="d-flex gap-2">
+                          <Button
+                            className="neu-btn-outline w-50 fw-semibold"
+                            size="sm"
+                            onClick={() => setActiveModalService(service)}
+                          >
+                            View Details
+                          </Button>
+                          <Button
+                            className="neu-btn-primary w-50 fw-semibold"
+                            size="sm"
+                            disabled={bookingServiceId === service.service_id}
+                            onClick={() => handleBookService(service)}
+                          >
+                            {bookingServiceId === service.service_id ? 'Booking...' : 'Book Now'}
+                          </Button>
+                        </div>
                         <Button
-                          className="neu-btn-outline w-50 fw-semibold"
+                          className="neu-btn-ghost w-100 fw-semibold d-flex align-items-center justify-content-center gap-2"
                           size="sm"
-                          onClick={() => setActiveModalService(service)}
+                          onClick={() => {
+                            navigate(`/messages/${service.user_id}`, {
+                              state: {
+                                name: service.provider_name,
+                                provider_name: service.provider_name,
+                                service_name: service.subcategory || service.service_category,
+                                initialMessage: `Hi ${service.provider_name || 'Provider'}, I'm interested in your service: ${service.subcategory || service.service_category}.`,
+                              },
+                            });
+                          }}
                         >
-                          View Details
-                        </Button>
-                        <Button
-                          className="neu-btn-primary w-50 fw-semibold"
-                          size="sm"
-                          disabled={bookingServiceId === service.service_id}
-                          onClick={() => handleBookService(service)}
-                        >
-                          {bookingServiceId === service.service_id ? 'Booking...' : 'Book Now'}
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
+                          </svg>
+                          Message Provider
                         </Button>
                       </div>
                     )}

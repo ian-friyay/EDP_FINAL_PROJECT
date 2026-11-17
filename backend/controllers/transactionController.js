@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const supabase = require('../db');
+const { createNotification } = require('./notificationController');
 
 const BOOKING_FEE = 5;
 const COMMISSION_RATE = 0.05;
@@ -185,8 +186,209 @@ const getTransactionById = async (req, res) => {
   }
 };
 
+const acceptTransaction = async (req, res) => {
+  try {
+    const transactionId = req.params.transaction_id || req.params.id;
+    const userId = req.user && req.user.user_id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized.' });
+    }
+
+    if (!transactionId) {
+      return res.status(400).json({ error: 'Transaction ID is required.' });
+    }
+
+    const { data: transaction, error: fetchErr } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('transaction_id', transactionId)
+      .maybeSingle();
+
+    if (fetchErr || !transaction) {
+      return res.status(404).json({ error: 'Transaction not found.' });
+    }
+
+    // Only the provider assigned to the transaction can accept it
+    if (transaction.provider_id !== userId) {
+      return res.status(403).json({ error: 'Only the service provider can accept this booking.' });
+    }
+
+    if (transaction.service_status !== 'pending') {
+      return res.status(400).json({
+        error: `Cannot accept transaction with status '${transaction.service_status}'. Only pending bookings can be accepted.`,
+      });
+    }
+
+    const { data: updated, error: updateErr } = await supabase
+      .from('transactions')
+      .update({ service_status: 'accepted' })
+      .eq('transaction_id', transactionId)
+      .select()
+      .single();
+
+    if (updateErr) {
+      return res.status(500).json({ error: 'Failed to accept transaction.', details: updateErr.message });
+    }
+
+    // Notify the requestor
+    createNotification(
+      transaction.requestor_id,
+      'transaction',
+      'Booking Accepted!',
+      `Provider accepted your booking #${transactionId}.`,
+      `/transactions/${transactionId}/qr`
+    );
+
+    return res.status(200).json({
+      message: 'Transaction accepted successfully.',
+      transaction: updated,
+    });
+  } catch (error) {
+    console.error('acceptTransaction error:', error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+const completeTransaction = async (req, res) => {
+  try {
+    const transactionId = req.params.transaction_id || req.params.id;
+    const userId = req.user && req.user.user_id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized.' });
+    }
+
+    if (!transactionId) {
+      return res.status(400).json({ error: 'Transaction ID is required.' });
+    }
+
+    const { data: transaction, error: fetchErr } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('transaction_id', transactionId)
+      .maybeSingle();
+
+    if (fetchErr || !transaction) {
+      return res.status(404).json({ error: 'Transaction not found.' });
+    }
+
+    const isParticipant = transaction.provider_id === userId || transaction.requestor_id === userId;
+    if (!isParticipant) {
+      return res.status(403).json({ error: 'You are not authorized to complete this booking.' });
+    }
+
+    if (transaction.service_status === 'completed') {
+      return res.status(400).json({ error: 'Transaction is already completed.' });
+    }
+
+    if (transaction.service_status === 'cancelled') {
+      return res.status(400).json({ error: 'Cancelled transactions cannot be completed.' });
+    }
+
+    const { data: updated, error: updateErr } = await supabase
+      .from('transactions')
+      .update({ service_status: 'completed' })
+      .eq('transaction_id', transactionId)
+      .select()
+      .single();
+
+    if (updateErr) {
+      return res.status(500).json({ error: 'Failed to complete transaction.', details: updateErr.message });
+    }
+
+    // Notify the other party
+    const targetUserId = userId === transaction.provider_id ? transaction.requestor_id : transaction.provider_id;
+    createNotification(
+      targetUserId,
+      'transaction',
+      'Service Completed!',
+      `Booking #${transactionId} has been marked as completed. Please leave a review!`,
+      `/transactions`
+    );
+
+    return res.status(200).json({
+      message: 'Transaction completed successfully.',
+      transaction: updated,
+    });
+  } catch (error) {
+    console.error('completeTransaction error:', error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+const verifyQrCode = async (req, res) => {
+  try {
+    const userId = req.user && req.user.user_id;
+    const { qr_code } = req.body || {};
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized.' });
+    }
+
+    if (!qr_code || !String(qr_code).trim()) {
+      return res.status(400).json({ error: 'QR Code payload is required.' });
+    }
+
+    const trimmedCode = String(qr_code).trim();
+
+    const { data: transaction, error: fetchErr } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('qr_code', trimmedCode)
+      .maybeSingle();
+
+    if (fetchErr || !transaction) {
+      return res.status(404).json({ error: 'Invalid QR Code. No matching booking found.' });
+    }
+
+    // Verify provider ownership
+    if (transaction.provider_id !== userId) {
+      return res.status(403).json({
+        error: `Unauthorized. This QR code is assigned to provider ${transaction.provider_id}, not your account.`,
+      });
+    }
+
+    if (transaction.service_status === 'cancelled') {
+      return res.status(400).json({ error: 'This booking has been cancelled and cannot be verified.' });
+    }
+
+    // Mark as completed upon successful verification
+    const { data: updated, error: updateErr } = await supabase
+      .from('transactions')
+      .update({ service_status: 'completed' })
+      .eq('transaction_id', transaction.transaction_id)
+      .select()
+      .single();
+
+    if (updateErr) {
+      return res.status(500).json({ error: 'Failed to verify transaction.', details: updateErr.message });
+    }
+
+    // Notify requestor that provider verified and completed the service
+    createNotification(
+      transaction.requestor_id,
+      'transaction',
+      'QR Code Verified - Service Completed!',
+      `Provider verified your booking #${transaction.transaction_id} via QR code.`,
+      `/transactions`
+    );
+
+    return res.status(200).json({
+      message: 'QR Code verified successfully! Booking marked as completed.',
+      transaction: updated,
+    });
+  } catch (error) {
+    console.error('verifyQrCode error:', error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
 module.exports = {
   createTransaction,
   getUserTransactions,
   getTransactionById,
+  acceptTransaction,
+  completeTransaction,
+  verifyQrCode,
 };
