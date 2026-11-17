@@ -305,6 +305,7 @@ export default function App() {
           <Route path="/messages/:id" element={<ChatPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/admin" element={<RequireAdmin><AdminPage /></RequireAdmin>} />
+          <Route path="/admin/statistics" element={<RequireAdmin><AdminPage /></RequireAdmin>} />
         </Route>
 
         {/* Catch-all redirect to public landing page */}

@@ -120,34 +120,23 @@ export default function ServicesGrid({
   };
 
   const handleBookService = async (service) => {
+    setActiveModalService(null);
     if (onBookService) {
       await onBookService(service);
-      setActiveModalService(null);
     } else {
-      setBookingSuccessAlert(
-        `Booking request initiated for "${service.subcategory}". ₱5.00 booking fee applied. Total to pay: ₱${(Number(service.amount_topay) + 5).toFixed(2)}.`
-      );
-      setActiveModalService(null);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    // Dispatch real-time booking notification
-    try {
-      window.dispatchEvent(
-        new CustomEvent('serbisyou_notification', {
-          detail: {
-            id: `book_${Date.now()}`,
-            type: 'booking',
-            title: `Booking Requested: ${service.subcategory}`,
-            description: `Booking initiated with ${service.provider_name || service.user_id}. Total: ₱${(Number(service.amount_topay) + 5).toFixed(2)}.`,
-            timestamp: new Date().toISOString(),
-            read: false,
-            link: '/transactions',
-          },
-        })
-      );
-    } catch {
-      // ignore
+      try {
+        const { data } = await api.post('/transactions', {
+          service_id: service.service_id,
+        });
+        const txId = data.transaction?.transaction_id;
+        if (txId) {
+          navigate(`/transactions/${txId}/qr`);
+          return;
+        }
+      } catch {
+        // ignore
+      }
+      navigate('/transactions');
     }
   };
 

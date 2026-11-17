@@ -192,7 +192,7 @@ export default function Layout() {
       <Container fluid className="p-0 flex-grow-1 d-flex flex-column">
         <Row className="g-0 flex-grow-1">
           {/* Responsive Sidebar Component */}
-          <Col lg={3} xl={2} className="p-0">
+          <Col lg={3} xl={2} className="p-0 neu-sidebar-col">
             <Sidebar
               show={showMobileSidebar}
               onHide={() => setShowMobileSidebar(false)}
@@ -201,7 +201,7 @@ export default function Layout() {
           </Col>
 
           {/* 3. Main Content Area Rendering Child Routes with <Outlet /> */}
-          <Col lg={9} xl={10} as="main" className="neu-main p-3 p-md-4 flex-grow-1 overflow-auto">
+          <Col lg={9} xl={10} as="main" className="neu-main p-3 p-md-4 flex-grow-1">
             <Outlet />
           </Col>
         </Row>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Alert, Button, Form, Modal, InputGroup } from 'react-bootstrap';
 import api from '../api/axios';
 import ServicesGrid from '../components/ServicesGrid';
@@ -187,6 +188,7 @@ function PictureProofManager({ pictures = [], onChange }) {
 }
 
 export default function ServicesPage() {
+  const navigate = useNavigate();
   const [services, setServices] = useState([]);
   const [serviceForm, setServiceForm] = useState(emptyService);
   const [editingService, setEditingService] = useState(null);
@@ -345,10 +347,16 @@ export default function ServicesPage() {
       const { data } = await api.post('/transactions', {
         service_id: service.service_id,
       });
-      setMessage(
-        `Booking confirmed! Transaction ID: ${data.transaction.transaction_id}. QR Code generated. Visit Transactions to view.`
-      );
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const txId = data.transaction?.transaction_id;
+      if (txId) {
+        navigate(`/transactions/${txId}/qr`, {
+          state: {
+            message: `Booking confirmed! Transaction #${txId} created. QR Code generated.`,
+          },
+        });
+      } else {
+        navigate('/transactions');
+      }
     } catch (requestError) {
       setError(getRequestError(requestError));
     } finally {
