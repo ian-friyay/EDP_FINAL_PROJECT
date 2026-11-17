@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Row,
@@ -76,6 +77,7 @@ export default function ServicesGrid({
   onBookService,
   bookingServiceId,
 }) {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [activeModalService, setActiveModalService] = useState(null);
@@ -126,6 +128,25 @@ export default function ServicesGrid({
       );
       setActiveModalService(null);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Dispatch real-time booking notification
+    try {
+      window.dispatchEvent(
+        new CustomEvent('serbisyou_notification', {
+          detail: {
+            id: `book_${Date.now()}`,
+            type: 'booking',
+            title: `Booking Requested: ${service.subcategory}`,
+            description: `Booking initiated with ${service.provider_name || service.user_id}. Total: ₱${(Number(service.amount_topay) + 5).toFixed(2)}.`,
+            timestamp: new Date().toISOString(),
+            read: false,
+            link: '/transactions',
+          },
+        })
+      );
+    } catch {
+      // ignore
     }
   };
 
@@ -430,28 +451,65 @@ export default function ServicesGrid({
               </Row>
             </div>
 
-            {/* Provider Details */}
-            <div className="rounded-3 p-3 mb-4" style={{ background: 'var(--neu-bg-dark)' }}>
-              <Row className="g-2 small">
-                <Col sm={6}>
-                  <span className="text-muted">Provider User ID:</span>{' '}
-                  <strong className="font-monospace" style={{ color: 'var(--neu-primary)' }}>
-                    {activeModalService.user_id}
-                  </strong>
-                </Col>
-                <Col sm={6}>
-                  <span className="text-muted">Category:</span>{' '}
-                  <Badge bg="primary">{activeModalService.service_category}</Badge>
-                </Col>
-                <Col sm={6}>
-                  <span className="text-muted">Provider Name:</span>{' '}
-                  <strong>{activeModalService.provider_name}</strong>
-                </Col>
-                <Col sm={6}>
-                  <span className="text-muted">Location:</span>{' '}
-                  <span>{activeModalService.provider_location}</span>
-                </Col>
-              </Row>
+            {/* Provider Details Card */}
+            <div className="border rounded-4 p-3 p-md-4 mb-4" style={{ background: 'var(--neu-bg-dark)' }}>
+              <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div className="d-flex align-items-center gap-3">
+                  <div
+                    className="neu-avatar d-flex align-items-center justify-content-center fw-bold fs-4 flex-shrink-0"
+                    style={{ width: 52, height: 52 }}
+                  >
+                    {activeModalService.provider_name
+                      ? activeModalService.provider_name
+                          .split(' ')
+                          .filter(Boolean)
+                          .slice(0, 2)
+                          .map((p) => p[0])
+                          .join('')
+                          .toUpperCase()
+                      : 'PR'}
+                  </div>
+                  <div>
+                    <h5 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>
+                      {activeModalService.provider_name}
+                    </h5>
+                    <div className="d-flex align-items-center gap-2 flex-wrap small">
+                      <span className="text-muted font-monospace">
+                        ID: <strong style={{ color: 'var(--neu-primary)' }}>{activeModalService.user_id}</strong>
+                      </span>
+                      <span className="text-muted">•</span>
+                      <Badge bg="primary">{activeModalService.service_category}</Badge>
+                      <span className="text-muted">•</span>
+                      <span className="text-muted d-flex align-items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6"/>
+                        </svg>
+                        {activeModalService.provider_location}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  className="neu-btn-outline rounded-pill px-3 py-2 d-flex align-items-center gap-2 fw-semibold"
+                  onClick={() => {
+                    const targetService = activeModalService;
+                    setActiveModalService(null);
+                    navigate(`/messages/${targetService.user_id}`, {
+                      state: {
+                        name: targetService.provider_name,
+                        provider_name: targetService.provider_name,
+                        user_id: targetService.user_id,
+                      },
+                    });
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
+                  </svg>
+                  Chat with Provider
+                </Button>
+              </div>
             </div>
 
             {/* Full Service Description */}
@@ -491,17 +549,40 @@ export default function ServicesGrid({
             </div>
           </Modal.Body>
 
-          <Modal.Footer className="border-top px-4 py-3" style={{ background: 'var(--neu-bg-dark)' }}>
-            <Button className="neu-btn-ghost" onClick={() => setActiveModalService(null)}>
-              Close
-            </Button>
+          <Modal.Footer className="border-top px-4 py-3 d-flex justify-content-between flex-wrap gap-2" style={{ background: 'var(--neu-bg-dark)' }}>
             <Button
-              className="neu-btn-primary px-4 fw-semibold"
-              disabled={bookingServiceId === activeModalService.service_id}
-              onClick={() => handleBookService(activeModalService)}
+              className="neu-btn-outline rounded-pill px-3 py-2 d-flex align-items-center gap-2 fw-semibold"
+              onClick={() => {
+                const targetService = activeModalService;
+                setActiveModalService(null);
+                navigate(`/messages/${targetService.user_id}`, {
+                  state: {
+                    name: targetService.provider_name,
+                    provider_name: targetService.provider_name,
+                    user_id: targetService.user_id,
+                  },
+                });
+              }}
             >
-              {bookingServiceId === activeModalService.service_id ? 'Booking...' : `Confirm Booking (₱${((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)})`}
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
+              </svg>
+              Chat with Provider
             </Button>
+            <div className="d-flex gap-2">
+              <Button className="neu-btn-ghost" onClick={() => setActiveModalService(null)}>
+                Close
+              </Button>
+              <Button
+                className="neu-btn-primary px-4 fw-semibold"
+                disabled={bookingServiceId === activeModalService.service_id}
+                onClick={() => handleBookService(activeModalService)}
+              >
+                {bookingServiceId === activeModalService.service_id
+                  ? 'Booking...'
+                  : `Confirm Booking (₱${((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)})`}
+              </Button>
+            </div>
           </Modal.Footer>
         </Modal>
       )}

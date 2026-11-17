@@ -7,6 +7,7 @@ import GlobalLoader from './components/GlobalLoader';
 import ServicesPage from './pages/ServicesPage';
 import TransactionsPage from './pages/TransactionsPage';
 import MessagesPage from './pages/MessagesPage';
+import ChatPage from './pages/ChatPage';
 import TransactionQRPage from './pages/TransactionQRPage';
 import AuthPage from './pages/AuthPage';
 import { Row, Col, Badge, Table, Button, Form, Alert } from 'react-bootstrap';
@@ -560,6 +561,7 @@ export default function App() {
           <Route path="/transactions" element={<TransactionsPage />} />
           <Route path="/transactions/:transactionId/qr" element={<TransactionQRPage />} />
           <Route path="/messages" element={<MessagesPage />} />
+          <Route path="/messages/:id" element={<ChatPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
 
