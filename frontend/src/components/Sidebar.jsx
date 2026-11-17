@@ -88,16 +88,20 @@ export default function Sidebar({
         </svg>
       ),
     },
-    {
-      to: '/admin',
-      label: 'Admin Statistics',
-      badge: 'Stats',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" className="flex-shrink-0">
-          <path d="M0 0h1v15h15v1H0V0Zm14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h2Zm-3 4a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-5a.5.5 0 0 1 .5-.5h2Zm-3 2a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h2ZM3 12a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/>
-        </svg>
-      ),
-    },
+    ...(isAdmin
+      ? [
+          {
+            to: '/admin',
+            label: 'Admin Statistics',
+            badge: 'Stats',
+            icon: (
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" className="flex-shrink-0">
+                <path d="M0 0h1v15h15v1H0V0Zm14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h2Zm-3 4a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-5a.5.5 0 0 1 .5-.5h2Zm-3 2a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h2ZM3 12a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/>
+              </svg>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (

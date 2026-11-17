@@ -91,6 +91,26 @@ export default function ServicesGrid({
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
 
+  // Service Reviews State
+  const [serviceReviews, setServiceReviews] = useState([]);
+  const [avgRating, setAvgRating] = useState('5.0');
+
+  useEffect(() => {
+    if (!activeModalService?.service_id) {
+      setServiceReviews([]);
+      setAvgRating('5.0');
+      return;
+    }
+    api.get(`/reviews/service/${activeModalService.service_id}`)
+      .then((res) => {
+        if (res.data?.reviews) {
+          setServiceReviews(res.data.reviews);
+          setAvgRating(res.data.averageRating ? String(res.data.averageRating) : '5.0');
+        }
+      })
+      .catch(() => {});
+  }, [activeModalService]);
+
   // Extract unique categories for the dropdown filter
   const categories = useMemo(() => {
     const set = new Set(services.map((s) => s.service_category));
@@ -605,6 +625,41 @@ export default function ServicesGrid({
                   ₱{((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)}
                 </strong>
               </div>
+            </div>
+
+            {/* Customer Ratings & Reviews */}
+            <div className="mt-4">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <h6 className="fw-bold text-uppercase text-muted small mb-0">
+                  Customer Ratings &amp; Reviews ({serviceReviews.length})
+                </h6>
+                <div className="d-flex align-items-center gap-1 fw-bold small" style={{ color: '#f59e0b' }}>
+                  <span>★</span>
+                  <span>{avgRating} / 5.0</span>
+                </div>
+              </div>
+
+              {serviceReviews.length > 0 ? (
+                <div className="d-flex flex-column gap-2">
+                  {serviceReviews.slice(0, 3).map((r, i) => (
+                    <div key={r.review_id || i} className="p-2.5 px-3 rounded-3 border" style={{ background: 'var(--neu-bg-dark)' }}>
+                      <div className="d-flex justify-content-between align-items-center mb-1">
+                        <span className="small fw-semibold" style={{ color: 'var(--neu-text)' }}>
+                          {r.reviewer_name || r.reviewer_id}
+                        </span>
+                        <span style={{ color: '#f59e0b', fontSize: '0.85rem' }}>
+                          {'★'.repeat(Math.round(r.rating || 5))}
+                        </span>
+                      </div>
+                      <p className="small text-muted mb-0">{r.comment || 'Verified transaction completed.'}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-3 text-center text-muted small rounded-3 border" style={{ background: 'var(--neu-bg-dark)' }}>
+                  No customer reviews yet. Be the first to book and rate this service!
+                </div>
+              )}
             </div>
           </Modal.Body>
 

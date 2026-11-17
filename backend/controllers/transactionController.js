@@ -346,13 +346,45 @@ const verifyQrCode = async (req, res) => {
 
     const trimmedCode = String(qr_code).trim();
 
-    const { data: transaction, error: fetchErr } = await supabase
+    let extractedTxId = null;
+    if (trimmedCode.startsWith('SERBISYOU-TRANSACTION-')) {
+      extractedTxId = trimmedCode.replace('SERBISYOU-TRANSACTION-', '');
+    } else if (trimmedCode.startsWith('SERBISYOU-PAID-TRX-')) {
+      const parts = trimmedCode.split('-');
+      if (parts.length >= 4) {
+        extractedTxId = parts[3];
+      }
+    }
+
+    let { data: transaction, error: fetchErr } = await supabase
       .from('transactions')
       .select('*')
       .eq('qr_code', trimmedCode)
       .maybeSingle();
 
-    if (fetchErr || !transaction) {
+    if (!transaction && extractedTxId) {
+      const fallbackQuery = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('transaction_id', extractedTxId)
+        .maybeSingle();
+      if (fallbackQuery.data) {
+        transaction = fallbackQuery.data;
+      }
+    }
+
+    if (!transaction) {
+      const directIdQuery = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('transaction_id', trimmedCode)
+        .maybeSingle();
+      if (directIdQuery.data) {
+        transaction = directIdQuery.data;
+      }
+    }
+
+    if (!transaction) {
       return res.status(404).json({ error: 'Invalid QR Code. No matching booking found.' });
     }
 
@@ -365,6 +397,10 @@ const verifyQrCode = async (req, res) => {
 
     if (transaction.service_status === 'cancelled') {
       return res.status(400).json({ error: 'This booking has been cancelled and cannot be verified.' });
+    }
+
+    if (transaction.service_status === 'completed') {
+      return res.status(400).json({ error: 'This booking has already been verified and marked as completed.' });
     }
 
     // Mark as completed upon successful verification
