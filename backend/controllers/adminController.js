@@ -1,19 +1,5 @@
 const supabase = require('../db');
-const { createNotification } = require('./notificationController');
-
-// In-memory store for profile unlock requests if not yet persisted in dedicated Supabase table
-let unlockRequestsStore = [
-  {
-    id: 1,
-    user_id: 'MMC-0001',
-    student_id: 'MMC-0001',
-    user_name: 'Jasmine Requestor',
-    email: 'jasmine@serbisyou.ph',
-    reason: 'Incorrect contact number submitted during initial registration.',
-    status: 'pending',
-    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-  }
-];
+const { unlockRequestsStore, userCooldowns } = require('../utils/cooldownStore');
 
 const checkAdminExists = async (req, res) => {
     try {
@@ -38,212 +24,24 @@ const checkAdminExists = async (req, res) => {
 
 const getDashboardStats = async (req, res) => {
     try {
-        const [users, services, transactions, completedTx] = await Promise.all([
+        const [users, services, transactions] = await Promise.all([
             supabase.from('users').select('user_id', { count: 'exact', head: true }),
             supabase
                 .from('services')
                 .select('service_id', { count: 'exact', head: true })
                 .eq('service_status', 'active')
                 .eq('is_deleted', false),
-            supabase.from('transactions').select('transaction_id', { count: 'exact', head: true }),
-            supabase
-                .from('transactions')
-                .select('booking_fee, commission_fee, total_topay')
-                .eq('transaction_status', 'completed')
+            supabase.from('transactions').select('transaction_id', { count: 'exact', head: true })
         ]);
 
-        const totalRegisteredUsers = users.count || 0;
-        const totalActiveServices = services.count || 0;
-        const totalTransactions = transactions.count || 0;
-
-        const completedRows = completedTx.data || [];
-        const totalBookingFees = completedRows.reduce((acc, t) => acc + (Number(t.booking_fee) || 5), 0);
-        const totalCommissionFees = completedRows.reduce((acc, t) => acc + (Number(t.commission_fee) || 0), 0);
-        const totalPlatformRevenue = totalBookingFees + totalCommissionFees;
-
-        let pendingVerificationsCount = 0;
-        try {
-            const { count } = await supabase
-                .from('users')
-                .select('user_id', { count: 'exact', head: true })
-                .eq('verification_status', 'pending');
-            pendingVerificationsCount = count || 0;
-        } catch {
-            // ignore if column not yet added
-        }
-
         return res.status(200).json({
-            totalRegisteredUsers,
-            totalActiveServices,
-            totalTransactions,
-            totalCompletedTransactions: completedRows.length,
-            totalBookingFees,
-            totalCommissionFees,
-            totalPlatformRevenue,
-            pendingVerificationsCount
+            totalRegisteredUsers: users.count || 0,
+            totalActiveServices: services.count || 0,
+            totalTransactions: transactions.count || 0
         });
     } catch (err) {
-        console.error('getDashboardStats error:', err);
+        console.error('getDashboardStats error:', err.message);
         return res.status(500).json({ error: 'Could not load dashboard statistics.' });
-    }
-};
-
-const getPendingVerifications = async (req, res) => {
-    try {
-        let users = [];
-        try {
-            const { data, error } = await supabase
-                .from('users')
-                .select('user_id, first_name, last_name, username, email, user_type, verification_status, id_document_url, contact_number, city, province')
-                .or('verification_status.eq.pending,id_document_url.not.is.null')
-                .order('user_id', { ascending: false });
-
-            if (!error && Array.isArray(data)) {
-                users = data;
-            }
-        } catch (err) {
-            console.warn('[Admin Notice] Verification query fallback:', err.message);
-        }
-
-        // Fallback to sample pending providers if table empty or unmigrated
-        if (users.length === 0) {
-            users = [
-                {
-                    user_id: 'MMC-1042',
-                    first_name: 'Juan',
-                    last_name: 'Dela Cruz',
-                    username: 'juandelacruz',
-                    email: 'juan.delacruz@serbisyou.ph',
-                    user_type: 'Provider',
-                    verification_status: 'pending',
-                    id_document_url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80',
-                    contact_number: '+63 912 345 6789',
-                    city: 'Quezon City',
-                    province: 'Metro Manila'
-                }
-            ];
-        }
-
-        return res.status(200).json({ verifications: users });
-    } catch (err) {
-        console.error('getPendingVerifications error:', err);
-        return res.status(500).json({ error: 'Failed to fetch verification queue.' });
-    }
-};
-
-const updateVerificationStatus = async (req, res) => {
-    try {
-        const { userId } = req.params;
-        const { status, notes } = req.body || {};
-
-        if (!status || !['verified', 'rejected', 'pending'].includes(status)) {
-            return res.status(400).json({ error: 'Status must be verified, rejected, or pending.' });
-        }
-
-        try {
-            await supabase
-                .from('users')
-                .update({
-                    verification_status: status,
-                    verification_notes: notes || null
-                })
-                .eq('user_id', String(userId));
-        } catch (dbErr) {
-            console.warn('[Admin Warning] Could not update verification status in DB:', dbErr.message);
-        }
-
-        // Notify user about status change
-        const notifTitle = status === 'verified'
-            ? 'Account Verified! 🎉'
-            : 'Provider Verification Update';
-        const notifDesc = status === 'verified'
-            ? 'Congratulations! Your government ID has been verified by the SerbisYou admin team.'
-            : `Your verification was updated to ${status}. ${notes ? `Note: ${notes}` : ''}`;
-
-        await createNotification(
-            userId,
-            'verification',
-            notifTitle,
-            notifDesc,
-            '/profile'
-        );
-
-        return res.status(200).json({
-            message: `User ${userId} verification status updated to '${status}'.`,
-            status
-        });
-    } catch (err) {
-        console.error('updateVerificationStatus error:', err);
-        return res.status(500).json({ error: 'Failed to update verification status.' });
-    }
-};
-
-const getUsersList = async (req, res) => {
-    try {
-        const { search = '', role = 'ALL' } = req.query;
-
-        let query = supabase
-            .from('users')
-            .select('user_id, first_name, last_name, username, email, user_type, department, designation, is_active, verification_status')
-            .order('user_id', { ascending: true })
-            .limit(100);
-
-        if (role !== 'ALL') {
-            query = query.eq('user_type', role);
-        }
-
-        const { data, error } = await query;
-        if (error) {
-            console.error('getUsersList error:', error);
-            return res.status(500).json({ error: 'Failed to load users list.' });
-        }
-
-        let filtered = data || [];
-        if (search.trim()) {
-            const s = search.toLowerCase().trim();
-            filtered = filtered.filter(u =>
-                (u.first_name || '').toLowerCase().includes(s) ||
-                (u.last_name || '').toLowerCase().includes(s) ||
-                (u.email || '').toLowerCase().includes(s) ||
-                (u.username || '').toLowerCase().includes(s) ||
-                (u.user_id || '').toLowerCase().includes(s)
-            );
-        }
-
-        return res.status(200).json({ users: filtered });
-    } catch (err) {
-        console.error('getUsersList error:', err);
-        return res.status(500).json({ error: 'Internal server error.' });
-    }
-};
-
-const toggleUserStatus = async (req, res) => {
-    try {
-        const { userId } = req.params;
-        const { is_active } = req.body || {};
-
-        if (typeof is_active !== 'boolean') {
-            return res.status(400).json({ error: 'is_active boolean is required.' });
-        }
-
-        const { data, error } = await supabase
-            .from('users')
-            .update({ is_active })
-            .eq('user_id', String(userId))
-            .select('user_id, is_active')
-            .single();
-
-        if (error) {
-            return res.status(500).json({ error: 'Failed to toggle user status.' });
-        }
-
-        return res.status(200).json({
-            message: `User ${userId} status updated to ${is_active ? 'Active' : 'Deactivated'}.`,
-            user: data
-        });
-    } catch (err) {
-        console.error('toggleUserStatus error:', err);
-        return res.status(500).json({ error: 'Internal server error.' });
     }
 };
 
@@ -438,8 +236,12 @@ const approveUnlockRequest = async (req, res) => {
         const { id } = req.params;
         const reqIndex = unlockRequestsStore.findIndex((r) => String(r.id) === String(id));
         if (reqIndex !== -1) {
-            unlockRequestsStore[reqIndex].status = 'approved';
-            unlockRequestsStore[reqIndex].admin_notes = req.body.admin_notes || 'Approved by administrator.';
+            const reqItem = unlockRequestsStore[reqIndex];
+            reqItem.status = 'approved';
+            reqItem.admin_notes = req.body.admin_notes || 'Approved by administrator. Cooldown cleared.';
+            if (reqItem.user_id) {
+                userCooldowns.set(reqItem.user_id, { updatedAt: null, unlockedByAdmin: true });
+            }
         }
         return res.status(200).json({
             message: 'Student profile editing cooldown cleared successfully.'
@@ -468,6 +270,7 @@ const rejectUnlockRequest = async (req, res) => {
 const unlockUserProfile = async (req, res) => {
     try {
         const { id } = req.params;
+        userCooldowns.set(id, { updatedAt: null, unlockedByAdmin: true });
         return res.status(200).json({
             message: `Profile editing cooldown reset for ${id}. Student can now update info.`
         });
@@ -530,19 +333,178 @@ const shareAdminAccess = async (req, res) => {
     }
 };
 
+// In-memory moderation and advertisement stores matching ITE11_Finalproject
+let adminReviewsStore = [
+    {
+        id: 'REV-0001',
+        reviewer_name: 'Phaniie Phanie',
+        reviewed_student_name: 'Phanie Lubos',
+        rating: 3.5,
+        comment: 'ok na',
+        created_at: 'Nov 17, 2026 04:30 PM'
+    },
+    {
+        id: 'REV-0002',
+        reviewer_name: 'Phaniie Phanie',
+        reviewed_student_name: 'Kerim Aalke',
+        rating: 3.0,
+        comment: 'Oks lang naman',
+        created_at: 'Nov 16, 2026 02:15 PM'
+    }
+];
+
+let adminAdvertisementsStore = [
+    {
+        id: 'AD-0001',
+        banner_url: '/auth-bg.jpg',
+        campaign_title: 'Support Itlogs Campaign Business',
+        requested_by: 'Phanie Phanie',
+        requested_email: 'reymartovedano@gmail.com',
+        duration: '7 Days (week)',
+        cost: 14.00,
+        status: 'active',
+        payment_status: 'paid',
+        created_at: 'Nov 16, 2026 09:12 AM'
+    }
+];
+
+const getAdminServices = async (req, res) => {
+    try {
+        const [servicesRes, usersRes] = await Promise.all([
+            supabase.from('services').select('*').eq('is_deleted', false).order('created_at', { ascending: false }),
+            supabase.from('users').select('user_id, first_name, last_name, username')
+        ]);
+
+        const usersMap = new Map((usersRes.data || []).map((u) => [u.user_id, `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || u.user_id]));
+
+        const enriched = (servicesRes.data || []).map((s) => ({
+            id: s.service_id,
+            service_id: s.service_id,
+            provider_name: usersMap.get(s.user_id) || s.user_id,
+            user_id: s.user_id,
+            category: s.service_category || 'General',
+            service_name: s.subcategory || s.service_category || 'Service',
+            description: s.service_description,
+            price: Number(s.amount_topay) || 0,
+            rate_unit: s.rate_unit || 'per_service',
+            status: s.service_status || 'active',
+            picture_proof: s.picture_proof || [],
+            created_at: s.created_at ? new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Nov 17, 2026'
+        }));
+
+        return res.status(200).json({ data: enriched });
+    } catch (err) {
+        console.error('getAdminServices error:', err.message);
+        return res.status(500).json({ error: 'Failed to fetch services.' });
+    }
+};
+
+const deleteAdminService = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { error } = await supabase.from('services').update({ is_deleted: true }).eq('service_id', id);
+        if (error) throw error;
+        return res.status(200).json({ message: 'Service removed successfully.' });
+    } catch (err) {
+        return res.status(500).json({ error: 'Failed to remove service.' });
+    }
+};
+
+const getAdminTransactions = async (req, res) => {
+    try {
+        const [txRes, usersRes] = await Promise.all([
+            supabase.from('transactions').select('*').order('created_at', { ascending: false }),
+            supabase.from('users').select('user_id, first_name, last_name, username')
+        ]);
+
+        const usersMap = new Map((usersRes.data || []).map((u) => [u.user_id, `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || u.user_id]));
+
+        const enriched = (txRes.data || []).map((t) => ({
+            id: t.transaction_id,
+            transaction_id: t.transaction_id,
+            requestor_name: usersMap.get(t.requestor_id) || t.requestor_id,
+            provider_name: usersMap.get(t.provider_id) || t.provider_id,
+            service_name: t.service_name || 'Service',
+            amount_topay: Number(t.amount_topay) || 0,
+            commission_fee: Number(t.commission_fee) || ((Number(t.amount_topay) || 0) * 0.05),
+            total_topay: Number(t.total_topay) || ((Number(t.amount_topay) || 0) + (Number(t.booking_fee) || 5)),
+            status: t.service_status || 'pending',
+            booking_date: t.booking_date,
+            created_at: t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Nov 17, 2026'
+        }));
+
+        return res.status(200).json({ data: enriched });
+    } catch (err) {
+        return res.status(500).json({ error: 'Failed to fetch transactions.' });
+    }
+};
+
+const getAdminReviews = async (req, res) => {
+    return res.status(200).json({ data: adminReviewsStore });
+};
+
+const deleteAdminReview = async (req, res) => {
+    const { id } = req.params;
+    adminReviewsStore = adminReviewsStore.filter((r) => r.id !== id);
+    return res.status(200).json({ message: 'Review deleted successfully.' });
+};
+
+const getAdminAdvertisements = async (req, res) => {
+    return res.status(200).json({ data: adminAdvertisementsStore });
+};
+
+const createAdminAdvertisement = async (req, res) => {
+    const { campaign_title, requested_by, requested_email, duration, cost, banner_url } = req.body;
+    const newAd = {
+        id: `AD-${Date.now().toString().slice(-4)}`,
+        banner_url: banner_url || '/auth-bg.jpg',
+        campaign_title: campaign_title || 'Campus Promotion',
+        requested_by: requested_by || 'Student Organization',
+        requested_email: requested_email || 'student@minsu.edu.ph',
+        duration: duration || '7 Days (week)',
+        cost: Number(cost) || 14.00,
+        status: 'active',
+        payment_status: 'paid',
+        created_at: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    };
+    adminAdvertisementsStore.unshift(newAd);
+    return res.status(201).json({ message: 'Advertisement created.', data: newAd });
+};
+
+const updateAdminAdvertisementStatus = async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body || {};
+    const ad = adminAdvertisementsStore.find((a) => String(a.id) === String(id));
+    if (ad) {
+        ad.status = status;
+    }
+    return res.status(200).json({ message: `Advertisement marked as ${status}.` });
+};
+
+const deleteAdminAdvertisement = async (req, res) => {
+    const { id } = req.params;
+    adminAdvertisementsStore = adminAdvertisementsStore.filter((a) => a.id !== id);
+    return res.status(200).json({ message: 'Advertisement deleted.' });
+};
+
 module.exports = {
     checkAdminExists,
     getDashboardStats,
     getDashboardData,
     getUsers,
-    getUsersList,
     updateUserStatus,
-    toggleUserStatus,
-    getPendingVerifications,
-    updateVerificationStatus,
     getUnlockRequests,
     approveUnlockRequest,
     rejectUnlockRequest,
     unlockUserProfile,
-    shareAdminAccess
+    shareAdminAccess,
+    getAdminServices,
+    deleteAdminService,
+    getAdminTransactions,
+    getAdminReviews,
+    deleteAdminReview,
+    getAdminAdvertisements,
+    createAdminAdvertisement,
+    updateAdminAdvertisementStatus,
+    deleteAdminAdvertisement
 };

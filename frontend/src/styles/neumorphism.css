@@ -258,55 +258,8 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   SIDEBAR
+   SIDEBAR & COLLAPSIBLE DESKTOP SHELL
    ═══════════════════════════════════════════════════════════ */
-
-@media (max-width: 991.98px) {
-  .neu-sidebar-col {
-    display: contents !important;
-  }
-  .neu-main {
-    flex: 1 1 100% !important;
-    max-width: 100% !important;
-    width: 100% !important;
-    height: 100% !important;
-    overflow-y: auto !important;
-  }
-}
-
-@media (min-width: 992px) {
-  .neu-sidebar-col {
-    position: relative !important;
-    height: 100% !important;
-    overflow-y: auto !important;
-    width: 280px !important;
-    min-width: 280px !important;
-    max-width: 280px !important;
-    flex: 0 0 280px !important;
-  }
-
-  .neu-main {
-    flex: 1 1 0% !important;
-    max-width: calc(100% - 280px) !important;
-    min-width: 0 !important;
-    height: 100% !important;
-    overflow-y: auto !important;
-  }
-
-  .neu-sidebar-col::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  .neu-sidebar-col::-webkit-scrollbar-thumb {
-    background: rgba(154, 172, 196, 0.4);
-    border-radius: 4px;
-  }
-
-  .neu-sidebar {
-    min-height: 100% !important;
-    height: 100% !important;
-  }
-}
 
 .neu-sidebar {
   background: var(--neu-bg) !important;
@@ -321,6 +274,67 @@ body {
 .neu-sidebar-header {
   background: var(--neu-bg) !important;
   border-bottom: 1px solid rgba(154, 172, 196, 0.4) !important;
+}
+
+/* Collapsible Desktop Sidebar Shell */
+.neu-sidebar-desktop {
+  background: var(--neu-bg);
+  box-shadow:
+    inset -3px 0 8px rgba(154, 172, 196, 0.35),
+    3px 0 12px rgba(232, 239, 248, 0.6);
+  position: fixed;
+  top: 56px;
+  left: 0;
+  bottom: 0;
+  z-index: 1020;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.25s ease;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-right: 1px solid rgba(154, 172, 196, 0.25);
+}
+
+.neu-sidebar-desktop.expanded {
+  width: 260px;
+  padding: 1.15rem;
+}
+
+.neu-sidebar-desktop.collapsed {
+  width: 76px;
+  padding: 1rem 0.5rem;
+}
+
+.neu-sidebar-desktop.collapsed .neu-profile-card {
+  padding: 0.5rem !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.neu-sidebar-desktop.collapsed .neu-avatar-sidebar {
+  margin: 0 auto;
+  width: 42px;
+  height: 42px;
+  font-size: 1rem;
+}
+
+.neu-sidebar-desktop.collapsed .neu-nav-link {
+  justify-content: center !important;
+  padding: 12px 0 !important;
+  border-radius: 12px;
+}
+
+.neu-sidebar-desktop.collapsed .neu-nav-link span,
+.neu-sidebar-desktop.collapsed .neu-nav-link .badge,
+.neu-sidebar-desktop.collapsed .neu-nav-label,
+.neu-sidebar-desktop.collapsed .neu-profile-details,
+.neu-sidebar-desktop.collapsed .neu-sidebar-footer-box {
+  display: none !important;
+}
+
+.neu-sidebar-desktop.collapsed .neu-nav-link svg {
+  margin: 0 auto;
 }
 
 /* Profile card in sidebar */
@@ -857,11 +871,11 @@ body {
 
 .modal-content {
   background: var(--neu-bg) !important;
-  border: none !important;
+  border: 1px solid rgba(154, 172, 196, 0.35) !important;
   border-radius: var(--neu-radius-xl) !important;
   box-shadow:
-    14px 14px 35px rgba(100, 126, 160, 0.5),
-    -14px -14px 35px rgba(232, 239, 248, 0.9) !important;
+    0 12px 32px rgba(15, 23, 42, 0.22),
+    0 2px 8px rgba(15, 23, 42, 0.12) !important;
   overflow: hidden;
 }
 
@@ -882,19 +896,12 @@ body {
    ═══════════════════════════════════════════════════════════ */
 
 .neu-filter-bar {
-  position: -webkit-sticky !important;
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 100 !important;
-  background: rgba(224, 231, 240, 0.95) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.7) !important;
+  background: var(--neu-bg);
+  border: none !important;
   border-radius: var(--neu-radius-lg) !important;
-  box-shadow: 0 8px 24px rgba(154, 172, 196, 0.35) !important;
+  box-shadow: var(--neu-shadow-flat) !important;
   padding: 1.25rem 1.5rem !important;
   margin-bottom: 1.5rem !important;
-  transition: all 0.2s ease;
 }
 
 /* ═══════════════════════════════════════════════════════════
