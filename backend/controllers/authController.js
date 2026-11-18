@@ -885,7 +885,7 @@ const verifyLoginOtp = async (req, res) => {
             })
             .eq('user_id', user.user_id);
 
-        const jwtSecret = process.env.JWT_SECRET;
+        const jwtSecret = process.env.JWT_SECRET || 'serbisyou-jwt-secret-key-edp-project-2026';
         if (!jwtSecret) {
             console.error('Login 2FA failed: JWT_SECRET is not configured.');
             return res.status(500).json({ error: 'Authentication is not configured.' });
