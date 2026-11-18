@@ -15,6 +15,7 @@ const createTransaction = async (req, res) => {
       start_time,
       end_time,
       custom_amount,
+      duration_count,
       rendezvous_location,
       scheduled_date,
     } = req.body;
@@ -78,11 +79,16 @@ const createTransaction = async (req, res) => {
     const provider_id = service.user_id;
     let baseAmount = Number(service.amount_topay);
 
-    // If custom amount is provided and valid, use it; or calculate hours for hourly rates
+    // If custom amount is provided and valid, use it; or calculate based on duration count or start/end times
     let amount_topay = baseAmount;
+    const isHourly = service.rate_unit === 'per_hour' || (service.service_description && service.service_description.includes('[Rate: per_hour]'));
+    const isDaily = service.rate_unit === 'per_day' || (service.service_description && service.service_description.includes('[Rate: per_day]'));
+
     if (custom_amount && Number.isFinite(Number(custom_amount)) && Number(custom_amount) > 0) {
       amount_topay = Number(custom_amount);
-    } else if (start_time && end_time) {
+    } else if (duration_count && Number(duration_count) > 0 && (isHourly || isDaily)) {
+      amount_topay = Number((Number(duration_count) * baseAmount).toFixed(2));
+    } else if (start_time && end_time && isHourly) {
       try {
         const [startH, startM] = start_time.split(':').map(Number);
         const [endH, endM] = end_time.split(':').map(Number);
@@ -90,10 +96,7 @@ const createTransaction = async (req, res) => {
         const endMinutes = endH * 60 + (endM || 0);
         if (endMinutes > startMinutes) {
           const durationHours = (endMinutes - startMinutes) / 60;
-          const isHourly = service.rate_unit === 'per_hour' || (service.service_description && service.service_description.includes('[Rate: per_hour]'));
-          if (isHourly) {
-            amount_topay = Number((durationHours * baseAmount).toFixed(2));
-          }
+          amount_topay = Number((durationHours * baseAmount).toFixed(2));
         }
       } catch (err) {
         amount_topay = baseAmount;
@@ -116,6 +119,7 @@ const createTransaction = async (req, res) => {
     const combinedNotes = [
       `📍 Rendezvous Meeting Location: ${meetingLocation}`,
       meetingTime ? `📅 Meeting Date & Time: ${meetingTime} ${start_time ? `(${start_time} - ${end_time || ''})` : ''}` : null,
+      duration_count && Number(duration_count) > 0 ? `⏱️ Duration Booked: ${duration_count} ${isDaily ? 'day(s)' : 'hour(s)'}` : null,
       notes ? `📝 Special Instructions: ${String(notes).trim()}` : null,
     ].filter(Boolean).join('\n');
 

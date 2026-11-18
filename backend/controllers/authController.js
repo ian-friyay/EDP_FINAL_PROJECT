@@ -676,6 +676,7 @@ const login = async (req, res) => {
                 user_id: user.user_id,
                 otp_hash: otpHash,
                 expires_at: expiresAt,
+                verified_at: null,
                 failed_attempts: 0
             }, { onConflict: 'user_id' });
 
@@ -819,6 +820,7 @@ const resendLoginOtp = async (req, res) => {
                 user_id: user.user_id,
                 otp_hash: otpHash,
                 expires_at: expiresAt,
+                verified_at: null,
                 failed_attempts: 0
             }, { onConflict: 'user_id' });
 

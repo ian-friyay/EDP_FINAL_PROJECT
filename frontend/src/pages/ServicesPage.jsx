@@ -37,6 +37,7 @@ export default function ServicesPage() {
   // Student Requestor Booking Details Modal State
   const [bookingModalService, setBookingModalService] = useState(null);
   const [bookingDate, setBookingDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [durationCount, setDurationCount] = useState(1);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('12:00');
   const [bookingNotes, setBookingNotes] = useState('');
@@ -230,30 +231,40 @@ export default function ServicesPage() {
     setBookingDate(today);
     setStartTime('09:00');
     setEndTime('12:00');
+    setDurationCount(service.rate_unit === 'per_day' ? 1 : (service.rate_unit === 'per_hour' ? 3 : 1));
     setBookingNotes('');
   };
 
   // Compute duration and service cost dynamically inside booking modal
-  const { calculatedHours, calculatedServiceCost } = useMemo(() => {
-    if (!bookingModalService) return { calculatedHours: 1, calculatedServiceCost: 0 };
+  const { calculatedDuration, durationLabel, calculatedServiceCost } = useMemo(() => {
+    if (!bookingModalService) return { calculatedDuration: 1, durationLabel: '', calculatedServiceCost: 0 };
     const base = Number(bookingModalService.amount_topay) || 0;
+    const unit = bookingModalService.rate_unit || 'per_service';
 
-    if (bookingModalService.rate_unit === 'per_hour' && startTime && endTime) {
-      const [startH, startM] = startTime.split(':').map(Number);
-      const [endH, endM] = endTime.split(':').map(Number);
-      const startMin = startH * 60 + (startM || 0);
-      const endMin = endH * 60 + (endM || 0);
-      if (endMin > startMin) {
-        const hours = (endMin - startMin) / 60;
-        return {
-          calculatedHours: hours,
-          calculatedServiceCost: Number((hours * base).toFixed(2)),
-        };
-      }
+    if (unit === 'per_day') {
+      const days = Math.max(1, parseInt(durationCount, 10) || 1);
+      return {
+        calculatedDuration: days,
+        durationLabel: `${days} day${days > 1 ? 's' : ''}`,
+        calculatedServiceCost: Number((days * base).toFixed(2)),
+      };
     }
 
-    return { calculatedHours: 1, calculatedServiceCost: base };
-  }, [bookingModalService, startTime, endTime]);
+    if (unit === 'per_hour') {
+      const hours = Math.max(0.5, parseFloat(durationCount) || 1);
+      return {
+        calculatedDuration: hours,
+        durationLabel: `${hours} hr${hours !== 1 ? 's' : ''}`,
+        calculatedServiceCost: Number((hours * base).toFixed(2)),
+      };
+    }
+
+    return {
+      calculatedDuration: 1,
+      durationLabel: 'Flat Service',
+      calculatedServiceCost: base,
+    };
+  }, [bookingModalService, durationCount]);
 
   // Execute booking submission with schedule and notes
   const handleConfirmBooking = async (event) => {
@@ -273,6 +284,7 @@ export default function ServicesPage() {
       start_time: startTime,
       end_time: endTime,
       custom_amount: calculatedServiceCost,
+      duration_count: calculatedDuration,
     };
 
     try {
@@ -414,7 +426,7 @@ export default function ServicesPage() {
             <Row className="mb-3 g-2">
               <Col sm={7}>
                 <Form.Group controlId="serviceAmount">
-                  <Form.Label className="small fw-semibold text-muted">Price (₱)</Form.Label>
+                  <Form.Label className="small fw-semibold text-muted">Rate Amount (₱)</Form.Label>
                   <Form.Control
                     type="number"
                     min="0"
@@ -429,15 +441,15 @@ export default function ServicesPage() {
               </Col>
               <Col sm={5}>
                 <Form.Group controlId="serviceRateUnit">
-                  <Form.Label className="small fw-semibold text-muted">Booking Option</Form.Label>
+                  <Form.Label className="small fw-semibold text-muted">Rate Type</Form.Label>
                   <Form.Select
                     className="neu-input"
-                    value={serviceForm.rate_unit || 'per_service'}
+                    value={serviceForm.rate_unit || 'per_hour'}
                     onChange={(event) => setServiceForm({ ...serviceForm, rate_unit: event.target.value })}
                   >
-                    <option value="per_service">Per Service (Flat)</option>
-                    <option value="per_hour">Per Hour</option>
-                    <option value="per_day">Per Day</option>
+                    <option value="per_hour">Per Hour (Hourly Rate)</option>
+                    <option value="per_day">Per Day (Daily Rate)</option>
+                    <option value="per_service">Per Service (Flat Fee)</option>
                   </Form.Select>
                 </Form.Group>
               </Col>
@@ -528,7 +540,7 @@ export default function ServicesPage() {
             <Row className="mb-3 g-2">
               <Col sm={7}>
                 <Form.Group controlId="editServiceAmount">
-                  <Form.Label className="small fw-semibold text-muted">Price (₱)</Form.Label>
+                  <Form.Label className="small fw-semibold text-muted">Rate Amount (₱)</Form.Label>
                   <Form.Control
                     type="number"
                     min="0"
@@ -542,15 +554,15 @@ export default function ServicesPage() {
               </Col>
               <Col sm={5}>
                 <Form.Group controlId="editServiceRateUnit">
-                  <Form.Label className="small fw-semibold text-muted">Booking Option</Form.Label>
+                  <Form.Label className="small fw-semibold text-muted">Rate Type</Form.Label>
                   <Form.Select
                     className="neu-input"
-                    value={editForm.rate_unit || 'per_service'}
+                    value={editForm.rate_unit || 'per_hour'}
                     onChange={(event) => setEditForm({ ...editForm, rate_unit: event.target.value })}
                   >
-                    <option value="per_service">Per Service (Flat)</option>
-                    <option value="per_hour">Per Hour</option>
-                    <option value="per_day">Per Day</option>
+                    <option value="per_hour">Per Hour (Hourly Rate)</option>
+                    <option value="per_day">Per Day (Daily Rate)</option>
+                    <option value="per_service">Per Service (Flat Fee)</option>
                   </Form.Select>
                 </Form.Group>
               </Col>
@@ -635,6 +647,70 @@ export default function ServicesPage() {
                 </div>
               </div>
 
+              {/* Dynamic Duration Selection Based on Rate Type (Hourly, Daily, or Flat) */}
+              {bookingModalService.rate_unit === 'per_day' ? (
+                <div className="mb-3 p-3 rounded-3" style={{ background: 'rgba(37, 99, 235, 0.05)', border: '1px solid rgba(37, 99, 235, 0.15)' }}>
+                  <Form.Group controlId="bookingDurationDays" className="mb-2">
+                    <Form.Label className="small fw-semibold text-muted d-flex justify-content-between align-items-center">
+                      <span>How many days do you need this service? <span className="text-danger">*</span></span>
+                      <span className="badge bg-primary">{durationCount} Day{Number(durationCount) > 1 ? 's' : ''}</span>
+                    </Form.Label>
+                    <Form.Control
+                      type="number"
+                      min="1"
+                      max="60"
+                      className="neu-input"
+                      value={durationCount}
+                      onChange={(e) => setDurationCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                      required
+                    />
+                  </Form.Group>
+                  <div className="d-flex gap-1 flex-wrap mt-2">
+                    {[1, 2, 3, 5, 7, 14].map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        className={`btn btn-sm ${Number(durationCount) === d ? 'btn-primary' : 'btn-outline-secondary'} py-0 px-2 rounded-pill small`}
+                        onClick={() => setDurationCount(d)}
+                      >
+                        {d} {d === 1 ? 'Day' : 'Days'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : bookingModalService.rate_unit === 'per_hour' ? (
+                <div className="mb-3 p-3 rounded-3" style={{ background: 'rgba(37, 99, 235, 0.05)', border: '1px solid rgba(37, 99, 235, 0.15)' }}>
+                  <Form.Group controlId="bookingDurationHours" className="mb-2">
+                    <Form.Label className="small fw-semibold text-muted d-flex justify-content-between align-items-center">
+                      <span>How many hours do you need this service? <span className="text-danger">*</span></span>
+                      <span className="badge bg-primary">{durationCount} Hour{Number(durationCount) > 1 ? 's' : ''}</span>
+                    </Form.Label>
+                    <Form.Control
+                      type="number"
+                      min="0.5"
+                      step="0.5"
+                      max="24"
+                      className="neu-input"
+                      value={durationCount}
+                      onChange={(e) => setDurationCount(Math.max(0.5, parseFloat(e.target.value) || 1))}
+                      required
+                    />
+                  </Form.Group>
+                  <div className="d-flex gap-1 flex-wrap mt-2">
+                    {[1, 2, 3, 4, 6, 8].map((h) => (
+                      <button
+                        key={h}
+                        type="button"
+                        className={`btn btn-sm ${Number(durationCount) === h ? 'btn-primary' : 'btn-outline-secondary'} py-0 px-2 rounded-pill small`}
+                        onClick={() => setDurationCount(h)}
+                      >
+                        {h} {h === 1 ? 'Hour' : 'Hours'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               {/* Service Date */}
               <Form.Group className="mb-3" controlId="bookingDate">
                 <Form.Label className="small fw-semibold text-muted">
@@ -650,37 +726,39 @@ export default function ServicesPage() {
                 />
               </Form.Group>
 
-              {/* Scheduled Hours (What hour needed and until) */}
-              <Row className="mb-3 g-2">
-                <Col sm={6}>
-                  <Form.Group controlId="bookingStartTime">
-                    <Form.Label className="small fw-semibold text-muted">
-                      Hour Needed From <span className="text-danger">*</span>
-                    </Form.Label>
-                    <Form.Control
-                      type="time"
-                      className="neu-input"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col sm={6}>
-                  <Form.Group controlId="bookingEndTime">
-                    <Form.Label className="small fw-semibold text-muted">
-                      Until Hour <span className="text-danger">*</span>
-                    </Form.Label>
-                    <Form.Control
-                      type="time"
-                      className="neu-input"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
+              {/* Scheduled Hours (For hourly/flat services) */}
+              {bookingModalService.rate_unit !== 'per_day' && (
+                <Row className="mb-3 g-2">
+                  <Col sm={6}>
+                    <Form.Group controlId="bookingStartTime">
+                      <Form.Label className="small fw-semibold text-muted">
+                        Hour Needed From <span className="text-danger">*</span>
+                      </Form.Label>
+                      <Form.Control
+                        type="time"
+                        className="neu-input"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col sm={6}>
+                    <Form.Group controlId="bookingEndTime">
+                      <Form.Label className="small fw-semibold text-muted">
+                        Until Hour <span className="text-danger">*</span>
+                      </Form.Label>
+                      <Form.Control
+                        type="time"
+                        className="neu-input"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+              )}
 
               {/* Notes & Instructions for Provider */}
               <Form.Group className="mb-3" controlId="bookingNotes">
@@ -701,7 +779,21 @@ export default function ServicesPage() {
               <div className="neu-price-box p-3 rounded-3 mt-3">
                 <div className="d-flex justify-content-between text-muted small mb-1">
                   <span>
-                    Service Fee {bookingModalService.rate_unit === 'per_hour' ? `(${calculatedHours} hr${calculatedHours > 1 ? 's' : ''})` : ''}:
+                    Base Rate:
+                  </span>
+                  <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>
+                    ₱{Number(bookingModalService.amount_topay).toFixed(2)} {bookingModalService.rate_unit === 'per_day' ? '/ day' : bookingModalService.rate_unit === 'per_hour' ? '/ hour' : '/ service'}
+                  </span>
+                </div>
+                {bookingModalService.rate_unit !== 'per_service' && (
+                  <div className="d-flex justify-content-between text-muted small mb-1">
+                    <span>Duration Selected:</span>
+                    <span className="fw-semibold text-primary">{durationLabel}</span>
+                  </div>
+                )}
+                <div className="d-flex justify-content-between text-muted small mb-1">
+                  <span>
+                    Service Subtotal:
                   </span>
                   <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>
                     ₱{calculatedServiceCost.toFixed(2)}
