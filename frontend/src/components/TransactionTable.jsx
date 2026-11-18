@@ -60,7 +60,7 @@ function TransactionTable({ transactions = dummyTransactions }) {
   }, [transactions]);
 
   return (
-    <div className="neu-transaction-table">
+    <div className="neu-transaction-table neu-scroll-table">
       <Table responsive hover className="align-middle mb-0">
         <thead>
           <tr>

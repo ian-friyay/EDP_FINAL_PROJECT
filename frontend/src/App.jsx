@@ -10,6 +10,10 @@ import MessagesPage from './pages/MessagesPage';
 import ChatPage from './pages/ChatPage';
 import TransactionQRPage from './pages/TransactionQRPage';
 import AuthPage from './pages/AuthPage';
+import AdminLayout from './layouts/AdminLayout';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminSettings from './pages/admin/AdminSettings';
 import { Row, Col, Badge, Table, Button, Form, Alert } from 'react-bootstrap';
 import api from './api/axios';
 
@@ -140,7 +144,7 @@ function DashboardPage() {
             View All
           </Button>
         </div>
-        <div className="table-responsive">
+        <div className="table-responsive neu-scroll-table">
           <Table hover className="mb-0 align-middle">
             <thead>
               <tr style={{ background: 'var(--neu-bg-dark)', borderBottom: '2px solid rgba(154, 172, 196, 0.4)' }}>
@@ -563,6 +567,14 @@ export default function App() {
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/messages/:id" element={<ChatPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+        </Route>
+
+        {/* Admin Portal Routes (No CMS) */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="settings" element={<AdminSettings />} />
         </Route>
 
         {/* Catch-all redirect to public landing page */}

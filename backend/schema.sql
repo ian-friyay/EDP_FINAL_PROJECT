@@ -1,3 +1,6 @@
+-- SerbisYou Database Schema (Universal Supabase / PostgreSQL)
+-- Reflecting all Student, Provider, and Administrator credentials, transactions, and admin governance
+
 CREATE SEQUENCE IF NOT EXISTS public.users_user_id_seq
     AS integer
     MINVALUE 1
@@ -18,18 +21,30 @@ CREATE TABLE IF NOT EXISTS public.users (
     province text,
     city text,
     barangay text,
-    user_type text NOT NULL CHECK (user_type IN ('Provider', 'Requestor')),
+    user_type text NOT NULL CHECK (user_type IN ('Provider', 'Requestor', 'Admin')),
     department text,
     designation text,
+    service_category text,
+    subcategory text,
+    profile_picture text,
+    student_id_image text,
+    terms_accepted boolean NOT NULL DEFAULT false,
     password text NOT NULL,
-    is_active boolean NOT NULL DEFAULT true,
-    CHECK ((department IS NULL) = (designation IS NULL))
+    is_active boolean NOT NULL DEFAULT true
 );
 
 ALTER TABLE public.users
     ALTER COLUMN user_id SET DEFAULT (
         'MMC-' || lpad(nextval('public.users_user_id_seq')::text, 4, '0')
     );
+
+-- Safe migrations if columns were added later
+ALTER TABLE public.users
+    ADD COLUMN IF NOT EXISTS service_category text,
+    ADD COLUMN IF NOT EXISTS subcategory text,
+    ADD COLUMN IF NOT EXISTS profile_picture text,
+    ADD COLUMN IF NOT EXISTS student_id_image text,
+    ADD COLUMN IF NOT EXISTS terms_accepted boolean NOT NULL DEFAULT false;
 
 SELECT setval(
     'public.users_user_id_seq',
@@ -56,6 +71,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_unique
     ON public.users (lower(username))
     WHERE username IS NOT NULL;
 
+-- Services Catalog
 CREATE TABLE IF NOT EXISTS public.services (
     service_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id text NOT NULL REFERENCES public.users(user_id),
@@ -70,6 +86,7 @@ CREATE TABLE IF NOT EXISTS public.services (
     is_deleted boolean NOT NULL DEFAULT false
 );
 
+-- Transactions & Settlement
 CREATE TABLE IF NOT EXISTS public.transactions (
     transaction_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     provider_id text NOT NULL REFERENCES public.users(user_id),
@@ -86,6 +103,7 @@ CREATE TABLE IF NOT EXISTS public.transactions (
     qr_code text
 );
 
+-- Direct Messaging
 CREATE TABLE IF NOT EXISTS public.messages (
     message_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     sender_id text NOT NULL REFERENCES public.users(user_id),
@@ -94,6 +112,7 @@ CREATE TABLE IF NOT EXISTS public.messages (
     "timestamp" timestamptz NOT NULL DEFAULT now()
 );
 
+-- Email Verifications & OTP
 CREATE TABLE IF NOT EXISTS public.email_verifications (
     user_id text PRIMARY KEY REFERENCES public.users(user_id) ON DELETE CASCADE,
     otp_hash text,
@@ -111,3 +130,28 @@ CREATE TABLE IF NOT EXISTS public.email_verifications (
 ALTER TABLE public.email_verifications
     ADD COLUMN IF NOT EXISTS failed_attempts smallint NOT NULL DEFAULT 0
     CHECK (failed_attempts BETWEEN 0 AND 5);
+
+-- Profile Unlock Requests (Admin Governance & Cooldown System)
+CREATE TABLE IF NOT EXISTS public.profile_unlock_requests (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id text NOT NULL REFERENCES public.users(user_id) ON DELETE CASCADE,
+    student_id text,
+    student_name text,
+    student_email text,
+    location text,
+    request_type text DEFAULT 'profile_unlock',
+    notes text,
+    status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    admin_notes text,
+    resolved_at timestamptz,
+    created_at timestamptz DEFAULT now()
+);
+
+-- Admin Shared Access Invitations
+CREATE TABLE IF NOT EXISTS public.admin_invitations (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    email text NOT NULL,
+    invited_by text REFERENCES public.users(user_id),
+    status text NOT NULL DEFAULT 'sent' CHECK (status IN ('sent', 'accepted', 'expired')),
+    created_at timestamptz DEFAULT now()
+);

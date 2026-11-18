@@ -73,45 +73,73 @@ const register = async (req, res) => {
         if (optionalFields.some((value) => value !== null && typeof value !== 'string')) {
             return res.status(400).json({ error: 'Optional profile fields must be strings.' });
         }
-        if (userType !== 'Provider' && userType !== 'Requestor') {
-            return res.status(400).json({ error: 'user_type must be Provider or Requestor.' });
+        let effectiveUserType = userType;
+        if (body.role === 'admin' || userType === 'Admin') {
+            effectiveUserType = 'Admin';
         }
 
-        // Student ID Validation (Required)
-        const rawStudentId = typeof body.student_id === 'string'
-            ? body.student_id.trim()
-            : typeof body.user_id === 'string'
-                ? body.user_id.trim()
-                : '';
-
-        if (!rawStudentId) {
-            return res.status(400).json({ error: 'Student ID is required.' });
+        if (effectiveUserType !== 'Provider' && effectiveUserType !== 'Requestor' && effectiveUserType !== 'Admin') {
+            return res.status(400).json({ error: 'user_type must be Provider, Requestor, or Admin.' });
         }
 
-        let normalizedStudentId = rawStudentId.toUpperCase();
-        if (/^\d{1,4}$/.test(normalizedStudentId)) {
-            normalizedStudentId = `MMC-${normalizedStudentId.padStart(4, '0')}`;
-        }
-        if (!/^MMC-\d{4}$/.test(normalizedStudentId)) {
-            return res.status(400).json({ error: 'Student ID must follow the format MMC-XXXX (e.g. MMC-1234).' });
-        }
+        let normalizedStudentId = '';
 
-        // Provider Requirements (Personal Info & Address)
-        if (userType === 'Provider') {
-            if (!contactNumber || !contactNumber.trim()) {
-                return res.status(400).json({ error: 'Contact number is required for Provider accounts.' });
+        if (effectiveUserType === 'Admin') {
+            // Check if a primary administrator already exists
+            const { data: existingAdmin, error: adminLookupErr } = await supabase
+                .from('users')
+                .select('user_id')
+                .or('user_type.eq.Admin,department.not.is.null')
+                .limit(1);
+
+            if (adminLookupErr) {
+                console.error('Admin presence check error:', adminLookupErr.message);
             }
-            if (!region || !region.trim()) {
-                return res.status(400).json({ error: 'Region is required for Provider accounts.' });
+
+            if (existingAdmin && existingAdmin.length > 0) {
+                return res.status(400).json({
+                    error: 'A primary administrator account already exists. Only 1 administrator is permitted.'
+                });
             }
-            if (!province || !province.trim()) {
-                return res.status(400).json({ error: 'Province is required for Provider accounts.' });
+
+            normalizedStudentId = 'MMC-0000';
+        } else {
+            // Student ID Validation for Requestor / Provider (Required MMC-XXXX)
+            const rawStudentId = typeof body.student_id === 'string'
+                ? body.student_id.trim()
+                : typeof body.user_id === 'string'
+                    ? body.user_id.trim()
+                    : '';
+
+            if (!rawStudentId) {
+                return res.status(400).json({ error: 'Student ID is required.' });
             }
-            if (!city || !city.trim()) {
-                return res.status(400).json({ error: 'City is required for Provider accounts.' });
+
+            normalizedStudentId = rawStudentId.toUpperCase();
+            if (/^\d{1,4}$/.test(normalizedStudentId)) {
+                normalizedStudentId = `MMC-${normalizedStudentId.padStart(4, '0')}`;
             }
-            if (!barangay || !barangay.trim()) {
-                return res.status(400).json({ error: 'Barangay is required for Provider accounts.' });
+            if (!/^MMC-\d{4}$/.test(normalizedStudentId)) {
+                return res.status(400).json({ error: 'Student ID must follow the format MMC-XXXX (e.g. MMC-1234).' });
+            }
+
+            // Provider Requirements (Personal Info & Address)
+            if (effectiveUserType === 'Provider') {
+                if (!contactNumber || !contactNumber.trim()) {
+                    return res.status(400).json({ error: 'Contact number is required for Provider accounts.' });
+                }
+                if (!region || !region.trim()) {
+                    return res.status(400).json({ error: 'Region is required for Provider accounts.' });
+                }
+                if (!province || !province.trim()) {
+                    return res.status(400).json({ error: 'Province is required for Provider accounts.' });
+                }
+                if (!city || !city.trim()) {
+                    return res.status(400).json({ error: 'City is required for Provider accounts.' });
+                }
+                if (!barangay || !barangay.trim()) {
+                    return res.status(400).json({ error: 'Barangay is required for Provider accounts.' });
+                }
             }
         }
 
@@ -178,25 +206,43 @@ const register = async (req, res) => {
             province: province || '',
             city: city || '',
             barangay: barangay || '',
-            user_type: userType,
+            user_type: effectiveUserType,
+            department: effectiveUserType === 'Admin' ? (body.department || 'Administration') : null,
+            designation: effectiveUserType === 'Admin' ? (body.designation || 'Platform Administrator') : null,
+            profile_picture: body.profile_image || body.profile_picture || null,
             password: hashedPassword,
             is_active: true
         };
 
-        const userQuery = existingUser
-            ? supabase
-                .from('users')
-                .update(userRecord)
-                .eq('user_id', existingUser.user_id)
-                .select(userFields)
-                .single()
-            : supabase
-                .from('users')
-                .insert(userRecord)
-                .select(userFields)
-                .single();
+        const userRecordWithExtras = {
+            ...userRecord,
+            ...(body.service_category ? { service_category: Array.isArray(body.service_category) ? body.service_category.join(', ') : String(body.service_category) } : {}),
+            ...(body.subcategory ? { subcategory: Array.isArray(body.subcategory) ? body.subcategory.join(', ') : String(body.subcategory) } : {}),
+            ...(body.id_image || body.student_id_image ? { student_id_image: body.id_image || body.student_id_image } : {})
+        };
 
-        const { data: user, error: saveError } = await userQuery;
+        let user;
+        let saveError;
+
+        // Try saving with extended fields first
+        const attemptQuery = existingUser
+            ? supabase.from('users').update(userRecordWithExtras).eq('user_id', existingUser.user_id).select(userFields).single()
+            : supabase.from('users').insert(userRecordWithExtras).select(userFields).single();
+
+        const res1 = await attemptQuery;
+        user = res1.data;
+        saveError = res1.error;
+
+        // If error is 42703 (undefined column in remote database), fall back to core schema
+        if (saveError && saveError.code === '42703') {
+            const fallbackQuery = existingUser
+                ? supabase.from('users').update(userRecord).eq('user_id', existingUser.user_id).select(userFields).single()
+                : supabase.from('users').insert(userRecord).select(userFields).single();
+            const res2 = await fallbackQuery;
+            user = res2.data;
+            saveError = res2.error;
+        }
+
         if (saveError) {
             console.error('Registration user save failed:', saveError.message);
             if (saveError.code === '23505') {

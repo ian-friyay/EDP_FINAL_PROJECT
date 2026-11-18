@@ -53,7 +53,7 @@ const requireAuth = async (req, res, next) => {
 const requireAdmin = async (req, res, next) => {
     const { data: user, error } = await supabase
         .from('users')
-        .select('department, designation, is_active')
+        .select('department, designation, is_active, user_type')
         .eq('user_id', req.user.user_id)
         .maybeSingle();
 
@@ -64,11 +64,11 @@ const requireAdmin = async (req, res, next) => {
     if (!user || !user.is_active) {
         return res.status(401).json({ error: 'Active user account required.' });
     }
-    if (!user.department || !user.designation) {
-        return res.status(403).json({ error: 'Administrator access is required.' });
+    if (user.user_type === 'Admin' || (user.department && user.designation)) {
+        return next();
     }
 
-    return next();
+    return res.status(403).json({ error: 'Administrator access is required.' });
 };
 
 module.exports = { requireAuth, requireAdmin };
