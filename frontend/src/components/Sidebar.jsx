@@ -211,15 +211,21 @@ export default function Sidebar({
                   Menu
                 </span>
               </div>
-              <Button
-                variant="link"
-                className="p-1 text-muted text-decoration-none neu-hover-scale"
+              <div
+                role="button"
+                tabIndex={0}
+                className="p-1 neu-hover-scale d-flex align-items-center justify-content-center"
                 onClick={() => setCollapsed(true)}
                 title="Collapse sidebar"
-                style={{ fontSize: '1.25rem', lineHeight: 1 }}
+                style={{ cursor: 'pointer', transition: 'transform 0.15s ease' }}
               >
-                ☰
-              </Button>
+                <img
+                  src="/logo-hands.png"
+                  alt="Collapse sidebar"
+                  className="logo-white-shadow"
+                  style={{ width: '26px', height: '26px', objectFit: 'contain' }}
+                />
+              </div>
             </>
           ) : (
             <div

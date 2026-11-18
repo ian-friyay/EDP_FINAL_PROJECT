@@ -87,42 +87,44 @@ export default function Layout() {
       <Navbar className="neu-navbar sticky-top py-2 px-3">
         <Container fluid className="p-0">
           <div className="d-flex align-items-center">
-            {/* Hamburger button for Mobile (< lg) */}
-            <Button
-              variant="link"
-              className="text-white p-0 me-3 d-lg-none neu-hamburger"
-              onClick={() => setShowMobileSidebar(true)}
-              aria-label="Open Navigation Sidebar"
+            {/* The Logo itself is the interactive sidebar toggle button (no hamburger icon) */}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                if (isMobile) {
+                  setShowMobileSidebar(true);
+                } else {
+                  setCollapsed(!collapsed);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  if (isMobile) setShowMobileSidebar(true);
+                  else setCollapsed(!collapsed);
+                }
+              }}
+              className="d-flex align-items-center gap-2 m-0 text-white"
+              style={{ cursor: 'pointer', userSelect: 'none' }}
+              title={isMobile ? 'Open navigation menu' : (collapsed ? 'Expand sidebar' : 'Collapse sidebar')}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                <path fillRule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z" />
-              </svg>
-            </Button>
-
-            {/* Hamburger button for Desktop (>= lg) */}
-            <Button
-              variant="link"
-              className="text-white p-0 me-3 d-none d-lg-inline-flex neu-hamburger align-items-center justify-content-center"
-              onClick={() => setCollapsed(!collapsed)}
-              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              style={{ fontSize: '1.35rem', textDecoration: 'none', lineHeight: 1 }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
-                <path fillRule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z" />
-              </svg>
-            </Button>
-
-            {/* Brand Logo & Name */}
-            <Navbar.Brand as={Link} to="/dashboard" className="fw-bold d-flex align-items-center gap-2 m-0 text-white">
-              {/* Full logo for desktop */}
+              {/* Full logo for desktop when expanded, compact hands logo when collapsed */}
               <img
-                src="/logo-transparent.png"
+                src={collapsed ? '/logo-hands.png' : '/logo-transparent.png'}
                 alt="SerbisYou"
                 className="logo-white-shadow d-none d-lg-inline-block"
-                style={{ height: '32px', objectFit: 'contain', background: 'transparent' }}
+                style={{
+                  height: '32px',
+                  width: collapsed ? '32px' : 'auto',
+                  maxWidth: '150px',
+                  objectFit: 'contain',
+                  background: 'transparent',
+                  transition: 'transform 0.15s ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.06)')}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
               />
-              {/* Compact hands logo when on mobile */}
+              {/* Compact hands logo when on mobile view */}
               <img
                 src="/logo-hands.png"
                 alt="SerbisYou"
@@ -141,7 +143,7 @@ export default function Layout() {
               >
                 {isProvider ? 'Provider' : 'Student'}
               </Badge>
-            </Navbar.Brand>
+            </div>
           </div>
 
           {/* Right-side Navbar Actions */}
@@ -157,7 +159,7 @@ export default function Layout() {
               </Badge>
             </Nav.Link>
 
-            {/* User Dropdown */}
+            {/* User Dropdown without redundant role badge */}
             <NavDropdown
               align="end"
               id="user-nav-dropdown"
@@ -167,15 +169,6 @@ export default function Layout() {
                   <span className="d-none d-md-inline small fw-semibold">
                     {displayName}
                   </span>
-                  <Badge
-                    className="d-none d-md-inline small rounded-pill"
-                    style={{
-                      backgroundColor: isProvider ? 'var(--neu-accent, #ff7828)' : '#ffffff',
-                      color: isProvider ? '#ffffff' : '#063a8f',
-                    }}
-                  >
-                    {isProvider ? 'Provider' : 'Student'}
-                  </Badge>
                   <span className="neu-avatar">
                     {initial}
                   </span>
