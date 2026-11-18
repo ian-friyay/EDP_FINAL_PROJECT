@@ -14,6 +14,11 @@ import SettingsPage from './pages/SettingsPage';
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
+import AdminUnlockRequests from './pages/admin/AdminUnlockRequests';
+import AdminServices from './pages/admin/AdminServices';
+import AdminTransactions from './pages/admin/AdminTransactions';
+import AdminReviews from './pages/admin/AdminReviews';
+import AdminAdvertisements from './pages/admin/AdminAdvertisements';
 import AdminSettings from './pages/admin/AdminSettings';
 import { Row, Col, Badge, Table, Button, Form, Alert } from 'react-bootstrap';
 import api from './api/axios';
@@ -637,11 +642,16 @@ export default function App() {
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
 
-        {/* Admin Portal Routes (No CMS) */}
+        {/* Admin Portal Routes matching ITE11_Finalproject */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
+          <Route path="unlock-requests" element={<AdminUnlockRequests />} />
+          <Route path="services" element={<AdminServices />} />
+          <Route path="transactions" element={<AdminTransactions />} />
+          <Route path="reviews" element={<AdminReviews />} />
+          <Route path="advertisements" element={<AdminAdvertisements />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
 

@@ -421,7 +421,7 @@ export default function ServicesGrid({
             {/* Picture Proof Gallery */}
             <div className="mb-4">
               <h6 className="fw-bold text-uppercase text-muted small mb-2">
-                Service Proof Gallery (<code>picture_proof</code>)
+                Service Proof Gallery
               </h6>
               <Row className="g-2">
                 {activeModalService.picture_proof &&
@@ -478,20 +478,20 @@ export default function ServicesGrid({
                 Transaction Calculation Breakdown
               </h6>
               <div className="d-flex justify-content-between small text-muted mb-1">
-                <span>Base Service Rate (<code>amount_topay</code>):</span>
+                <span>Base Service Rate:</span>
                 <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>₱{(Number(activeModalService.amount_topay) || 0).toFixed(2)}</span>
               </div>
               <div className="d-flex justify-content-between small text-muted mb-1">
-                <span>Platform Booking Fee (<code>booking_fee</code>):</span>
+                <span>Platform Booking Fee:</span>
                 <span style={{ color: 'var(--neu-text)' }}>₱5.00 Flat</span>
               </div>
               <div className="d-flex justify-content-between small text-muted mb-1">
-                <span>Provider Commission (5% of rate):</span>
+                <span>Provider Commission (5%):</span>
                 <span className="text-success">₱{((Number(activeModalService.amount_topay) || 0) * 0.05).toFixed(2)}</span>
               </div>
               <hr className="my-2" />
               <div className="d-flex justify-content-between align-items-center">
-                <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>Total Requestor to Pay (<code>total_topay</code>):</span>
+                <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>Total Requestor to Pay:</span>
                 <strong className="fs-5" style={{ color: '#063a8f' }}>
                   ₱{((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)}
                 </strong>

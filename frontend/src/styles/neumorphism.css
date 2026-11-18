@@ -871,11 +871,11 @@ body {
 
 .modal-content {
   background: var(--neu-bg) !important;
-  border: none !important;
+  border: 1px solid rgba(154, 172, 196, 0.35) !important;
   border-radius: var(--neu-radius-xl) !important;
   box-shadow:
-    14px 14px 35px rgba(100, 126, 160, 0.5),
-    -14px -14px 35px rgba(232, 239, 248, 0.9) !important;
+    0 12px 32px rgba(15, 23, 42, 0.22),
+    0 2px 8px rgba(15, 23, 42, 0.12) !important;
   overflow: hidden;
 }
 

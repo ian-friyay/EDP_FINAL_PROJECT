@@ -3,6 +3,7 @@ import { Alert, Button, Form, Modal, Row, Col, Badge } from 'react-bootstrap';
 import api from '../api/axios';
 import ServicesGrid from '../components/ServicesGrid';
 import { queueOfflineAction } from '../utils/offlineQueue';
+import { compressImage } from '../utils/imageCompressor';
 
 const emptyService = {
   service_category: '',
@@ -10,7 +11,7 @@ const emptyService = {
   service_description: '',
   amount_topay: '',
   rate_unit: 'per_service',
-  picture_proof: '',
+  picture_proof: [],
 };
 
 const getRequestError = (error) =>
@@ -109,6 +110,21 @@ export default function ServicesPage() {
     };
   }, []);
 
+  const handleImageUpload = async (e, isEdit = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImage(file, 800, 800, 0.72);
+      if (isEdit) {
+        setEditForm((prev) => ({ ...prev, picture_proof: [compressed] }));
+      } else {
+        setServiceForm((prev) => ({ ...prev, picture_proof: [compressed] }));
+      }
+    } catch (err) {
+      setError('Failed to process image. Please upload a standard JPG or PNG photo.');
+    }
+  };
+
   const handleCreateService = async (event) => {
     event.preventDefault();
     setError('');
@@ -116,10 +132,9 @@ export default function ServicesPage() {
     setIsSaving(true);
 
     try {
-      const pictureProof = serviceForm.picture_proof
-        .split(/\r?\n/)
-        .map((url) => url.trim())
-        .filter(Boolean);
+      const pictureProof = Array.isArray(serviceForm.picture_proof)
+        ? serviceForm.picture_proof
+        : (serviceForm.picture_proof ? [serviceForm.picture_proof] : []);
 
       await api.post('/services', {
         service_category: serviceForm.service_category,
@@ -149,7 +164,9 @@ export default function ServicesPage() {
       service_description: service.service_description || '',
       amount_topay: service.amount_topay || '',
       rate_unit: service.rate_unit || 'per_service',
-      picture_proof: Array.isArray(service.picture_proof) ? service.picture_proof.join('\n') : '',
+      picture_proof: Array.isArray(service.picture_proof)
+        ? service.picture_proof
+        : (service.picture_proof ? [service.picture_proof] : []),
     });
     setShowEditModal(true);
   };
@@ -162,10 +179,9 @@ export default function ServicesPage() {
     setIsUpdating(true);
 
     try {
-      const pictureProof = editForm.picture_proof
-        .split(/\r?\n/)
-        .map((url) => url.trim())
-        .filter(Boolean);
+      const pictureProof = Array.isArray(editForm.picture_proof)
+        ? editForm.picture_proof
+        : (editForm.picture_proof ? [editForm.picture_proof] : []);
 
       await api.put(`/services/${encodeURIComponent(editingService.service_id)}`, {
         service_category: editForm.service_category,
@@ -419,16 +435,37 @@ export default function ServicesPage() {
               </Col>
             </Row>
 
-            <Form.Group controlId="servicePictureProof">
-              <Form.Label className="small fw-semibold text-muted">Picture Proof URLs (optional)</Form.Label>
+            <Form.Group controlId="servicePictureProof" className="mb-2">
+              <Form.Label className="small fw-semibold text-muted">Service Image / Picture Proof</Form.Label>
               <Form.Control
-                as="textarea"
-                rows={2}
+                type="file"
+                accept="image/*"
                 className="neu-input"
-                value={serviceForm.picture_proof}
-                onChange={(event) => setServiceForm({ ...serviceForm, picture_proof: event.target.value })}
-                placeholder="Enter one http(s) URL per line"
+                onChange={(e) => handleImageUpload(e, false)}
               />
+              <Form.Text className="text-muted small">
+                Select an image file representing your service (auto-compressed).
+              </Form.Text>
+              {serviceForm.picture_proof && serviceForm.picture_proof.length > 0 && (
+                <div className="mt-2 position-relative d-inline-block">
+                  <img
+                    src={serviceForm.picture_proof[0]}
+                    alt="Preview"
+                    className="rounded-3 border shadow-sm"
+                    style={{ width: '130px', height: '90px', objectFit: 'cover' }}
+                  />
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    className="position-absolute top-0 end-0 p-0 rounded-circle"
+                    style={{ width: '22px', height: '22px', transform: 'translate(30%, -30%)', lineHeight: 1 }}
+                    onClick={() => setServiceForm((prev) => ({ ...prev, picture_proof: [] }))}
+                    title="Remove image"
+                  >
+                    ✕
+                  </Button>
+                </div>
+              )}
             </Form.Group>
           </Modal.Body>
           <Modal.Footer style={{ background: 'var(--neu-bg-dark)', borderTop: '1px solid rgba(154, 172, 196, 0.35)' }}>
@@ -511,16 +548,37 @@ export default function ServicesPage() {
               </Col>
             </Row>
 
-            <Form.Group controlId="editServicePictureProof">
-              <Form.Label className="small fw-semibold text-muted">Picture Proof URLs (optional)</Form.Label>
+            <Form.Group controlId="editServicePictureProof" className="mb-2">
+              <Form.Label className="small fw-semibold text-muted">Service Image / Picture Proof</Form.Label>
               <Form.Control
-                as="textarea"
-                rows={2}
+                type="file"
+                accept="image/*"
                 className="neu-input"
-                value={editForm.picture_proof}
-                onChange={(event) => setEditForm({ ...editForm, picture_proof: event.target.value })}
-                placeholder="Enter one http(s) URL per line"
+                onChange={(e) => handleImageUpload(e, true)}
               />
+              <Form.Text className="text-muted small">
+                Upload or replace the image proof for this service.
+              </Form.Text>
+              {editForm.picture_proof && editForm.picture_proof.length > 0 && (
+                <div className="mt-2 position-relative d-inline-block">
+                  <img
+                    src={editForm.picture_proof[0]}
+                    alt="Preview"
+                    className="rounded-3 border shadow-sm"
+                    style={{ width: '130px', height: '90px', objectFit: 'cover' }}
+                  />
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    className="position-absolute top-0 end-0 p-0 rounded-circle"
+                    style={{ width: '22px', height: '22px', transform: 'translate(30%, -30%)', lineHeight: 1 }}
+                    onClick={() => setEditForm((prev) => ({ ...prev, picture_proof: [] }))}
+                    title="Remove image"
+                  >
+                    ✕
+                  </Button>
+                </div>
+              )}
             </Form.Group>
           </Modal.Body>
           <Modal.Footer style={{ background: 'var(--neu-bg-dark)', borderTop: '1px solid rgba(154, 172, 196, 0.35)' }}>

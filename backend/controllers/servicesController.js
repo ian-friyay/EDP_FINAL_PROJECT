@@ -10,6 +10,10 @@ const isValidPictureProof = (pictureProof) => {
             return false;
         }
 
+        if (pictureUrl.startsWith('data:image/')) {
+            return true;
+        }
+
         try {
             const url = new URL(pictureUrl);
             return url.protocol === 'http:' || url.protocol === 'https:';

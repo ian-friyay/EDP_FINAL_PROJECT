@@ -333,6 +333,150 @@ const shareAdminAccess = async (req, res) => {
     }
 };
 
+// In-memory moderation and advertisement stores matching ITE11_Finalproject
+let adminReviewsStore = [
+    {
+        id: 'REV-0001',
+        reviewer_name: 'Phaniie Phanie',
+        reviewed_student_name: 'Phanie Lubos',
+        rating: 3.5,
+        comment: 'ok na',
+        created_at: 'Nov 17, 2026 04:30 PM'
+    },
+    {
+        id: 'REV-0002',
+        reviewer_name: 'Phaniie Phanie',
+        reviewed_student_name: 'Kerim Aalke',
+        rating: 3.0,
+        comment: 'Oks lang naman',
+        created_at: 'Nov 16, 2026 02:15 PM'
+    }
+];
+
+let adminAdvertisementsStore = [
+    {
+        id: 'AD-0001',
+        banner_url: '/auth-bg.jpg',
+        campaign_title: 'Support Itlogs Campaign Business',
+        requested_by: 'Phanie Phanie',
+        requested_email: 'reymartovedano@gmail.com',
+        duration: '7 Days (week)',
+        cost: 14.00,
+        status: 'active',
+        payment_status: 'paid',
+        created_at: 'Nov 16, 2026 09:12 AM'
+    }
+];
+
+const getAdminServices = async (req, res) => {
+    try {
+        const [servicesRes, usersRes] = await Promise.all([
+            supabase.from('services').select('*').eq('is_deleted', false).order('created_at', { ascending: false }),
+            supabase.from('users').select('user_id, first_name, last_name, username')
+        ]);
+
+        const usersMap = new Map((usersRes.data || []).map((u) => [u.user_id, `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || u.user_id]));
+
+        const enriched = (servicesRes.data || []).map((s) => ({
+            id: s.service_id,
+            service_id: s.service_id,
+            provider_name: usersMap.get(s.user_id) || s.user_id,
+            user_id: s.user_id,
+            category: s.service_category || 'General',
+            service_name: s.subcategory || s.service_category || 'Service',
+            description: s.service_description,
+            price: Number(s.amount_topay) || 0,
+            rate_unit: s.rate_unit || 'per_service',
+            status: s.service_status || 'active',
+            picture_proof: s.picture_proof || [],
+            created_at: s.created_at ? new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Nov 17, 2026'
+        }));
+
+        return res.status(200).json({ data: enriched });
+    } catch (err) {
+        console.error('getAdminServices error:', err.message);
+        return res.status(500).json({ error: 'Failed to fetch services.' });
+    }
+};
+
+const deleteAdminService = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { error } = await supabase.from('services').update({ is_deleted: true }).eq('service_id', id);
+        if (error) throw error;
+        return res.status(200).json({ message: 'Service removed successfully.' });
+    } catch (err) {
+        return res.status(500).json({ error: 'Failed to remove service.' });
+    }
+};
+
+const getAdminTransactions = async (req, res) => {
+    try {
+        const [txRes, usersRes] = await Promise.all([
+            supabase.from('transactions').select('*').order('created_at', { ascending: false }),
+            supabase.from('users').select('user_id, first_name, last_name, username')
+        ]);
+
+        const usersMap = new Map((usersRes.data || []).map((u) => [u.user_id, `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || u.user_id]));
+
+        const enriched = (txRes.data || []).map((t) => ({
+            id: t.transaction_id,
+            transaction_id: t.transaction_id,
+            requestor_name: usersMap.get(t.requestor_id) || t.requestor_id,
+            provider_name: usersMap.get(t.provider_id) || t.provider_id,
+            service_name: t.service_name || 'Service',
+            amount_topay: Number(t.amount_topay) || 0,
+            commission_fee: Number(t.commission_fee) || ((Number(t.amount_topay) || 0) * 0.05),
+            total_topay: Number(t.total_topay) || ((Number(t.amount_topay) || 0) + (Number(t.booking_fee) || 5)),
+            status: t.service_status || 'pending',
+            booking_date: t.booking_date,
+            created_at: t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Nov 17, 2026'
+        }));
+
+        return res.status(200).json({ data: enriched });
+    } catch (err) {
+        return res.status(500).json({ error: 'Failed to fetch transactions.' });
+    }
+};
+
+const getAdminReviews = async (req, res) => {
+    return res.status(200).json({ data: adminReviewsStore });
+};
+
+const deleteAdminReview = async (req, res) => {
+    const { id } = req.params;
+    adminReviewsStore = adminReviewsStore.filter((r) => r.id !== id);
+    return res.status(200).json({ message: 'Review deleted successfully.' });
+};
+
+const getAdminAdvertisements = async (req, res) => {
+    return res.status(200).json({ data: adminAdvertisementsStore });
+};
+
+const createAdminAdvertisement = async (req, res) => {
+    const { campaign_title, requested_by, requested_email, duration, cost, banner_url } = req.body;
+    const newAd = {
+        id: `AD-${Date.now().toString().slice(-4)}`,
+        banner_url: banner_url || '/auth-bg.jpg',
+        campaign_title: campaign_title || 'Campus Promotion',
+        requested_by: requested_by || 'Student Organization',
+        requested_email: requested_email || 'student@minsu.edu.ph',
+        duration: duration || '7 Days (week)',
+        cost: Number(cost) || 14.00,
+        status: 'active',
+        payment_status: 'paid',
+        created_at: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    };
+    adminAdvertisementsStore.unshift(newAd);
+    return res.status(201).json({ message: 'Advertisement created.', data: newAd });
+};
+
+const deleteAdminAdvertisement = async (req, res) => {
+    const { id } = req.params;
+    adminAdvertisementsStore = adminAdvertisementsStore.filter((a) => a.id !== id);
+    return res.status(200).json({ message: 'Advertisement deleted.' });
+};
+
 module.exports = {
     checkAdminExists,
     getDashboardStats,
@@ -343,5 +487,13 @@ module.exports = {
     approveUnlockRequest,
     rejectUnlockRequest,
     unlockUserProfile,
-    shareAdminAccess
+    shareAdminAccess,
+    getAdminServices,
+    deleteAdminService,
+    getAdminTransactions,
+    getAdminReviews,
+    deleteAdminReview,
+    getAdminAdvertisements,
+    createAdminAdvertisement,
+    deleteAdminAdvertisement
 };
