@@ -610,7 +610,7 @@ const resetPassword = async (req, res) => {
 
 const login = async (req, res) => {
     try {
-        const { email, password } = req.body || {};
+        const { email, password, rememberMe } = req.body || {};
         if (typeof email !== 'string' || typeof password !== 'string' || !password) {
             return res.status(400).json({ error: 'Email and password are required.' });
         }
@@ -618,14 +618,14 @@ const login = async (req, res) => {
         const identifier = email.trim().toLowerCase();
         console.log(`[AUTH LOGIN ATTEMPT] Identifier: "${identifier}"`);
 
-        // Search by email first
+        // 1. Search by email
         let { data: user, error: userError } = await supabase
             .from('users')
             .select(userFields)
             .ilike('email', identifier)
             .maybeSingle();
 
-        // If not found by email, search by username or student ID (user_id)
+        // 2. Search by username if not found by email
         if (!user) {
             const byUsername = await supabase
                 .from('users')
@@ -637,6 +637,7 @@ const login = async (req, res) => {
             }
         }
 
+        // 3. Search by student ID / user_id if still not found
         if (!user) {
             const byId = await supabase
                 .from('users')
@@ -731,10 +732,11 @@ const login = async (req, res) => {
             return res.status(500).json({ error: 'Authentication is not configured.' });
         }
 
+        const tokenExpiresIn = rememberMe ? '30d' : (process.env.JWT_EXPIRES_IN || '24h');
         const token = jwt.sign(
             { user_id: user.user_id, email: user.email },
             jwtSecret,
-            { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+            { expiresIn: tokenExpiresIn }
         );
         const { password: _password, ...safeUser } = user;
 

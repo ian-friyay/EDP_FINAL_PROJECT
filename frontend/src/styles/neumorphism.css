@@ -1296,3 +1296,46 @@ img {
   -webkit-backdrop-filter: blur(12px) saturate(1.2);
   border: 1px solid rgba(232, 239, 248, 0.4);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   HERO TITLE ACCENT ANIMATIONS (Subtle, Non-dizzy, Polished)
+   ═══════════════════════════════════════════════════════════ */
+
+@keyframes heroHeadlineReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes warmAccentGleam {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.hero-headline-animated {
+  animation: heroHeadlineReveal 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hero-accent-gleam {
+  display: inline-block;
+  background: linear-gradient(90deg, #ff7828 0%, #ffa463 35%, #ea580c 70%, #ff7828 100%) !important;
+  background-size: 240% auto !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  animation: warmAccentGleam 6s ease-in-out infinite;
+  filter: drop-shadow(0 2px 8px rgba(255, 120, 40, 0.22));
+  will-change: background-position;
+}

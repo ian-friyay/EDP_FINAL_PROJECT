@@ -239,6 +239,11 @@ function TransactionTable({ transactions = [], currentUserId, onRefresh, onStatu
                     <small className="text-muted">
                       {transaction.service_category || 'Marketplace Service'}
                     </small>
+                    {transaction.notes && (
+                      <div className="small text-secondary mt-1 p-1 rounded bg-light border fst-italic" style={{ maxWidth: '280px' }}>
+                        <span className="fw-semibold text-dark">Note:</span> "{transaction.notes}"
+                      </div>
+                    )}
                   </td>
                   <td>
                     <div className="small">
@@ -268,14 +273,25 @@ function TransactionTable({ transactions = [], currentUserId, onRefresh, onStatu
                     </Badge>
                   </td>
                   <td className="d-none d-sm-table-cell">
-                    <small className="text-muted">
-                      {transaction.created_at
-                        ? new Date(transaction.created_at).toLocaleString('en-PH', {
-                            dateStyle: 'short',
-                            timeStyle: 'short',
-                          })
-                        : '-'}
-                    </small>
+                    {transaction.booking_date ? (
+                      <div>
+                        <div className="small fw-semibold text-dark">{transaction.booking_date}</div>
+                        {(transaction.start_time || transaction.end_time) && (
+                          <Badge bg="light" text="dark" className="border small font-monospace">
+                            🕒 {transaction.start_time || '--:--'} - {transaction.end_time || '--:--'}
+                          </Badge>
+                        )}
+                      </div>
+                    ) : (
+                      <small className="text-muted">
+                        {transaction.created_at
+                          ? new Date(transaction.created_at).toLocaleString('en-PH', {
+                              dateStyle: 'short',
+                              timeStyle: 'short',
+                            })
+                          : '-'}
+                      </small>
+                    )}
                   </td>
                   <td>
                     <div className="d-flex gap-2 flex-wrap align-items-center">
