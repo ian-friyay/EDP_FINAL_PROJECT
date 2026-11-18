@@ -378,7 +378,6 @@ const register = async (req, res) => {
         const { password: _password, ...safeUser } = user;
         return res.status(201).json({
             message: 'Registration successful. Verify your email using the code we sent.',
-            devOtp: emailResult.devMode ? otp : undefined,
             user: safeUser
         });
     } catch (error) {
@@ -553,8 +552,7 @@ const resendOtp = async (req, res) => {
         }
 
         return res.status(200).json({
-            message: 'A new 6-digit verification code has been sent to your email.',
-            devOtp: emailResult.devMode ? otp : undefined
+            message: 'A new 6-digit verification code has been sent to your email.'
         });
     } catch (error) {
         console.error('Resend OTP error:', error.message);
@@ -608,8 +606,7 @@ const forgotPassword = async (req, res) => {
         const emailResult = await sendOtpEmail(normalizedEmail, otp, 'Your SerbisYou Password Reset Code');
 
         return res.status(200).json({
-            message: 'If an account exists with that email, a password reset code has been sent.',
-            devOtp: emailResult.devMode ? otp : undefined
+            message: 'If an account exists with that email, a password reset code has been sent.'
         });
     } catch (error) {
         console.error('Forgot password error:', error.message);
@@ -815,8 +812,7 @@ const login = async (req, res) => {
             requires_2fa: true,
             message: 'A 6-digit sign-in verification code has been sent to your email.',
             email: user.email,
-            user_id: user.user_id,
-            devOtp: (emailResult.devMode || process.env.NODE_ENV !== 'production') ? otp : undefined
+            user_id: user.user_id
         });
     } catch (error) {
         console.error('Login failed:', error.message);
@@ -951,8 +947,7 @@ const resendLoginOtp = async (req, res) => {
         console.log(`[AUTH 2FA RESEND] Resent Sign-In OTP for ${user.email}: ${otp}`);
 
         return res.status(200).json({
-            message: 'A new 6-digit sign-in verification code has been sent.',
-            devOtp: (emailResult.devMode || process.env.NODE_ENV !== 'production') ? otp : undefined
+            message: 'A new 6-digit sign-in verification code has been sent.'
         });
     } catch (err) {
         console.error('resendLoginOtp error:', err);

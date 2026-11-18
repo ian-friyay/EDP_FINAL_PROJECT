@@ -60,7 +60,6 @@ export default function AuthPage({ mode }) {
   // Sign-In Two-Factor Authentication (2FA) States
   const [login2faPending, setLogin2faPending] = useState(false);
   const [loginOtp, setLoginOtp] = useState('');
-  const [loginDevOtp, setLoginDevOtp] = useState('');
   const [loginUserEmail, setLoginUserEmail] = useState('');
 
   // Form states
@@ -75,7 +74,6 @@ export default function AuthPage({ mode }) {
   const [forgotOtp, setForgotOtp] = useState('');
   const [forgotNewPassword, setForgotNewPassword] = useState('');
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
-  const [forgotDevOtp, setForgotDevOtp] = useState('');
   const [isForgotSubmitting, setIsForgotSubmitting] = useState(false);
   const [forgotError, setForgotError] = useState('');
   const [forgotMessage, setForgotMessage] = useState('');
@@ -453,11 +451,7 @@ export default function AuthPage({ mode }) {
 
         setVerificationPending(true);
         setResendCooldown(60);
-        if (data.devOtp) {
-          setMessage(`Verification code generated! (Dev OTP: ${data.devOtp})`);
-        } else {
-          setMessage('We sent a 6-digit verification code to your email.');
-        }
+        setMessage(data.message || 'We sent a 6-digit verification code to your email.');
       } catch (err) {
         setError(err.response?.data?.error || err.message || 'Registration failed.');
       } finally {
@@ -479,7 +473,6 @@ export default function AuthPage({ mode }) {
       if (data.requires_2fa) {
         setLogin2faPending(true);
         setLoginUserEmail(data.email || email.trim());
-        setLoginDevOtp(data.devOtp || '');
         setLoginOtp('');
         setResendCooldown(60);
         setMessage(data.message || 'We sent a 6-digit sign-in code to your email.');
@@ -569,7 +562,6 @@ export default function AuthPage({ mode }) {
     try {
       const { data } = await api.post('/auth/resend-login-otp', { email: loginUserEmail });
       setMessage(data.message || 'A new sign-in code has been sent.');
-      if (data.devOtp) setLoginDevOtp(data.devOtp);
       setResendCooldown(60);
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Failed to resend sign-in code.');
@@ -584,7 +576,6 @@ export default function AuthPage({ mode }) {
     setForgotOtp('');
     setForgotNewPassword('');
     setForgotConfirmPassword('');
-    setForgotDevOtp('');
     setForgotError('');
     setForgotMessage('');
     setShowForgotModal(true);
@@ -598,12 +589,7 @@ export default function AuthPage({ mode }) {
     try {
       const { data } = await api.post('/auth/forgot-password', { email: forgotEmail });
       setForgotStep(2);
-      if (data.devOtp) {
-        setForgotDevOtp(data.devOtp);
-        setForgotMessage(`Reset code generated! (Dev Code: ${data.devOtp})`);
-      } else {
-        setForgotMessage(data.message || `Reset code sent to ${forgotEmail}. Check your inbox.`);
-      }
+      setForgotMessage(data.message || `Reset code sent to ${forgotEmail}. Check your inbox.`);
     } catch (err) {
       setForgotError(err.response?.data?.error || err.message || 'Failed to send reset code.');
     } finally {
@@ -862,12 +848,6 @@ export default function AuthPage({ mode }) {
                 <p className="text-muted small mb-3">
                   Check your inbox at <strong className="text-dark">{loginUserEmail}</strong> for your 6-digit 2FA security code.
                 </p>
-
-                {loginDevOtp && (
-                  <div className="alert alert-info py-2 px-3 small rounded-3 mb-3 border-0 text-center font-monospace">
-                    <strong>[Dev Mode OTP]</strong> <code>{loginDevOtp}</code>
-                  </div>
-                )}
 
                 <Form.Control
                   inputMode="numeric"
