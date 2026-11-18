@@ -223,6 +223,228 @@ const acceptTransaction = async (req, res) => {
     const transactionId = req.params.transaction_id || req.params.id;
     const userId = req.user && req.user.user_id;
 
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized.' });
+    }
+
+    if (!transactionId) {
+      return res.status(400).json({ error: 'Transaction ID is required.' });
+    }
+
+    const { data: transaction, error: fetchErr } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('transaction_id', transactionId)
+      .maybeSingle();
+
+    if (fetchErr || !transaction) {
+      return res.status(404).json({ error: 'Transaction not found.' });
+    }
+
+    if (transaction.provider_id !== userId) {
+      return res.status(403).json({ error: 'Only the service provider can accept this booking.' });
+    }
+
+    if (transaction.service_status !== 'pending') {
+      return res.status(400).json({
+        error: `Cannot accept transaction with status '${transaction.service_status}'. Only pending bookings can be accepted.`,
+      });
+    }
+
+    const { data: updated, error: updateErr } = await supabase
+      .from('transactions')
+      .update({ service_status: 'accepted' })
+      .eq('transaction_id', transactionId)
+      .select()
+      .single();
+
+    if (updateErr) {
+      return res.status(500).json({ error: 'Failed to accept transaction.', details: updateErr.message });
+    }
+
+    createNotification(
+      transaction.requestor_id,
+      'transaction',
+      'Booking Accepted!',
+      `Provider accepted your booking #${transactionId}.`,
+      `/transactions/${transactionId}/qr`
+    );
+
+    return res.status(200).json({
+      message: 'Transaction accepted successfully.',
+      transaction: updated,
+    });
+  } catch (error) {
+    console.error('acceptTransaction error:', error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+const completeTransaction = async (req, res) => {
+  try {
+    const transactionId = req.params.transaction_id || req.params.id;
+    const userId = req.user && req.user.user_id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized.' });
+    }
+
+    if (!transactionId) {
+      return res.status(400).json({ error: 'Transaction ID is required.' });
+    }
+
+    const { data: transaction, error: fetchErr } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('transaction_id', transactionId)
+      .maybeSingle();
+
+    if (fetchErr || !transaction) {
+      return res.status(404).json({ error: 'Transaction not found.' });
+    }
+
+    const isParticipant = transaction.provider_id === userId || transaction.requestor_id === userId;
+    if (!isParticipant) {
+      return res.status(403).json({ error: 'You are not authorized to complete this booking.' });
+    }
+
+    if (transaction.service_status === 'completed') {
+      return res.status(400).json({ error: 'Transaction is already completed.' });
+    }
+
+    if (transaction.service_status === 'cancelled') {
+      return res.status(400).json({ error: 'Cancelled transactions cannot be completed.' });
+    }
+
+    const { data: updated, error: updateErr } = await supabase
+      .from('transactions')
+      .update({ service_status: 'completed' })
+      .eq('transaction_id', transactionId)
+      .select()
+      .single();
+
+    if (updateErr) {
+      return res.status(500).json({ error: 'Failed to complete transaction.', details: updateErr.message });
+    }
+
+    const targetUserId = userId === transaction.provider_id ? transaction.requestor_id : transaction.provider_id;
+    createNotification(
+      targetUserId,
+      'transaction',
+      'Service Completed!',
+      `Booking #${transactionId} has been marked as completed. Please leave a review!`,
+      `/transactions`
+    );
+
+    return res.status(200).json({
+      message: 'Transaction completed successfully.',
+      transaction: updated,
+    });
+  } catch (error) {
+    console.error('completeTransaction error:', error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+const verifyQrCode = async (req, res) => {
+  try {
+    const userId = req.user && req.user.user_id;
+    const { qr_code } = req.body || {};
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized.' });
+    }
+
+    if (!qr_code || !String(qr_code).trim()) {
+      return res.status(400).json({ error: 'QR Code payload is required.' });
+    }
+
+    const trimmedCode = String(qr_code).trim();
+
+    let extractedTxId = null;
+    if (trimmedCode.startsWith('SERBISYOU-TRANSACTION-')) {
+      extractedTxId = trimmedCode.replace('SERBISYOU-TRANSACTION-', '');
+    } else if (trimmedCode.startsWith('SERBISYOU-PAID-TRX-')) {
+      const parts = trimmedCode.split('-');
+      if (parts.length >= 4) {
+        extractedTxId = parts[3];
+      }
+    }
+
+    let { data: transaction, error: fetchErr } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('qr_code', trimmedCode)
+      .maybeSingle();
+
+    if (!transaction && extractedTxId) {
+      const fallbackQuery = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('transaction_id', extractedTxId)
+        .maybeSingle();
+      if (fallbackQuery.data) {
+        transaction = fallbackQuery.data;
+      }
+    }
+
+    if (!transaction) {
+      const directIdQuery = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('transaction_id', trimmedCode)
+        .maybeSingle();
+      if (directIdQuery.data) {
+        transaction = directIdQuery.data;
+      }
+    }
+
+    if (!transaction) {
+      return res.status(404).json({ error: 'Invalid QR Code. No matching booking found.' });
+    }
+
+    if (transaction.provider_id !== userId) {
+      return res.status(403).json({
+        error: `Unauthorized. This QR code is assigned to provider ${transaction.provider_id}, not your account.`,
+      });
+    }
+
+    if (transaction.service_status === 'cancelled') {
+      return res.status(400).json({ error: 'This booking has been cancelled and cannot be verified.' });
+    }
+
+    if (transaction.service_status === 'completed') {
+      return res.status(400).json({ error: 'This booking has already been verified and marked as completed.' });
+    }
+
+    const { data: updated, error: updateErr } = await supabase
+      .from('transactions')
+      .update({ service_status: 'completed' })
+      .eq('transaction_id', transaction.transaction_id)
+      .select()
+      .single();
+
+    if (updateErr) {
+      return res.status(500).json({ error: 'Failed to verify transaction.', details: updateErr.message });
+    }
+
+    createNotification(
+      transaction.requestor_id,
+      'transaction',
+      'QR Code Verified - Service Completed!',
+      `Provider verified your booking #${transaction.transaction_id} via QR code.`,
+      `/transactions`
+    );
+
+    return res.status(200).json({
+      message: 'QR Code verified successfully! Booking marked as completed.',
+      transaction: updated,
+    });
+  } catch (error) {
+    console.error('verifyQrCode error:', error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
 
 const updateTransactionStatus = async (req, res) => {
   try {
@@ -230,6 +452,107 @@ const updateTransactionStatus = async (req, res) => {
     const { transaction_id } = req.params;
     const { status } = req.body;
 
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized.' });
+    }
+
+    if (!['accepted', 'completed', 'cancelled'].includes(status)) {
+      return res.status(400).json({
+        error: "Invalid status. Allowed statuses are: 'accepted', 'completed', 'cancelled'.",
+      });
+    }
+
+    const { data: transaction, error: fetchError } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('transaction_id', transaction_id)
+      .maybeSingle();
+
+    if (fetchError || !transaction) {
+      return res.status(404).json({ error: 'Transaction not found.' });
+    }
+
+    const isProvider = transaction.provider_id === userId;
+    const isRequestor = transaction.requestor_id === userId;
+
+    if (!isProvider && !isRequestor) {
+      return res.status(403).json({ error: 'You are not a participant in this transaction.' });
+    }
+
+    if (status === 'accepted') {
+      if (!isProvider) {
+        return res.status(403).json({ error: 'Only the provider can accept this booking.' });
+      }
+      if (transaction.service_status !== 'pending') {
+        return res.status(400).json({
+          error: `Cannot accept transaction with status '${transaction.service_status}'.`,
+        });
+      }
+    } else if (status === 'completed') {
+      if (!isProvider && !isRequestor) {
+        return res.status(403).json({ error: 'Unauthorized.' });
+      }
+      if (transaction.service_status !== 'accepted') {
+        return res.status(400).json({
+          error: `Cannot complete transaction with status '${transaction.service_status}'. Must be 'accepted' first.`,
+        });
+      }
+    } else if (status === 'cancelled') {
+      if (transaction.service_status !== 'pending') {
+        return res.status(400).json({
+          error: `Cannot cancel transaction with status '${transaction.service_status}'. Only pending bookings can be cancelled.`,
+        });
+      }
+    }
+
+    const { data: updated, error: updateError } = await supabase
+      .from('transactions')
+      .update({ service_status: status })
+      .eq('transaction_id', transaction_id)
+      .select()
+      .single();
+
+    if (updateError) {
+      return res.status(500).json({ error: 'Failed to update transaction status.' });
+    }
+
+    const io = req.app && req.app.get('io');
+    if (io) {
+      io.to(String(transaction.provider_id)).emit('transaction_updated', updated);
+      io.to(String(transaction.requestor_id)).emit('transaction_updated', updated);
+
+      const recipientId = isProvider ? transaction.requestor_id : transaction.provider_id;
+      const statusTitleMap = {
+        accepted: 'Booking Accepted!',
+        completed: 'Service Completed!',
+        cancelled: 'Booking Cancelled',
+      };
+      const statusDescMap = {
+        accepted: `Provider has accepted your booking request (TX-${transaction.transaction_id}).`,
+        completed: `Service (TX-${transaction.transaction_id}) has been marked as completed. Please settle payment via QR.`,
+        cancelled: `Booking (TX-${transaction.transaction_id}) was cancelled.`,
+      };
+
+      io.to(String(recipientId)).emit('new_notification', {
+        id: `tx_${transaction.transaction_id}_${status}_${Date.now()}`,
+        type: 'booking',
+        title: statusTitleMap[status] || 'Booking Update',
+        description: statusDescMap[status] || `Transaction status changed to ${status}.`,
+        timestamp: new Date().toISOString(),
+        read: false,
+        link: '/transactions',
+        target_id: String(transaction.transaction_id),
+      });
+    }
+
+    return res.status(200).json({
+      message: `Transaction status updated to '${status}'.`,
+      transaction: updated,
+    });
+  } catch (error) {
+    console.error('Error updating transaction status:', error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
 };
 
 module.exports = {
