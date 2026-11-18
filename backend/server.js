@@ -58,6 +58,29 @@ app.use('/api/maps', mapRoutes);
 app.use('/api/advertisements', advertisementRoutes);
 app.use('/api/payments', paymentRoutes);
 
+// Messages API to fetch conversation history (fallback route)
+app.get('/api/messages/:otherUserId', requireAuth, async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const { otherUserId } = req.params;
+
+        const { data: messages, error } = await supabase
+            .from('messages')
+            .select('*')
+            .or(`and(sender_id.eq.${userId},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${userId})`)
+            .order('timestamp', { ascending: true });
+
+        if (error) {
+            console.error('Failed to fetch messages:', error);
+            return res.status(500).json({ error: 'Failed to fetch messages.' });
+        }
+
+        return res.status(200).json({ messages: messages || [] });
+    } catch (err) {
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
 // Test Route
 app.get('/', (req, res) => {
     res.send('SerbisYou Backend API is running!');

@@ -17,7 +17,7 @@ const formatAmount = (amount) =>
     currency: 'PHP',
   });
 
-function TransactionTable({ transactions = [], currentUserId, onRefresh }) {
+function TransactionTable({ transactions = [], currentUserId, onRefresh, onStatusUpdate }) {
   // Review Modal State
   const [reviewModalTx, setReviewModalTx] = useState(null);
   const [rating, setRating] = useState(5);

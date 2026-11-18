@@ -7,6 +7,7 @@ const {
   acceptTransaction,
   completeTransaction,
   verifyQrCode,
+  updateTransactionStatus,
 } = require('../controllers/transactionController');
 const { cancelTransaction } = require('../controllers/cancelTransaction');
 
@@ -16,6 +17,7 @@ router.get('/', requireAuth, getUserTransactions);
 router.post('/verify-qr', requireAuth, verifyQrCode);
 router.get('/:transaction_id', requireAuth, getTransactionById);
 router.post('/', requireAuth, createTransaction);
+router.patch('/:transaction_id/status', requireAuth, updateTransactionStatus);
 router.patch('/:transaction_id/accept', requireAuth, acceptTransaction);
 router.patch('/:transaction_id/complete', requireAuth, completeTransaction);
 router.patch('/:transaction_id/cancel', requireAuth, cancelTransaction);

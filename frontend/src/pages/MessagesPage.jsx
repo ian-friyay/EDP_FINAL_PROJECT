@@ -374,47 +374,38 @@ export default function MessagesPage() {
   return (
     <Container
       fluid
-      className="min-vh-100 bg-white p-3 p-md-4"
-      style={{ maxWidth: '820px' }}
+      className="min-vh-100 p-3 p-md-4"
+      style={{ maxWidth: '880px', background: 'var(--neu-bg)' }}
     >
       <Row className="g-0 justify-content-center">
         <Col xs={12}>
-          <div className="d-flex align-items-center justify-content-between mb-3">
-            <h1 className="fs-3 fw-bold text-dark mb-0">Messages</h1>
+          <div className="d-flex align-items-center justify-content-between mb-4">
+            <div>
+              <h2 className="fs-3 fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>Messages</h2>
+              <p className="text-muted small mb-0">Real-time conversations with your service providers and requestors.</p>
+            </div>
           </div>
 
-          <InputGroup className="w-100 mb-3 rounded-pill bg-light overflow-hidden border">
-            <InputGroup.Text className="bg-transparent border-0 ps-3 text-muted">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                fill="currentColor"
-                viewBox="0 0 16 16"
-                aria-hidden="true"
-              >
-                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.099zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
-              </svg>
-            </InputGroup.Text>
+          <div className="mb-4">
             <Form.Control
               type="search"
-              placeholder="Search conversations..."
+              placeholder="Search conversations by name or message..."
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               aria-label="Search conversations"
-              className="bg-transparent border-0 py-2 shadow-none"
+              className="neu-input rounded-pill py-2 px-4"
             />
-          </InputGroup>
+          </div>
 
-          <ListGroup variant="flush" className="bg-transparent">
+          <ListGroup variant="flush" className="bg-transparent d-flex flex-column gap-2 neu-scroll-list" style={{ maxHeight: '550px' }}>
             {conversations.length === 0 ? (
-              <ListGroup.Item className="border-0 text-center text-muted py-5">
+              <div className="neu-card border-0 text-center text-muted py-5">
                 No messages yet. Start a conversation by booking a service!
-              </ListGroup.Item>
+              </div>
             ) : filteredConversations.length === 0 ? (
-              <ListGroup.Item className="border-0 text-center text-muted py-4">
-                No conversations found.
-              </ListGroup.Item>
+              <div className="neu-card border-0 text-center text-muted py-4">
+                No conversations found matching your search.
+              </div>
             ) : (
               filteredConversations.map((conversation) => {
                 const conversationId =
@@ -422,16 +413,14 @@ export default function MessagesPage() {
                 const realName = getRealFullName(conversation);
 
                 return (
-                  <ListGroup.Item
+                  <div
                     key={conversationId}
-                    action
+                    role="button"
                     onClick={() => handleConversationClick(conversation)}
-                    className="d-flex align-items-center py-2 px-3 border-0 rounded-4 mb-1 transition-all"
+                    className="neu-card d-flex align-items-center py-3 px-3 rounded-4 transition-all"
                     style={{
                       cursor: 'pointer',
-                      backgroundColor: conversation.isUnread
-                        ? 'rgba(0, 132, 255, 0.05)'
-                        : 'transparent',
+                      borderLeft: conversation.isUnread ? '4px solid #063a8f' : '4px solid transparent',
                     }}
                   >
                     {/* 1. Left: Avatar / DP */}
@@ -503,7 +492,7 @@ export default function MessagesPage() {
                         />
                       )}
                     </div>
-                  </ListGroup.Item>
+                  </div>
                 );
               })
             )}

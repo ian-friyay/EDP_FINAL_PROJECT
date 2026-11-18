@@ -306,11 +306,11 @@ export default function ChatPage() {
   }
 
   return (
-    <Container fluid className="min-vh-100 d-flex flex-column bg-white p-0">
-      <div className="d-flex align-items-center gap-2 p-3 border-bottom bg-white">
+    <Container fluid className="min-vh-100 d-flex flex-column p-0" style={{ background: 'var(--neu-bg)' }}>
+      <div className="d-flex align-items-center gap-2 p-3 border-bottom" style={{ background: 'var(--neu-bg-dark)', borderColor: 'rgba(154, 172, 196, 0.35)' }}>
         <Button
-          variant="light"
-          className="rounded-circle me-2 flex-shrink-0"
+          className="neu-btn-ghost rounded-circle me-2 flex-shrink-0 d-flex align-items-center justify-content-center p-0"
+          style={{ width: 38, height: 38 }}
           onClick={() => navigate('/messages')}
           aria-label="Back to messages"
         >
@@ -322,20 +322,20 @@ export default function ChatPage() {
         />
         <div>
           <div className="d-flex align-items-center gap-2">
-            <span className="fw-bold">{activeConversation.name}</span>
+            <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>{activeConversation.name}</span>
             <span
               className="d-inline-block"
               style={{
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
-                backgroundColor: activeConversation.online ? 'green' : 'gray',
+                backgroundColor: activeConversation.online ? '#22c55e' : '#94a3b8',
               }}
               aria-label={activeConversation.online ? 'Online' : 'Offline'}
             />
           </div>
           {otherUserTyping ? (
-            <small className="text-success">Typing...</small>
+            <small className="text-success fw-semibold">Typing...</small>
           ) : (
             <small
               className={
@@ -348,7 +348,7 @@ export default function ChatPage() {
         </div>
       </div>
 
-      <div className="flex-grow-1 overflow-auto p-3 bg-light">
+      <div className="flex-grow-1 overflow-auto p-3 p-md-4" style={{ background: 'var(--neu-bg)' }}>
         {activeMessages.length === 0 ? (
           <div className="h-100 d-flex align-items-center justify-content-center text-muted">
             No messages yet. Start the conversation!
@@ -380,22 +380,29 @@ export default function ChatPage() {
                 >
                   <div
                     className={`px-3 py-2 rounded-4 ${
-                      isSent
-                        ? 'bg-primary text-white'
-                        : 'bg-light text-dark border'
+                      isSent ? 'text-white' : 'neu-card-inset'
                     }`}
+                    style={
+                      isSent
+                        ? {
+                            background: 'linear-gradient(135deg, var(--neu-primary) 0%, var(--neu-primary-dark) 100%)',
+                            boxShadow: '2px 2px 6px rgba(8, 75, 181, 0.35)',
+                          }
+                        : {
+                            color: 'var(--neu-text)',
+                          }
+                    }
                   >
                     <div className="text-break">{message.content}</div>
                   </div>
                   <div className="d-flex align-items-center gap-1 mt-1">
-                    <small className="text-muted">
+                    <small className="text-muted" style={{ fontSize: '0.72rem' }}>
                       {formatTime(message.timestamp)}
                     </small>
                     {isSent && (
                       <span
-                        className={`small ${
-                          isRead ? 'text-primary' : 'text-secondary'
-                        }`}
+                        className="small fw-bold"
+                        style={{ color: isRead ? '#063a8f' : 'var(--neu-text-muted)', fontSize: '0.72rem' }}
                         aria-label={isRead ? 'Read' : 'Sent'}
                       >
                         {isRead ? '✓✓' : '✓'}
@@ -410,20 +417,20 @@ export default function ChatPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-3 border-top bg-white">
-        <Form onSubmit={handleSendMessage} className="d-flex gap-2">
+      <div className="p-3 border-top" style={{ background: 'var(--neu-bg-dark)', borderColor: 'rgba(154, 172, 196, 0.35)' }}>
+        <Form onSubmit={handleSendMessage} className="d-flex gap-2 align-items-center">
           <Form.Control
             type="text"
             placeholder="Type a message..."
             value={textInput}
             onChange={handleTextInputChange}
-            className="rounded-pill"
+            className="neu-input rounded-pill flex-grow-1"
             aria-label="Message"
           />
           <Button
             type="submit"
-            variant="primary"
-            className="rounded-circle p-2 flex-shrink-0"
+            className="neu-btn-primary rounded-circle p-2 flex-shrink-0 d-flex align-items-center justify-content-center"
+            style={{ width: 42, height: 42 }}
             disabled={!textInput.trim()}
             aria-label="Send message"
           >

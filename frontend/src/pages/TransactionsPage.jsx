@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
-import { Container, Alert, Spinner, Button, Modal, Form } from 'react-bootstrap';
+import { useState, useEffect, useCallback } from 'react';
+import { Container, Spinner, Alert, Button, Modal, Form } from 'react-bootstrap';
 import TransactionTable from '../components/TransactionTable';
 import api from '../api/axios';
+import { socket } from '../socket';
+import { getCurrentUserId } from '../utils/user';
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState([]);
@@ -14,7 +16,7 @@ export default function TransactionsPage() {
     }
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
 
   // QR Scanner Modal State for Providers
@@ -24,9 +26,11 @@ export default function TransactionsPage() {
   const [qrModalError, setQrModalError] = useState('');
   const [qrModalSuccess, setQrModalSuccess] = useState('');
 
-  const fetchProfileAndTransactions = async () => {
+  const currentUserId = currentUser?.user_id || getCurrentUserId();
+
+  const fetchProfileAndTransactions = useCallback(async () => {
     setIsLoading(true);
-    setError('');
+    setError(null);
     try {
       const [txRes, profileRes] = await Promise.all([
         api.get('/transactions').catch(() => ({ data: { transactions: [] } })),
@@ -40,15 +44,54 @@ export default function TransactionsPage() {
       }
     } catch (err) {
       console.warn('Failed to load transactions:', err);
-      setError('Unable to load transactions from server. Please try refreshing.');
+      if (transactions.length === 0) {
+        setError('Unable to load latest transactions from server. Please try refreshing.');
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentUser, transactions.length]);
 
   useEffect(() => {
     fetchProfileAndTransactions();
-  }, []);
+  }, [fetchProfileAndTransactions]);
+
+  // Real-time WebSocket listeners for instant booking lifecycle updates
+  useEffect(() => {
+    if (!socket.connected) {
+      socket.connect();
+    }
+    if (currentUserId) {
+      socket.emit('register', currentUserId);
+    }
+
+    const handleTransactionChange = () => {
+      fetchProfileAndTransactions();
+    };
+
+    socket.on('transaction_created', handleTransactionChange);
+    socket.on('transaction_updated', handleTransactionChange);
+
+    return () => {
+      socket.off('transaction_created', handleTransactionChange);
+      socket.off('transaction_updated', handleTransactionChange);
+    };
+  }, [currentUserId, fetchProfileAndTransactions]);
+
+  const handleStatusUpdate = async (transactionId, newStatus) => {
+    try {
+      await api.patch(`/transactions/${transactionId}/status`, { status: newStatus });
+      // Optimistic local update
+      setTransactions((prev) =>
+        prev.map((t) =>
+          t.transaction_id === transactionId ? { ...t, service_status: newStatus } : t
+        )
+      );
+    } catch (err) {
+      console.error(`Failed to update status to ${newStatus}:`, err);
+      alert(err.response?.data?.error || `Failed to update status to ${newStatus}.`);
+    }
+  };
 
   const handleVerifyQr = async (codeToVerify) => {
     const code = (codeToVerify || qrInput).trim();
@@ -124,22 +167,23 @@ export default function TransactionsPage() {
       )}
 
       {error && (
-        <Alert variant="danger" dismissible onClose={() => setError('')} className="neu-alert mb-4">
+        <Alert variant="warning" dismissible onClose={() => setError(null)} className="neu-alert mb-4">
           {error}
         </Alert>
       )}
 
       <div className="neu-card">
-        {isLoading ? (
-          <div className="text-center py-5 text-muted">
-            <Spinner animation="border" size="sm" className="me-2" />
-            Loading transaction records...
+        {isLoading && transactions.length === 0 ? (
+          <div className="text-center py-5">
+            <Spinner animation="border" variant="primary" />
+            <p className="mt-2 text-muted">Loading live transactions...</p>
           </div>
         ) : (
           <TransactionTable
             transactions={transactions}
-            currentUserId={currentUser?.user_id}
+            currentUserId={currentUserId}
             onRefresh={fetchProfileAndTransactions}
+            onStatusUpdate={handleStatusUpdate}
           />
         )}
       </div>
@@ -197,20 +241,17 @@ export default function TransactionsPage() {
                       className="d-flex justify-content-between align-items-center p-2 rounded-2"
                       style={{ background: 'var(--neu-bg-dark)', border: '1px solid rgba(154, 172, 196, 0.3)' }}
                     >
-                      <div>
-                        <strong className="small" style={{ color: 'var(--neu-text)' }}>Booking #{b.transaction_id}</strong>
-                        <span className="text-muted small ms-2">({b.service_name || 'Service'})</span>
-                        <div className="font-monospace text-muted" style={{ fontSize: '0.72rem' }}>
-                          {b.qr_code}
-                        </div>
+                      <div className="overflow-hidden me-2">
+                        <span className="badge bg-secondary me-2">TX-{b.transaction_id}</span>
+                        <code className="small text-truncate d-inline-block" style={{ maxWidth: '300px' }}>{b.qr_code}</code>
                       </div>
                       <Button
                         size="sm"
-                        className="neu-btn-primary px-3 py-1"
-                        disabled={isVerifyingQr}
+                        className="neu-btn-primary btn-sm flex-shrink-0"
                         onClick={() => handleVerifyQr(b.qr_code)}
+                        disabled={isVerifyingQr}
                       >
-                        Verify This Booking
+                        Verify &amp; Complete
                       </Button>
                     </div>
                   ))}
@@ -218,12 +259,12 @@ export default function TransactionsPage() {
               </div>
             )}
 
-            <div className="d-flex justify-content-end gap-2">
-              <Button className="neu-btn-ghost" onClick={() => setShowScannerModal(false)} disabled={isVerifyingQr}>
-                Close
+            <div className="d-flex justify-content-end gap-2 pt-2 border-top">
+              <Button variant="secondary" className="neu-btn-ghost btn-sm" onClick={() => setShowScannerModal(false)}>
+                Cancel
               </Button>
-              <Button type="submit" className="neu-btn-primary px-4 fw-semibold" disabled={isVerifyingQr || !qrInput.trim()}>
-                {isVerifyingQr ? 'Verifying...' : 'Verify &amp; Complete'}
+              <Button type="submit" className="neu-btn-primary btn-sm" disabled={isVerifyingQr || !qrInput.trim()}>
+                {isVerifyingQr ? 'Verifying...' : 'Verify Code'}
               </Button>
             </div>
           </Form>

@@ -313,7 +313,8 @@ export default function ServicesGrid({
           </Button>
         </div>
       ) : (
-        <Row xs={1} md={2} lg={3} className="g-4">
+        <div className="neu-scroll-list" style={{ maxHeight: '780px', overflowY: 'auto', paddingRight: '8px' }}>
+          <Row xs={1} md={2} lg={3} className="g-4">
           {filteredServices.map((service) => {
             const amount = Number(service.amount_topay) || 0;
             const bookingFee = 5.0;
@@ -477,6 +478,7 @@ export default function ServicesGrid({
             );
           })}
         </Row>
+      </div>
       )}
 
       {/* Details & Proof Modal */}
