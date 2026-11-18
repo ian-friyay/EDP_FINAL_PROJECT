@@ -18,6 +18,12 @@ services:
         generateValue: true
       - key: CLIENT_ORIGIN
         value: https://serbisyou-frontend.onrender.com
+      - key: BREVO_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_FROM_NAME
+        value: SerbisYou MinSU
 
   - type: web
     name: serbisyou-frontend
