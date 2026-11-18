@@ -13,6 +13,17 @@ export default function AdminSettings() {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
 
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
   // Share administrator access states
   const [shareEmail, setShareEmail] = useState('');
   const [shareLoading, setShareLoading] = useState(false);
@@ -65,6 +76,42 @@ export default function AdminSettings() {
       setSuccess('Administrator profile updated.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    if (newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters long.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New password and confirm password do not match.');
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      const res = await api.patch('/profile/password', {
+        currentPassword,
+        newPassword,
+      });
+      setPasswordSuccess(res.data?.message || 'Administrator password updated successfully.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setPasswordSuccess(''), 6000);
+    } catch (err) {
+      setPasswordError(
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        'Failed to change password. Please verify your current password.'
+      );
+    } finally {
+      setPasswordSaving(false);
     }
   };
 
@@ -188,6 +235,118 @@ export default function AdminSettings() {
                     disabled={saving}
                   >
                     {saving ? 'Saving changes...' : 'Save Changes'}
+                  </Button>
+                </Col>
+              </Row>
+            </Form>
+          </div>
+
+          {/* Change Administrator Password Card */}
+          <div className="neu-card p-4 rounded-4 mt-4">
+            <div className="d-flex align-items-center justify-content-between mb-3">
+              <div>
+                <h5 className="fw-bold mb-1" style={{ color: 'var(--neu-primary-dark)' }}>
+                  Change Administrator Password
+                </h5>
+                <p className="text-muted small mb-0">
+                  Update your administrator login password. Minimum 8 characters required.
+                </p>
+              </div>
+              <span className="badge bg-secondary-subtle text-secondary px-3 py-2 rounded-pill font-monospace small">
+                Admin Security
+              </span>
+            </div>
+
+            {passwordSuccess && <Alert variant="success" className="rounded-3 py-2">{passwordSuccess}</Alert>}
+            {passwordError && <Alert variant="danger" className="rounded-3 py-2">{passwordError}</Alert>}
+
+            <Form onSubmit={handlePasswordChange}>
+              <Row className="g-3">
+                <Col md={12}>
+                  <Form.Group>
+                    <Form.Label className="fw-semibold small">Current Password</Form.Label>
+                    <div className="position-relative">
+                      <Form.Control
+                        type={showCurrent ? 'text' : 'password'}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        required
+                        placeholder="Enter your current password"
+                        className="rounded-pill px-3 pe-5"
+                        style={{ background: 'var(--neu-bg-light)', border: 'none', boxShadow: 'var(--neu-shadow-inset)' }}
+                      />
+                      <Button
+                        variant="link"
+                        type="button"
+                        className="position-absolute end-0 top-50 translate-middle-y text-muted text-decoration-none small pe-3"
+                        onClick={() => setShowCurrent(!showCurrent)}
+                        tabIndex={-1}
+                      >
+                        {showCurrent ? 'Hide' : 'Show'}
+                      </Button>
+                    </div>
+                  </Form.Group>
+                </Col>
+
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-semibold small">New Password</Form.Label>
+                    <div className="position-relative">
+                      <Form.Control
+                        type={showNew ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                        placeholder="Min. 8 characters"
+                        className="rounded-pill px-3 pe-5"
+                        style={{ background: 'var(--neu-bg-light)', border: 'none', boxShadow: 'var(--neu-shadow-inset)' }}
+                      />
+                      <Button
+                        variant="link"
+                        type="button"
+                        className="position-absolute end-0 top-50 translate-middle-y text-muted text-decoration-none small pe-3"
+                        onClick={() => setShowNew(!showNew)}
+                        tabIndex={-1}
+                      >
+                        {showNew ? 'Hide' : 'Show'}
+                      </Button>
+                    </div>
+                  </Form.Group>
+                </Col>
+
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-semibold small">Confirm New Password</Form.Label>
+                    <div className="position-relative">
+                      <Form.Control
+                        type={showConfirm ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        placeholder="Re-enter new password"
+                        className="rounded-pill px-3 pe-5"
+                        style={{ background: 'var(--neu-bg-light)', border: 'none', boxShadow: 'var(--neu-shadow-inset)' }}
+                      />
+                      <Button
+                        variant="link"
+                        type="button"
+                        className="position-absolute end-0 top-50 translate-middle-y text-muted text-decoration-none small pe-3"
+                        onClick={() => setShowConfirm(!showConfirm)}
+                        tabIndex={-1}
+                      >
+                        {showConfirm ? 'Hide' : 'Show'}
+                      </Button>
+                    </div>
+                  </Form.Group>
+                </Col>
+
+                <Col md={12} className="pt-2">
+                  <Button
+                    type="submit"
+                    className="neu-btn-primary rounded-pill px-4 fw-bold"
+                    disabled={passwordSaving}
+                  >
+                    {passwordSaving ? 'Updating Password...' : 'Update Password'}
                   </Button>
                 </Col>
               </Row>

@@ -27,7 +27,7 @@ const requireAuth = async (req, res, next) => {
     if (
         typeof payload !== 'object' ||
         typeof payload.user_id !== 'string' ||
-        !/^MMC-\d{4}$/.test(payload.user_id)
+        !/^(MMC|MCC|MBC)-\d{4,10}$/i.test(payload.user_id)
     ) {
         return res.status(401).json({ error: 'Invalid authentication token.' });
     }

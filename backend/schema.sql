@@ -1,17 +1,28 @@
 -- SerbisYou Database Schema (Universal Supabase / PostgreSQL)
 -- Reflecting all Student, Provider, and Administrator credentials, transactions, and admin governance
+-- Supported MinSU Campuses: MMC (Main Campus), MCC (Calapan Campus), MBC (Bongabong Campus)
+
+-- Migration to expand user_id column length across related tables:
+-- ALTER TABLE public.users ALTER COLUMN user_id TYPE text;
+-- ALTER TABLE public.services ALTER COLUMN user_id TYPE text;
+-- ALTER TABLE public.transactions ALTER COLUMN provider_id TYPE text;
+-- ALTER TABLE public.transactions ALTER COLUMN requestor_id TYPE text;
+-- ALTER TABLE public.messages ALTER COLUMN sender_id TYPE text;
+-- ALTER TABLE public.messages ALTER COLUMN receiver_id TYPE text;
+-- ALTER TABLE public.email_verifications ALTER COLUMN user_id TYPE text;
+-- ALTER TABLE public.profile_unlock_requests ALTER COLUMN user_id TYPE text;
 
 CREATE SEQUENCE IF NOT EXISTS public.users_user_id_seq
     AS integer
     MINVALUE 1
-    MAXVALUE 9999
+    MAXVALUE 999999999
     START WITH 1
     NO CYCLE;
 
 CREATE TABLE IF NOT EXISTS public.users (
     user_id text PRIMARY KEY DEFAULT (
-        'MMC-' || lpad(nextval('public.users_user_id_seq')::text, 4, '0')
-    ) CHECK (user_id ~ '^MMC-[0-9]{4}$'),
+        'MMC-' || lpad(nextval('public.users_user_id_seq')::text, 9, '0')
+    ) CHECK (user_id ~* '^(MMC|MCC|MBC)-[0-9]+$'),
     first_name text,
     last_name text,
     username text,

@@ -298,7 +298,7 @@ export default function ProfilePage() {
                 <h5 className="fw-bold mb-0" style={{ color: 'var(--neu-text)' }}>
                   {p.first_name ? `${p.first_name} ${p.last_name || ''}`.trim() : 'User Profile'}
                 </h5>
-                <small className="text-muted font-monospace">{p.user_id || 'MMC-XXXX'}</small>
+                <small className="text-muted font-monospace">{p.user_id || 'MinSU ID'}</small>
               </div>
             </div>
             <div className="d-flex gap-2 align-items-center">

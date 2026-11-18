@@ -161,6 +161,9 @@ const updateService = async (req, res) => {
     if (rate_unit && ['per_hour', 'per_day', 'per_service'].includes(rate_unit)) {
         updates.rate_unit = rate_unit;
     }
+    if (service_status && ['active', 'inactive'].includes(service_status)) {
+        updates.service_status = service_status;
+    }
     if (service_category && typeof service_category === 'string') updates.service_category = service_category.trim();
     if (subcategory !== undefined) updates.subcategory = subcategory ? String(subcategory).trim() : null;
     if (service_description && typeof service_description === 'string') updates.service_description = service_description.trim();
@@ -230,9 +233,84 @@ const softDeleteService = async (req, res) => {
     return res.status(200).json({ message: 'Service deleted successfully.', service: data });
 };
 
+const getMyServices = async (req, res) => {
+    const userId = req.user && req.user.user_id;
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized.' });
+    }
+
+    const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_deleted', false);
+
+    if (error) {
+        console.error('Failed to fetch user services:', error);
+        return res.status(500).json({ error: 'Failed to fetch your services.' });
+    }
+
+    const enriched = (data || []).map((service) => {
+        let rateUnit = service.rate_unit;
+        if (!rateUnit && service.service_description) {
+            const match = service.service_description.match(/\[Rate:\s*(per_hour|per_day|per_service)\]/i);
+            if (match) {
+                rateUnit = match[1].toLowerCase();
+            }
+        }
+        return {
+            ...service,
+            rate_unit: rateUnit || 'per_service',
+            service_description: service.service_description ? service.service_description.replace(/\[Rate:\s*(per_hour|per_day|per_service)\]\s*/i, '').trim() : '',
+        };
+    });
+
+    return res.status(200).json({ services: enriched });
+};
+
+const toggleServiceStatus = async (req, res) => {
+    const { serviceId } = req.params;
+    if (!isValidServiceId(serviceId)) {
+        return res.status(400).json({ error: 'A valid service ID is required.' });
+    }
+
+    const { status, service_status } = req.body || {};
+    const targetStatus = service_status || status;
+    if (!['active', 'inactive'].includes(targetStatus)) {
+        return res.status(400).json({ error: "Invalid status. Must be 'active' or 'inactive'." });
+    }
+
+    const { data, error } = await supabase
+        .from('services')
+        .update({ service_status: targetStatus })
+        .eq('service_id', serviceId)
+        .eq('user_id', req.user.user_id)
+        .eq('is_deleted', false)
+        .select('*')
+        .maybeSingle();
+
+    if (error) {
+        console.error('Failed to update service status:', error);
+        return res.status(500).json({ error: 'Failed to update service status.' });
+    }
+
+    if (!data) {
+        return res.status(404).json({ error: 'Service not found or unauthorized.' });
+    }
+
+    return res.status(200).json({
+        message: targetStatus === 'active'
+            ? 'Service is now Available in the public marketplace.'
+            : 'Service is now marked as Taken / Done and hidden from public marketplace.',
+        service: data
+    });
+};
+
 module.exports = {
     getActiveServices,
+    getMyServices,
     createService,
     updateService,
+    toggleServiceStatus,
     softDeleteService
 };

@@ -78,10 +78,12 @@ export default function ServicesGrid({
   onEditService,
   onBookService,
   bookingServiceId,
+  onToggleStatus,
 }) {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [viewScope, setViewScope] = useState('ALL'); // 'ALL' | 'MINE' | 'OTHERS'
   const [activeModalService, setActiveModalService] = useState(null);
   const [bookingSuccessAlert, setBookingSuccessAlert] = useState(null);
 
@@ -118,11 +120,45 @@ export default function ServicesGrid({
     return Array.from(set);
   }, [services]);
 
-  // Filter services by search term, category, and soft-delete status (is_deleted === false)
+  // Counts for role-aware filtering
+  const myServicesCount = useMemo(() => {
+    if (!currentUserId) return 0;
+    return services.filter(
+      (s) => !s.is_deleted && String(s.user_id).toLowerCase() === String(currentUserId).toLowerCase()
+    ).length;
+  }, [services, currentUserId]);
+
+  const othersServicesCount = useMemo(() => {
+    if (!currentUserId) return services.filter((s) => !s.is_deleted && s.service_status !== 'inactive').length;
+    return services.filter(
+      (s) =>
+        !s.is_deleted &&
+        s.service_status !== 'inactive' &&
+        String(s.user_id).toLowerCase() !== String(currentUserId).toLowerCase()
+    ).length;
+  }, [services, currentUserId]);
+
+  // Filter services by search term, category, view scope, and soft-delete status
   const filteredServices = useMemo(() => {
     return services.filter((item) => {
       // Exclude soft-deleted items
       if (item.is_deleted) return false;
+
+      const isOwner = Boolean(
+        currentUserId && String(item.user_id).toLowerCase() === String(currentUserId).toLowerCase()
+      );
+
+      // View Scope filtering:
+      if (viewScope === 'MINE') {
+        if (!isOwner) return false;
+      } else if (viewScope === 'OTHERS') {
+        if (isOwner) return false;
+        // Other users' services must be active (done/taken services are hidden from public)
+        if (item.service_status === 'inactive') return false;
+      } else {
+        // 'ALL': if not owner, only show active services (done/taken services are hidden from other accounts)
+        if (!isOwner && item.service_status === 'inactive') return false;
+      }
 
       // Category filter
       const matchesCategory =
@@ -140,7 +176,7 @@ export default function ServicesGrid({
 
       return matchesCategory && matchesSearch;
     });
-  }, [services, searchTerm, selectedCategory]);
+  }, [services, searchTerm, selectedCategory, viewScope, currentUserId]);
 
   const handleClearFilters = () => {
     setSearchTerm('');
@@ -213,6 +249,62 @@ export default function ServicesGrid({
 
       {/* Header and Filter Bar */}
       <div className="neu-filter-bar p-3 p-md-4 mb-4">
+        {/* View Mode Pill Switcher */}
+        <div className="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom flex-wrap gap-2">
+          <div className="d-flex align-items-center gap-2 flex-wrap">
+            <span className="small fw-bold text-muted text-uppercase me-1" style={{ letterSpacing: '0.05em' }}>
+              Marketplace View:
+            </span>
+            <Button
+              size="sm"
+              className={`rounded-pill px-3 py-1.5 fw-semibold ${
+                viewScope === 'ALL' ? 'neu-btn-primary' : 'neu-btn-ghost'
+              }`}
+              onClick={() => setViewScope('ALL')}
+            >
+              🌐 All Campus Services ({services.length})
+            </Button>
+            <Button
+              size="sm"
+              className={`rounded-pill px-3 py-1.5 fw-semibold ${
+                viewScope === 'OTHERS' ? 'neu-btn-primary' : 'neu-btn-ghost'
+              }`}
+              onClick={() => setViewScope('OTHERS')}
+            >
+              👥 Offered by Others ({othersServicesCount})
+            </Button>
+            <Button
+              size="sm"
+              className={`rounded-pill px-3 py-1.5 fw-semibold ${
+                viewScope === 'MINE' ? 'neu-btn-primary' : 'neu-btn-ghost'
+              }`}
+              onClick={() => setViewScope('MINE')}
+            >
+              🏷️ My Offered Services ({myServicesCount})
+            </Button>
+          </div>
+
+          <div>
+            {viewScope === 'MINE' ? (
+              <Button
+                size="sm"
+                className="neu-btn-outline rounded-pill px-3 py-1.5 fw-semibold text-nowrap"
+                onClick={() => setViewScope('OTHERS')}
+              >
+                🔍 Explore Others' Services ({othersServicesCount})
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                className="neu-btn-outline rounded-pill px-3 py-1.5 fw-semibold text-nowrap"
+                onClick={() => setViewScope('MINE')}
+              >
+                🏷️ View My Offered Services ({myServicesCount})
+              </Button>
+            )}
+          </div>
+        </div>
+
         <Row className="g-3 align-items-center">
           {/* Search Bar */}
           <Col lg={7}>
@@ -320,7 +412,9 @@ export default function ServicesGrid({
             const amount = Number(service.amount_topay) || 0;
             const bookingFee = 5.0;
             const totalToPay = amount + bookingFee;
-            const isOwner = Boolean(currentUserId && service.user_id === currentUserId);
+            const isOwner = Boolean(
+              currentUserId && String(service.user_id).toLowerCase() === String(currentUserId).toLowerCase()
+            );
             const hasCustomImage =
               Array.isArray(service.picture_proof) &&
               service.picture_proof.length > 0 &&
@@ -350,10 +444,15 @@ export default function ServicesGrid({
                       </Badge>
                       <Badge
                         bg={service.service_status === 'active' ? 'success' : 'secondary'}
-                        className="shadow-sm text-capitalize"
+                        className="shadow-sm"
                       >
-                        {service.service_status || 'active'}
+                        {service.service_status === 'active' ? '● Available' : '○ Taken / Done'}
                       </Badge>
+                      {isOwner && (
+                        <Badge bg="info" className="shadow-sm text-white">
+                          Your Listing
+                        </Badge>
+                      )}
                       <Badge bg="dark" className="shadow-sm text-capitalize bg-opacity-75">
                         {service.rate_unit === 'per_hour' ? 'Per Hour' : service.rate_unit === 'per_day' ? 'Per Day' : 'Per Service'}
                       </Badge>
@@ -421,23 +520,51 @@ export default function ServicesGrid({
 
                     {/* Card Actions */}
                     {isOwner ? (
-                      <div className="d-flex gap-2">
+                      <div className="d-flex flex-column gap-2">
+                        {/* Status Situation Toggle Button */}
                         <Button
-                          className="neu-btn-outline w-50 fw-semibold"
+                          variant={service.service_status === 'active' ? 'outline-secondary' : 'success'}
+                          className="w-100 fw-semibold rounded-pill py-1.5"
                           size="sm"
-                          onClick={() => onEditService && onEditService(service)}
+                          onClick={() =>
+                            onToggleStatus &&
+                            onToggleStatus(
+                              service.service_id,
+                              service.service_status === 'active' ? 'inactive' : 'active'
+                            )
+                          }
                         >
-                          Edit
+                          {service.service_status === 'active'
+                            ? 'Mark as Taken / Done'
+                            : '✓ Re-open / Mark Available'}
                         </Button>
-                        <Button
-                          variant="outline-danger"
-                          className="w-50 fw-semibold rounded-pill"
-                          size="sm"
-                          disabled={deletingServiceId === service.service_id}
-                          onClick={() => onDeleteService && onDeleteService(service)}
-                        >
-                          {deletingServiceId === service.service_id ? 'Deleting...' : 'Delete'}
-                        </Button>
+
+                        <div className="d-flex gap-2">
+                          <Button
+                            className="neu-btn-ghost w-50 fw-semibold"
+                            size="sm"
+                            onClick={() => setActiveModalService(service)}
+                          >
+                            Details
+                          </Button>
+                          <Button
+                            className="neu-btn-outline w-50 fw-semibold"
+                            size="sm"
+                            onClick={() => onEditService && onEditService(service)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline-danger"
+                            className="fw-semibold rounded-pill px-3"
+                            size="sm"
+                            disabled={deletingServiceId === service.service_id}
+                            onClick={() => onDeleteService && onDeleteService(service)}
+                            title="Delete offer"
+                          >
+                            {deletingServiceId === service.service_id ? '...' : '×'}
+                          </Button>
+                        </div>
                       </div>
                     ) : (
                       <div className="d-flex flex-column gap-2">
@@ -497,216 +624,305 @@ export default function ServicesGrid({
           centered
           scrollable
         >
-          <Modal.Header closeButton className="border-bottom px-4 py-3" style={{ background: 'var(--neu-bg-dark)' }}>
-            <Modal.Title className="fw-bold fs-5" style={{ color: 'var(--neu-text)' }}>
-              {activeModalService.subcategory}
-            </Modal.Title>
-          </Modal.Header>
+          {(() => {
+            const isOwner = Boolean(
+              currentUserId &&
+              String(activeModalService.user_id).toLowerCase() === String(currentUserId).toLowerCase()
+            );
 
-          <Modal.Body className="p-4" style={{ background: 'var(--neu-bg)', maxHeight: 'calc(85vh - 130px)', overflowY: 'auto' }}>
-            {/* Picture Proof Gallery */}
-            <div className="mb-4">
-              <h6 className="fw-bold text-uppercase text-muted small mb-2">
-                Service Proof Gallery (<code>picture_proof</code>)
-              </h6>
-              {Array.isArray(activeModalService.picture_proof) &&
-              activeModalService.picture_proof.filter(Boolean).length > 0 ? (
-                <Row className="g-2">
-                  {activeModalService.picture_proof.filter(Boolean).map((imgUrl, idx) => (
-                    <Col key={idx} xs={6} md={6}>
-                      <img
-                        src={imgUrl}
-                        alt={`Proof ${idx + 1}`}
-                        className="img-fluid rounded-3 border"
-                        style={{ height: '180px', width: '100%', objectFit: 'cover' }}
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = DEFAULT_SERVICE_PLACEHOLDER;
-                        }}
-                      />
-                    </Col>
-                  ))}
-                </Row>
-              ) : (
-                <div className="rounded-3 overflow-hidden border">
-                  <img
-                    src={DEFAULT_SERVICE_PLACEHOLDER}
-                    alt="No picture provided"
-                    className="w-100"
-                    style={{ height: '200px', objectFit: 'cover' }}
-                  />
-                </div>
-              )}
-            </div>
+            return (
+              <>
+                <Modal.Header closeButton className="border-bottom px-4 py-3" style={{ background: 'var(--neu-bg-dark)' }}>
+                  <Modal.Title className="fw-bold fs-5" style={{ color: 'var(--neu-text)' }}>
+                    {activeModalService.subcategory || activeModalService.service_category}
+                  </Modal.Title>
+                </Modal.Header>
 
-            {/* Provider Details Card */}
-            <div className="border rounded-4 p-3 p-md-4 mb-4" style={{ background: 'var(--neu-bg-dark)' }}>
-              <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
-                <div className="d-flex align-items-center gap-3">
-                  <div
-                    className="neu-avatar d-flex align-items-center justify-content-center fw-bold fs-4 flex-shrink-0"
-                    style={{ width: 52, height: 52 }}
-                  >
-                    {activeModalService.provider_name
-                      ? activeModalService.provider_name
-                          .split(' ')
-                          .filter(Boolean)
-                          .slice(0, 2)
-                          .map((p) => p[0])
-                          .join('')
-                          .toUpperCase()
-                      : 'PR'}
-                  </div>
-                  <div>
-                    <h5 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>
-                      {activeModalService.provider_name}
-                    </h5>
-                    <div className="d-flex align-items-center gap-2 flex-wrap small">
-                      <span className="text-muted font-monospace">
-                        ID: <strong style={{ color: 'var(--neu-primary)' }}>{activeModalService.user_id}</strong>
-                      </span>
-                      <span className="text-muted">•</span>
-                      <Badge bg="primary">{activeModalService.service_category}</Badge>
-                      <span className="text-muted">•</span>
-                      <span className="text-muted d-flex align-items-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
-                          <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6"/>
-                        </svg>
-                        {activeModalService.provider_location}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <Button
-                  className="neu-btn-outline rounded-pill px-3 py-2 d-flex align-items-center gap-2 fw-semibold"
-                  onClick={() => {
-                    const targetService = activeModalService;
-                    setActiveModalService(null);
-                    navigate(`/messages/${targetService.user_id}`, {
-                      state: {
-                        name: targetService.provider_name,
-                        provider_name: targetService.provider_name,
-                        user_id: targetService.user_id,
-                      },
-                    });
-                  }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
-                  </svg>
-                  Chat with Provider
-                </Button>
-              </div>
-            </div>
-
-            {/* Full Service Description */}
-            <div className="mb-4">
-              <h6 className="fw-bold text-uppercase text-muted small mb-2">
-                Service Scope &amp; Description
-              </h6>
-              <p className="text-secondary small mb-0">
-                {activeModalService.service_description}
-              </p>
-            </div>
-
-            {/* Financial & Commission Terms */}
-            <div className="border rounded-3 p-3" style={{ background: 'var(--neu-bg-dark)' }}>
-              <h6 className="fw-bold text-uppercase text-muted small mb-2">
-                Transaction Calculation Breakdown
-              </h6>
-              <div className="d-flex justify-content-between small text-muted mb-1">
-                <span>Base Service Rate (<code>amount_topay</code>):</span>
-                <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>₱{(Number(activeModalService.amount_topay) || 0).toFixed(2)}</span>
-              </div>
-              <div className="d-flex justify-content-between small text-muted mb-1">
-                <span>Platform Booking Fee (<code>booking_fee</code>):</span>
-                <span style={{ color: 'var(--neu-text)' }}>₱5.00 Flat</span>
-              </div>
-              <div className="d-flex justify-content-between small text-muted mb-1">
-                <span>Provider Commission (5% of rate):</span>
-                <span className="text-success">₱{((Number(activeModalService.amount_topay) || 0) * 0.05).toFixed(2)}</span>
-              </div>
-              <hr className="my-2" />
-              <div className="d-flex justify-content-between align-items-center">
-                <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>Total Requestor to Pay (<code>total_topay</code>):</span>
-                <strong className="fs-5" style={{ color: '#063a8f' }}>
-                  ₱{((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)}
-                </strong>
-              </div>
-            </div>
-
-            {/* Customer Ratings & Reviews */}
-            <div className="mt-4">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <h6 className="fw-bold text-uppercase text-muted small mb-0">
-                  Customer Ratings &amp; Reviews ({serviceReviews.length})
-                </h6>
-                <div className="d-flex align-items-center gap-1 fw-bold small" style={{ color: '#f59e0b' }}>
-                  <span>★</span>
-                  <span>{avgRating} / 5.0</span>
-                </div>
-              </div>
-
-              {serviceReviews.length > 0 ? (
-                <div className="d-flex flex-column gap-2">
-                  {serviceReviews.slice(0, 3).map((r, i) => (
-                    <div key={r.review_id || i} className="p-2.5 px-3 rounded-3 border" style={{ background: 'var(--neu-bg-dark)' }}>
-                      <div className="d-flex justify-content-between align-items-center mb-1">
-                        <span className="small fw-semibold" style={{ color: 'var(--neu-text)' }}>
-                          {r.reviewer_name || r.reviewer_id}
-                        </span>
-                        <span style={{ color: '#f59e0b', fontSize: '0.85rem' }}>
-                          {'★'.repeat(Math.round(r.rating || 5))}
-                        </span>
+                <Modal.Body className="p-4" style={{ background: 'var(--neu-bg)', maxHeight: 'calc(85vh - 130px)', overflowY: 'auto' }}>
+                  {/* Picture Proof Gallery */}
+                  <div className="mb-4">
+                    <h6 className="fw-bold text-uppercase text-muted small mb-2">
+                      Service Proof &amp; Gallery
+                    </h6>
+                    {Array.isArray(activeModalService.picture_proof) &&
+                    activeModalService.picture_proof.filter(Boolean).length > 0 ? (
+                      <Row className="g-2">
+                        {activeModalService.picture_proof.filter(Boolean).map((imgUrl, idx) => (
+                          <Col key={idx} xs={6} md={6}>
+                            <img
+                              src={imgUrl}
+                              alt={`Proof ${idx + 1}`}
+                              className="img-fluid rounded-3 border"
+                              style={{ height: '180px', width: '100%', objectFit: 'cover' }}
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = DEFAULT_SERVICE_PLACEHOLDER;
+                              }}
+                            />
+                          </Col>
+                        ))}
+                      </Row>
+                    ) : (
+                      <div className="rounded-3 overflow-hidden border">
+                        <img
+                          src={DEFAULT_SERVICE_PLACEHOLDER}
+                          alt="No picture provided"
+                          className="w-100"
+                          style={{ height: '200px', objectFit: 'cover' }}
+                        />
                       </div>
-                      <p className="small text-muted mb-0">{r.comment || 'Verified transaction completed.'}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-3 text-center text-muted small rounded-3 border" style={{ background: 'var(--neu-bg-dark)' }}>
-                  No customer reviews yet. Be the first to book and rate this service!
-                </div>
-              )}
-            </div>
-          </Modal.Body>
+                    )}
+                  </div>
 
-          <Modal.Footer className="border-top px-4 py-3 d-flex justify-content-between flex-wrap gap-2" style={{ background: 'var(--neu-bg-dark)' }}>
-            <Button
-              className="neu-btn-outline rounded-pill px-3 py-2 d-flex align-items-center gap-2 fw-semibold"
-              onClick={() => {
-                const targetService = activeModalService;
-                setActiveModalService(null);
-                navigate(`/messages/${targetService.user_id}`, {
-                  state: {
-                    name: targetService.provider_name,
-                    provider_name: targetService.provider_name,
-                    user_id: targetService.user_id,
-                  },
-                });
-              }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
-              </svg>
-              Chat with Provider
-            </Button>
-            <div className="d-flex gap-2">
-              <Button className="neu-btn-ghost" onClick={() => setActiveModalService(null)}>
-                Close
-              </Button>
-              <Button
-                className="neu-btn-primary px-4 fw-semibold"
-                disabled={bookingServiceId === activeModalService.service_id}
-                onClick={() => handleOpenBookingModal(activeModalService)}
-              >
-                {bookingServiceId === activeModalService.service_id
-                  ? 'Booking...'
-                  : `Select Rendezvous & Book (₱${((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)})`}
-              </Button>
-            </div>
-          </Modal.Footer>
+                  {/* Provider Details Card */}
+                  <div className="border rounded-4 p-3 p-md-4 mb-4" style={{ background: 'var(--neu-bg-dark)' }}>
+                    <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                      <div className="d-flex align-items-center gap-3">
+                        <div
+                          className="neu-avatar d-flex align-items-center justify-content-center fw-bold fs-4 flex-shrink-0"
+                          style={{ width: 52, height: 52 }}
+                        >
+                          {activeModalService.provider_name
+                            ? activeModalService.provider_name
+                                .split(' ')
+                                .filter(Boolean)
+                                .slice(0, 2)
+                                .map((p) => p[0])
+                                .join('')
+                                .toUpperCase()
+                            : 'PR'}
+                        </div>
+                        <div>
+                          <div className="d-flex align-items-center gap-2 flex-wrap">
+                            <h5 className="fw-bold mb-0" style={{ color: 'var(--neu-text)' }}>
+                              {activeModalService.provider_name || 'Campus Provider'}
+                            </h5>
+                            {isOwner && (
+                              <Badge bg="success" className="px-2 py-1 rounded-pill small">
+                                Your Listing
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="d-flex align-items-center gap-2 flex-wrap small mt-1">
+                            <span className="text-muted font-monospace">
+                              ID: <strong style={{ color: 'var(--neu-primary)' }}>{activeModalService.user_id}</strong>
+                            </span>
+                            <span className="text-muted">•</span>
+                            <Badge bg="primary">{activeModalService.service_category}</Badge>
+                            {activeModalService.provider_location ? (
+                              <>
+                                <span className="text-muted">•</span>
+                                <span className="text-muted d-flex align-items-center gap-1">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6"/>
+                                  </svg>
+                                  {activeModalService.provider_location}
+                                </span>
+                              </>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+
+                      {isOwner ? (
+                        <Button
+                          className="neu-btn-primary rounded-pill px-3 py-2 d-flex align-items-center gap-2 fw-semibold"
+                          onClick={() => {
+                            const targetService = activeModalService;
+                            setActiveModalService(null);
+                            if (onEditService) {
+                              onEditService(targetService);
+                            }
+                          }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/>
+                          </svg>
+                          Edit Service
+                        </Button>
+                      ) : (
+                        <Button
+                          className="neu-btn-outline rounded-pill px-3 py-2 d-flex align-items-center gap-2 fw-semibold"
+                          onClick={() => {
+                            const targetService = activeModalService;
+                            setActiveModalService(null);
+                            navigate(`/messages/${targetService.user_id}`, {
+                              state: {
+                                name: targetService.provider_name,
+                                provider_name: targetService.provider_name,
+                                user_id: targetService.user_id,
+                              },
+                            });
+                          }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
+                          </svg>
+                          Chat with Provider
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Full Service Description */}
+                  <div className="mb-4">
+                    <h6 className="fw-bold text-uppercase text-muted small mb-2">
+                      Service Scope &amp; Description
+                    </h6>
+                    <p className="text-secondary small mb-0">
+                      {activeModalService.service_description}
+                    </p>
+                  </div>
+
+                  {/* Financial & Commission Terms */}
+                  <div className="border rounded-3 p-3" style={{ background: 'var(--neu-bg-dark)' }}>
+                    <h6 className="fw-bold text-uppercase text-muted small mb-2">
+                      Transaction Calculation Breakdown
+                    </h6>
+                    <div className="d-flex justify-content-between small text-muted mb-1">
+                      <span>Base Service Rate:</span>
+                      <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>₱{(Number(activeModalService.amount_topay) || 0).toFixed(2)}</span>
+                    </div>
+                    <div className="d-flex justify-content-between small text-muted mb-1">
+                      <span>Platform Booking Fee:</span>
+                      <span style={{ color: 'var(--neu-text)' }}>₱5.00 Flat</span>
+                    </div>
+                    <div className="d-flex justify-content-between small text-muted mb-1">
+                      <span>Provider Commission (5% of rate):</span>
+                      <span className="text-success">₱{((Number(activeModalService.amount_topay) || 0) * 0.05).toFixed(2)}</span>
+                    </div>
+                    <hr className="my-2" />
+                    <div className="d-flex justify-content-between align-items-center">
+                      <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>
+                        {isOwner ? 'Total Client Booking Cost:' : 'Total Requestor to Pay:'}
+                      </span>
+                      <strong className="fs-5" style={{ color: '#063a8f' }}>
+                        ₱{((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Customer Ratings & Reviews */}
+                  <div className="mt-4">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <h6 className="fw-bold text-uppercase text-muted small mb-0">
+                        Customer Ratings &amp; Reviews ({serviceReviews.length})
+                      </h6>
+                      <div className="d-flex align-items-center gap-1 fw-bold small" style={{ color: '#f59e0b' }}>
+                        <span>★</span>
+                        <span>{avgRating} / 5.0</span>
+                      </div>
+                    </div>
+
+                    {serviceReviews.length > 0 ? (
+                      <div className="d-flex flex-column gap-2">
+                        {serviceReviews.slice(0, 3).map((r, i) => (
+                          <div key={r.review_id || i} className="p-2.5 px-3 rounded-3 border" style={{ background: 'var(--neu-bg-dark)' }}>
+                            <div className="d-flex justify-content-between align-items-center mb-1">
+                              <span className="small fw-semibold" style={{ color: 'var(--neu-text)' }}>
+                                {r.reviewer_name || r.reviewer_id}
+                              </span>
+                              <span style={{ color: '#f59e0b', fontSize: '0.85rem' }}>
+                                {'★'.repeat(Math.round(r.rating || 5))}
+                              </span>
+                            </div>
+                            <p className="small text-muted mb-0">{r.comment || 'Verified transaction completed.'}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-3 text-center text-muted small rounded-3 border" style={{ background: 'var(--neu-bg-dark)' }}>
+                        No customer reviews yet. Be the first to book and rate this service!
+                      </div>
+                    )}
+                  </div>
+                </Modal.Body>
+
+                <Modal.Footer className="border-top px-4 py-3 d-flex justify-content-between align-items-center flex-wrap gap-2" style={{ background: 'var(--neu-bg-dark)' }}>
+                  {isOwner ? (
+                    <>
+                      <div className="text-muted small">
+                        <span className={`badge ${activeModalService.service_status === 'active' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'} me-2`}>
+                          {activeModalService.service_status === 'active' ? '● Available' : '○ Taken / Done'}
+                        </span>
+                        {activeModalService.service_status === 'active'
+                          ? 'Public & bookable by campus peers.'
+                          : 'Marked as Taken/Done and hidden from other accounts.'}
+                      </div>
+                      <div className="d-flex gap-2 align-items-center flex-wrap">
+                        <Button
+                          variant={activeModalService.service_status === 'active' ? 'outline-secondary' : 'success'}
+                          className="rounded-pill px-3 py-1.5 fw-semibold"
+                          onClick={() => {
+                            const nextStatus = activeModalService.service_status === 'active' ? 'inactive' : 'active';
+                            if (onToggleStatus) {
+                              onToggleStatus(activeModalService.service_id, nextStatus);
+                            }
+                            setActiveModalService((prev) => (prev ? { ...prev, service_status: nextStatus } : null));
+                          }}
+                        >
+                          {activeModalService.service_status === 'active'
+                            ? 'Mark as Taken / Done'
+                            : '✓ Re-open / Mark Available'}
+                        </Button>
+                        <Button className="neu-btn-ghost" onClick={() => setActiveModalService(null)}>
+                          Close
+                        </Button>
+                        <Button
+                          className="neu-btn-primary px-4 fw-semibold"
+                          onClick={() => {
+                            const targetService = activeModalService;
+                            setActiveModalService(null);
+                            if (onEditService) {
+                              onEditService(targetService);
+                            }
+                          }}
+                        >
+                          Edit Service Offer
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        className="neu-btn-outline rounded-pill px-3 py-2 d-flex align-items-center gap-2 fw-semibold"
+                        onClick={() => {
+                          const targetService = activeModalService;
+                          setActiveModalService(null);
+                          navigate(`/messages/${targetService.user_id}`, {
+                            state: {
+                              name: targetService.provider_name,
+                              provider_name: targetService.provider_name,
+                              user_id: targetService.user_id,
+                            },
+                          });
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
+                        </svg>
+                        Chat with Provider
+                      </Button>
+                      <div className="d-flex gap-2">
+                        <Button className="neu-btn-ghost" onClick={() => setActiveModalService(null)}>
+                          Close
+                        </Button>
+                        <Button
+                          className="neu-btn-primary px-4 fw-semibold"
+                          disabled={bookingServiceId === activeModalService.service_id}
+                          onClick={() => handleOpenBookingModal(activeModalService)}
+                        >
+                          {bookingServiceId === activeModalService.service_id
+                            ? 'Booking...'
+                            : `Select Rendezvous & Book (₱${((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)})`}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </Modal.Footer>
+              </>
+            );
+          })()}
         </Modal>
       )}
 

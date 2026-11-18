@@ -122,7 +122,7 @@ const register = async (req, res) => {
 
             normalizedStudentId = 'MMC-0000';
         } else {
-            // Student ID Validation for Requestor / Provider (Required MMC-XXXX)
+            // Student ID Validation for MinSU Campuses (MMC, MCC, MBC)
             const rawStudentId = typeof body.student_id === 'string'
                 ? body.student_id.trim()
                 : typeof body.user_id === 'string'
@@ -134,11 +134,19 @@ const register = async (req, res) => {
             }
 
             normalizedStudentId = rawStudentId.toUpperCase();
-            if (/^\d{1,4}$/.test(normalizedStudentId)) {
-                normalizedStudentId = `MMC-${normalizedStudentId.padStart(4, '0')}`;
+            // If user only typed numbers (e.g. 202400541 or 1234), attach chosen campus prefix or default to MMC
+            if (/^\d{4,10}$/.test(normalizedStudentId)) {
+                const campus = typeof body.campus === 'string' && /^(MMC|MCC|MBC)$/i.test(body.campus.trim())
+                    ? body.campus.trim().toUpperCase()
+                    : 'MMC';
+                normalizedStudentId = `${campus}-${normalizedStudentId}`;
             }
-            if (!/^MMC-\d{4}$/.test(normalizedStudentId)) {
-                return res.status(400).json({ error: 'Student ID must follow the format MMC-XXXX (e.g. MMC-1234).' });
+
+            // Must follow MinSU format: MMC-202400541, MCC-202400541, MBC-202400541 (or 4-10 digits)
+            if (!/^(MMC|MCC|MBC)-\d{4,10}$/.test(normalizedStudentId)) {
+                return res.status(400).json({
+                    error: 'Student ID must follow the MinSU format with your campus code (e.g. MMC-202400541, MCC-202400541, or MBC-202400541).'
+                });
             }
 
             // Provider Requirements (Personal Info & Address)

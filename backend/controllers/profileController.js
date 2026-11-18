@@ -10,6 +10,8 @@ const editableFields = [
     'province',
     'city',
     'barangay',
+    'department',
+    'designation',
     'profile_picture'
 ];
 
@@ -151,7 +153,10 @@ const changePassword = async (req, res) => {
             return res.status(401).json({ error: 'Unauthorized.' });
         }
 
-        const { currentPassword, newPassword } = req.body || {};
+        const body = req.body || {};
+        const currentPassword = body.currentPassword || body.current_password;
+        const newPassword = body.newPassword || body.new_password;
+
         if (!currentPassword || typeof currentPassword !== 'string') {
             return res.status(400).json({ error: 'Current password is required.' });
         }

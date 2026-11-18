@@ -18,6 +18,7 @@ export default function AuthPage({ mode }) {
   const [userType, setUserType] = useState('Requestor'); // 'Requestor' or 'Provider'
 
   // Core Credentials & Profile
+  const [campusCode, setCampusCode] = useState('MMC'); // 'MMC' (Main), 'MCC' (Calapan), 'MBC' (Bongabong)
   const [studentId, setStudentId] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -257,7 +258,7 @@ export default function AuthPage({ mode }) {
   // Validation States
   const isStudentIdValid = useMemo(() => {
     const trimmed = studentId.trim().toUpperCase();
-    return /^(MMC-)?\d{1,4}$/.test(trimmed) && trimmed.length > 0;
+    return /^(MMC|MCC|MBC)-\d{4,10}$/.test(trimmed) && trimmed.length > 0;
   }, [studentId]);
 
   const isEmailValid = useMemo(() => {
@@ -286,7 +287,7 @@ export default function AuthPage({ mode }) {
 
     // Student validation
     if (!studentId.trim()) return 'Student ID is required.';
-    if (!isStudentIdValid) return 'Student ID must be in MMC-XXXX format (e.g. MMC-1234).';
+    if (!isStudentIdValid) return 'Student ID must follow MinSU campus format (e.g. MMC-202400541, MCC-202400541, or MBC-202400541).';
     if (!firstName.trim()) return 'First name is required (letters only, min 4).';
     if (!lastName.trim()) return 'Last name is required (letters only, min 4).';
     if (username.trim().length < 3) return 'Username must be at least 3 characters.';
@@ -416,8 +417,10 @@ export default function AuthPage({ mode }) {
       }
 
       let normalizedStudentId = studentId.trim().toUpperCase();
-      if (/^\d{1,4}$/.test(normalizedStudentId)) {
-        normalizedStudentId = `MMC-${normalizedStudentId.padStart(4, '0')}`;
+      if (/^\d{4,10}$/.test(normalizedStudentId)) {
+        normalizedStudentId = `${campusCode}-${normalizedStudentId}`;
+      } else if (!/^(MMC|MCC|MBC)-/i.test(normalizedStudentId)) {
+        normalizedStudentId = `${campusCode}-${normalizedStudentId}`;
       }
 
       setIsSubmitting(true);
@@ -1098,21 +1101,52 @@ export default function AuthPage({ mode }) {
                         </div>
                       </div>
 
-                      {/* Student ID */}
+                      {/* Student ID & MinSU Campus Selector */}
                       <Form.Group as={Row} className="mb-3 align-items-center" controlId="studentId">
                         <Form.Label column sm={4} className="text-sm-end fw-semibold small">
-                          Student ID <span className="text-danger">*</span>
+                          MinSU Student ID <span className="text-danger">*</span>
                         </Form.Label>
                         <Col sm={8}>
-                          <Form.Control
-                            placeholder="e.g. MMC-1234 or 1234"
-                            value={studentId}
-                            onChange={(e) => setStudentId(e.target.value)}
-                            className="neu-input"
-                            required
-                          />
-                          <div className="d-flex justify-content-between mt-1 px-1">
-                            <small className="text-muted" style={{ fontSize: '0.72rem' }}>Format: MMC-XXXX</small>
+                          <InputGroup>
+                            <Form.Select
+                              value={campusCode}
+                              onChange={(e) => {
+                                const newCampus = e.target.value;
+                                setCampusCode(newCampus);
+                                const numPart = studentId.replace(/^(MMC|MCC|MBC)-/i, '');
+                                if (numPart) {
+                                  setStudentId(`${newCampus}-${numPart}`);
+                                }
+                              }}
+                              className="neu-input fw-bold"
+                              style={{ maxWidth: '125px', background: 'var(--neu-bg)' }}
+                              aria-label="Select MinSU Campus"
+                            >
+                              <option value="MMC">MMC (Main)</option>
+                              <option value="MCC">MCC (Calapan)</option>
+                              <option value="MBC">MBC (Bongabong)</option>
+                            </Form.Select>
+                            <InputGroup.Text className="neu-input-group-text fw-bold text-muted px-2">-</InputGroup.Text>
+                            <Form.Control
+                              placeholder="e.g. 202400541"
+                              value={studentId.replace(/^(MMC|MCC|MBC)-/i, '')}
+                              onChange={(e) => {
+                                const digits = e.target.value.replace(/\D/g, '');
+                                setStudentId(`${campusCode}-${digits}`);
+                              }}
+                              className="neu-input font-monospace"
+                              required
+                            />
+                          </InputGroup>
+                          <div className="d-flex justify-content-between mt-1 px-1 flex-wrap gap-1">
+                            <small className="text-muted" style={{ fontSize: '0.72rem' }}>
+                              {campusCode === 'MMC'
+                                ? 'Main Campus (Victoria)'
+                                : campusCode === 'MCC'
+                                ? 'Calapan Campus'
+                                : 'Bongabong Campus'}{' '}
+                              &bull; Format: {campusCode}-202400541
+                            </small>
                             {studentId.trim() && (
                               <span
                                 className="small fw-semibold"
@@ -1121,7 +1155,9 @@ export default function AuthPage({ mode }) {
                                   color: isStudentIdValid ? 'var(--neu-success)' : 'var(--neu-danger)',
                                 }}
                               >
-                                {isStudentIdValid ? '✓ Valid MMC ID' : '✗ Format: MMC-XXXX'}
+                                {isStudentIdValid
+                                  ? `✓ Valid ${campusCode} ID`
+                                  : `✗ Format: ${campusCode}-202400541`}
                               </span>
                             )}
                           </div>

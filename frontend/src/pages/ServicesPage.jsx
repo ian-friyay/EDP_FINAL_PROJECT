@@ -221,45 +221,60 @@ export default function ServicesPage() {
     setError('');
 
     try {
-      const { data } = await api.get('/services');
-      if (!Array.isArray(data.services)) {
-        throw new Error('The server returned an invalid services list.');
+      const publicRes = await api.get('/services');
+      const publicList = Array.isArray(publicRes.data?.services) ? publicRes.data.services : [];
+
+      let mergedList = [...publicList];
+
+      const token = window.localStorage.getItem('token');
+      if (token && currentUserId) {
+        try {
+          const myRes = await api.get('/services/mine');
+          if (Array.isArray(myRes.data?.services)) {
+            const myMap = new Map();
+            myRes.data.services.forEach((s) => myMap.set(String(s.service_id), s));
+            mergedList = mergedList.filter((s) => !myMap.has(String(s.service_id)));
+            mergedList = [...myRes.data.services, ...mergedList];
+          }
+        } catch {
+          // Non-blocking if /services/mine is unreachable
+        }
       }
-      setServices(data.services);
+
+      setServices(mergedList);
     } catch (requestError) {
       setError(getRequestError(requestError));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentUserId]);
 
   useEffect(() => {
-    let isMounted = true;
+    refreshServices();
+  }, [refreshServices]);
 
-    api.get('/services')
-      .then(({ data }) => {
-        if (!Array.isArray(data.services)) {
-          throw new Error('The server returned an invalid services list.');
-        }
-        if (isMounted) {
-          setServices(data.services);
-        }
-      })
-      .catch((requestError) => {
-        if (isMounted) {
-          setError(getRequestError(requestError));
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+  const handleToggleServiceStatus = async (serviceId, newStatus) => {
+    setError('');
+    setMessage('');
+    try {
+      const { data } = await api.patch(`/services/${encodeURIComponent(serviceId)}/status`, {
+        service_status: newStatus,
       });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+      setMessage(
+        data.message ||
+        (newStatus === 'inactive'
+          ? 'Service marked as Taken / Done and hidden from public marketplace.'
+          : 'Service is now Available in the public marketplace.')
+      );
+      setServices((prev) =>
+        prev.map((s) =>
+          String(s.service_id) === String(serviceId) ? { ...s, service_status: newStatus } : s
+        )
+      );
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Failed to update service status.');
+    }
+  };
 
   const handleCreateService = async (event) => {
     event.preventDefault();
@@ -506,6 +521,7 @@ export default function ServicesPage() {
           onEditService={handleOpenEdit}
           onBookService={handleOpenBooking}
           bookingServiceId={bookingServiceId}
+          onToggleStatus={handleToggleServiceStatus}
         />
       )}
 
