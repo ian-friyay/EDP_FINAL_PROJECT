@@ -83,6 +83,7 @@ export default function ChatPage() {
   const activeConversationIdRef = useRef(id);
   const readTimersRef = useRef([]);
   const typingTimerRef = useRef(null);
+  const stopTypingTimerRef = useRef(null);
 
   const activeConversation = {
     conversation_id: id,
@@ -138,23 +139,45 @@ export default function ChatPage() {
 
   useEffect(() => {
     const registerUser = () => {
-      socket.emit('register', currentUserId);
+      if (currentUserId) {
+        socket.emit('register', currentUserId);
+      }
     };
 
     const handleReceiveMessage = (newMessage) => {
-      setMessages((previous) => [...previous, newMessage]);
+      if (!newMessage) return;
+      const msgId = newMessage.message_id || newMessage.id;
+      setMessages((previous) => {
+        if (msgId && previous.some((m) => (m.message_id || m.id) === msgId)) {
+          return previous;
+        }
+        return [...previous, newMessage];
+      });
     };
 
     const handleTyping = (payload) => {
-      if (!payload) {
-        return;
-      }
+      if (!payload) return;
 
-      const senderId = payload.sender_id || payload.user_id;
-      const isTyping = payload.isTyping ?? payload.typing ?? false;
+      const senderId = payload.sender_id || payload.user_id || payload.userId;
+      const isTyping = Boolean(payload.isTyping ?? payload.is_typing ?? payload.typing);
+      const targetId = activeConversationIdRef.current || id;
 
-      if (senderId === activeConversationIdRef.current) {
-        setOtherUserTyping(Boolean(isTyping));
+      if (
+        senderId &&
+        targetId &&
+        String(senderId).trim().toLowerCase() === String(targetId).trim().toLowerCase()
+      ) {
+        setOtherUserTyping(isTyping);
+
+        if (typingTimerRef.current) {
+          clearTimeout(typingTimerRef.current);
+        }
+
+        if (isTyping) {
+          typingTimerRef.current = setTimeout(() => {
+            setOtherUserTyping(false);
+          }, 3500);
+        }
       }
     };
 
@@ -162,9 +185,10 @@ export default function ChatPage() {
     socket.on('receive_message', handleReceiveMessage);
     socket.on('typing', handleTyping);
     socket.on('user_typing', handleTyping);
-    socket.connect();
 
-    if (socket.connected) {
+    if (!socket.connected) {
+      socket.connect();
+    } else {
       registerUser();
     }
 
@@ -173,9 +197,8 @@ export default function ChatPage() {
       socket.off('receive_message', handleReceiveMessage);
       socket.off('typing', handleTyping);
       socket.off('user_typing', handleTyping);
-      socket.disconnect();
     };
-  }, [currentUserId]);
+  }, [currentUserId, id]);
 
   useEffect(
     () => () => {
@@ -184,6 +207,9 @@ export default function ChatPage() {
 
       if (typingTimerRef.current) {
         clearTimeout(typingTimerRef.current);
+      }
+      if (stopTypingTimerRef.current) {
+        clearTimeout(stopTypingTimerRef.current);
       }
     },
     []
@@ -194,23 +220,29 @@ export default function ChatPage() {
     const isTyping = value.trim().length > 0;
 
     setTextInput(value);
+
+    // Notify other participant of live typing status
     socket.emit('typing', {
       sender_id: currentUserId,
       receiver_id: id,
       isTyping,
+      is_typing: isTyping,
     });
 
-    if (typingTimerRef.current) {
-      clearTimeout(typingTimerRef.current);
+    if (stopTypingTimerRef.current) {
+      clearTimeout(stopTypingTimerRef.current);
     }
 
     if (isTyping) {
-      setOtherUserTyping(true);
-      typingTimerRef.current = setTimeout(() => {
-        setOtherUserTyping(false);
-      }, 1500);
-    } else {
-      setOtherUserTyping(false);
+      // Debounce sending false typing event after user pauses typing
+      stopTypingTimerRef.current = setTimeout(() => {
+        socket.emit('typing', {
+          sender_id: currentUserId,
+          receiver_id: id,
+          isTyping: false,
+          is_typing: false,
+        });
+      }, 2000);
     }
   };
 
@@ -240,7 +272,9 @@ export default function ChatPage() {
 
     setMessages((previous) => [...previous, optimisticMessage]);
 
-    // Save to database via HTTP endpoint
+    // Save to database via HTTP endpoint.
+    // The backend messageController persists to DB and broadcasts 'receive_message'
+    // directly to the receiver's socket room, avoiding duplicate insertions/emissions.
     fetch(`${API_URL}/api/messages`, {
       method: 'POST',
       headers: {
@@ -261,18 +295,18 @@ export default function ChatPage() {
       })
       .catch((err) => console.error('Failed to save message via HTTP:', err));
 
-    socket.emit('send_message', payload);
+    // Turn off typing indicator for the receiver immediately upon sending
     socket.emit('typing', {
       sender_id: currentUserId,
       receiver_id: id,
       isTyping: false,
+      is_typing: false,
     });
 
-    if (typingTimerRef.current) {
-      clearTimeout(typingTimerRef.current);
+    if (stopTypingTimerRef.current) {
+      clearTimeout(stopTypingTimerRef.current);
     }
 
-    setOtherUserTyping(false);
     setTextInput('');
 
     const readTimer = setTimeout(() => {
@@ -335,7 +369,10 @@ export default function ChatPage() {
             />
           </div>
           {otherUserTyping ? (
-            <small className="text-success fw-semibold">Typing...</small>
+            <small className="text-success fw-bold d-inline-flex align-items-center gap-1">
+              <span className="spinner-grow spinner-grow-sm" style={{ width: 6, height: 6 }} />
+              Typing...
+            </small>
           ) : (
             <small
               className={
@@ -413,6 +450,24 @@ export default function ChatPage() {
               </div>
             );
           })
+        )}
+        {otherUserTyping && (
+          <div className="d-flex align-items-center gap-2 mb-3 ms-2 text-muted animate-fade-in">
+            <Avatar
+              name={activeConversation.name}
+              src={activeConversation.profile_picture}
+              size={28}
+            />
+            <div
+              className="px-3 py-1.5 rounded-pill neu-card-inset d-inline-flex align-items-center gap-2"
+              style={{ fontSize: '0.8rem', color: 'var(--neu-text)' }}
+            >
+              <span className="spinner-grow spinner-grow-sm text-primary" style={{ width: 6, height: 6 }} />
+              <small>
+                <strong>{activeConversation.name}</strong> is typing...
+              </small>
+            </div>
+          </div>
         )}
         <div ref={messagesEndRef} />
       </div>

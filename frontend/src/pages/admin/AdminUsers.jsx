@@ -209,7 +209,7 @@ export default function AdminUsers() {
       )}
 
       {/* Filter and Search Bar */}
-      <div className="neu-card p-3 rounded-4 mb-4">
+      <div className="neu-card p-3 rounded-4 mb-4 sticky-top" style={{ top: 0, zIndex: 10, background: 'var(--neu-bg)' }}>
         <Form onSubmit={handleSearch}>
           <Row className="g-3 align-items-center">
             <Col md={6}>

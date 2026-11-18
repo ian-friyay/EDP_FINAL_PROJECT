@@ -88,9 +88,9 @@ export default function Layout() {
   );
 
   return (
-    <div className="min-vh-100 d-flex flex-column">
+    <div className="d-flex flex-column" style={{ height: '100vh', maxHeight: '100vh', overflow: 'hidden' }}>
       {/* 1. Top Navbar */}
-      <Navbar className="neu-navbar sticky-top py-2 px-3">
+      <Navbar className="neu-navbar py-2 px-3 flex-shrink-0" style={{ zIndex: 1030 }}>
         <Container fluid className="p-0">
           <div className="d-flex align-items-center">
             {/* Hamburger button for Mobile (< lg) */}
@@ -208,23 +208,21 @@ export default function Layout() {
       </Navbar>
 
       {/* 2. Responsive Layout Body (Sidebar + Main Content Area) */}
-      <Container fluid className="p-0 flex-grow-1 d-flex flex-column">
-        <Row className="g-0 flex-grow-1 flex-nowrap">
-          {/* Responsive Sidebar Component */}
-          <Col className="p-0 neu-sidebar-col flex-shrink-0">
-            <Sidebar
-              show={showMobileSidebar}
-              onHide={() => setShowMobileSidebar(false)}
-              currentUser={user}
-            />
-          </Col>
+      <div className="flex-grow-1 d-flex flex-row overflow-hidden position-relative" style={{ minHeight: 0 }}>
+        {/* Desktop / Responsive Sidebar Column */}
+        <div className="neu-sidebar-col flex-shrink-0 h-100 overflow-y-auto">
+          <Sidebar
+            show={showMobileSidebar}
+            onHide={() => setShowMobileSidebar(false)}
+            currentUser={user}
+          />
+        </div>
 
-          {/* 3. Main Content Area Rendering Child Routes with <Outlet /> */}
-          <Col as="main" className="neu-main p-3 p-md-4 flex-grow-1">
-            <Outlet />
-          </Col>
-        </Row>
-      </Container>
+        {/* 3. Main Content Area Rendering Child Routes with <Outlet /> */}
+        <main className="neu-main p-3 p-md-4 flex-grow-1 h-100 overflow-y-auto" style={{ minWidth: 0 }}>
+          <Outlet />
+        </main>
+      </div>
 
       {/* PWA Offline & Update Toast Notification */}
       <OfflineToast />

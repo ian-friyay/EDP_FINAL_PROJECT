@@ -87,9 +87,9 @@ export default function AdminLayout() {
   );
 
   return (
-    <div className="min-vh-100 d-flex flex-column" style={{ background: 'var(--neu-bg)' }}>
+    <div className="d-flex flex-column" style={{ background: 'var(--neu-bg)', height: '100vh', maxHeight: '100vh', overflow: 'hidden' }}>
       {/* 1. Top Navbar */}
-      <Navbar className="neu-navbar sticky-top py-2 px-3 shadow-sm">
+      <Navbar className="neu-navbar py-2 px-3 shadow-sm flex-shrink-0" style={{ zIndex: 1030 }}>
         <Container fluid className="p-0">
           <div className="d-flex align-items-center">
             {/* Hamburger button for Mobile (< lg) */}
@@ -140,13 +140,15 @@ export default function AdminLayout() {
       </Navbar>
 
       {/* 2. Main Body with Fixed/Static Sidebar on lg+ and Content Area */}
-      <div className="d-flex flex-grow-1">
+      <div className="d-flex flex-grow-1 overflow-hidden position-relative" style={{ minHeight: 0 }}>
         {/* Desktop Sidebar (visible on lg+) */}
         <aside
           className="d-none d-lg-flex flex-column justify-content-between p-3 neu-sidebar"
           style={{
             width: '260px',
             flexShrink: 0,
+            height: '100%',
+            overflowY: 'auto',
             background: 'var(--neu-bg)',
             borderRight: '1px solid rgba(154, 172, 196, 0.4)',
           }}
@@ -201,7 +203,7 @@ export default function AdminLayout() {
         </Offcanvas>
 
         {/* Content Area */}
-        <main className="flex-grow-1 p-3 p-md-4 overflow-auto" style={{ minWidth: 0 }}>
+        <main className="flex-grow-1 p-3 p-md-4 overflow-auto h-100" style={{ minWidth: 0 }}>
           <Container fluid className="p-0">
             <Outlet />
           </Container>

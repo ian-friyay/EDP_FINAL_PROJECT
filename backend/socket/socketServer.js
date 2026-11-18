@@ -100,15 +100,18 @@ const initSocket = (server) => {
           target_id: senderId,
         };
 
-        // Emit to room (all connected sockets for this user)
-        io.to(String(receiverId)).emit('receive_message', data);
-        io.to(String(receiverId)).emit('new_notification', notifPayload);
-
-        // Also emit directly to mapped socket if tracked
-        const receiverSocketId = userSockets.get(String(receiverId));
-        if (receiverSocketId) {
-          io.to(receiverSocketId).emit('receive_message', data);
-          io.to(receiverSocketId).emit('new_notification', notifPayload);
+        // Emit to room, or fallback to tracked socket ID without duplicate firing
+        const targetRoom = String(receiverId);
+        const roomObj = io.sockets.adapter.rooms.get(targetRoom);
+        if (roomObj && roomObj.size > 0) {
+          io.to(targetRoom).emit('receive_message', data);
+          io.to(targetRoom).emit('new_notification', notifPayload);
+        } else {
+          const receiverSocketId = userSockets.get(targetRoom);
+          if (receiverSocketId) {
+            io.to(receiverSocketId).emit('receive_message', data);
+            io.to(receiverSocketId).emit('new_notification', notifPayload);
+          }
         }
 
         socket.emit('message_sent', data);
@@ -118,11 +121,27 @@ const initSocket = (server) => {
     });
 
     socket.on('typing', (payload) => {
-      const { sender_id: senderId, receiver_id: receiverId, is_typing: isTyping } = payload || {};
+      const { sender_id: senderId, receiver_id: receiverId } = payload || {};
       if (receiverId) {
-        const isBool = Boolean(isTyping || payload?.isTyping || payload?.typing);
-        io.to(String(receiverId)).emit('user_typing', { sender_id: senderId, is_typing: isBool, isTyping: isBool });
-        io.to(String(receiverId)).emit('typing', { sender_id: senderId, is_typing: isBool, isTyping: isBool });
+        const isBool = Boolean(payload?.is_typing ?? payload?.isTyping ?? payload?.typing);
+        const typingData = {
+          sender_id: senderId,
+          receiver_id: receiverId,
+          is_typing: isBool,
+          isTyping: isBool,
+        };
+        const targetRoom = String(receiverId);
+        const roomObj = io.sockets.adapter.rooms.get(targetRoom);
+        if (roomObj && roomObj.size > 0) {
+          io.to(targetRoom).emit('user_typing', typingData);
+          io.to(targetRoom).emit('typing', typingData);
+        } else {
+          const receiverSocketId = userSockets.get(targetRoom);
+          if (receiverSocketId) {
+            io.to(receiverSocketId).emit('user_typing', typingData);
+            io.to(receiverSocketId).emit('typing', typingData);
+          }
+        }
       }
     });
 

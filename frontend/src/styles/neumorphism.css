@@ -263,23 +263,21 @@ body {
 
 @media (min-width: 992px) {
   .neu-sidebar-col {
-    position: -webkit-sticky !important;
-    position: sticky !important;
-    top: 56px !important;
-    height: calc(100vh - 56px) !important;
+    position: relative !important;
+    height: 100% !important;
     overflow-y: auto !important;
-    z-index: 1020 !important;
-    align-self: flex-start !important;
-    width: 275px !important;
-    min-width: 275px !important;
-    max-width: 275px !important;
-    flex: 0 0 275px !important;
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+    flex: 0 0 280px !important;
   }
 
   .neu-main {
     flex: 1 1 0% !important;
-    max-width: calc(100% - 275px) !important;
+    max-width: calc(100% - 280px) !important;
     min-width: 0 !important;
+    height: 100% !important;
+    overflow-y: auto !important;
   }
 
   .neu-sidebar-col::-webkit-scrollbar {
@@ -873,8 +871,8 @@ body {
 .neu-filter-bar {
   position: -webkit-sticky !important;
   position: sticky !important;
-  top: 65px !important;
-  z-index: 990 !important;
+  top: 0 !important;
+  z-index: 100 !important;
   background: rgba(224, 231, 240, 0.95) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;

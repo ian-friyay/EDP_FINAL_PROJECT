@@ -1,5 +1,14 @@
 const supabase = require('../supabaseClient');
 
+const KNOWN_USERS = {
+  'MMC-0001': 'Jasmine Requestor',
+  'MMC-1042': 'Juan Dela Cruz',
+  'MMC-2015': 'Maria Santos',
+  'MMC-3044': 'Pedro Penduko',
+  'MMC-3045': 'Adrian Friday',
+  'MMC-3046': 'Keizy Lara',
+};
+
 const getCurrentUserId = (req) =>
   (req.user && (req.user.id || req.user.user_id)) ||
   req.query.userId ||

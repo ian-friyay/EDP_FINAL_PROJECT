@@ -374,7 +374,7 @@ export default function MessagesPage() {
   return (
     <Container
       fluid
-      className="min-vh-100 p-3 p-md-4"
+      className="p-3 p-md-4"
       style={{ maxWidth: '880px', background: 'var(--neu-bg)' }}
     >
       <Row className="g-0 justify-content-center">
@@ -386,14 +386,14 @@ export default function MessagesPage() {
             </div>
           </div>
 
-          <div className="mb-4">
+          <div className="sticky-top mb-4 py-2" style={{ top: 0, zIndex: 10, background: 'var(--neu-bg)' }}>
             <Form.Control
               type="search"
               placeholder="Search conversations by name or message..."
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               aria-label="Search conversations"
-              className="neu-input rounded-pill py-2 px-4"
+              className="neu-input rounded-pill py-2 px-4 shadow-sm"
             />
           </div>
 
