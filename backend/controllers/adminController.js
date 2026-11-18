@@ -1,6 +1,7 @@
 const supabase = require('../db');
 const { createNotification } = require('./notificationController');
 const { unlockRequestsStore, userCooldowns } = require('../utils/cooldownStore');
+const { sendEmail } = require('../utils/emailService');
 
 const checkAdminExists = async (req, res) => {
     try {
@@ -475,42 +476,28 @@ const shareAdminAccess = async (req, res) => {
             return res.status(400).json({ error: 'A valid email address is required.' });
         }
 
-        const emailUser = process.env.EMAIL_USER;
-        const emailPassword = process.env.EMAIL_PASS;
-        if (emailUser && emailPassword) {
-            try {
-                const nodemailer = require('nodemailer');
-                const port = Number(process.env.EMAIL_PORT || 465);
-                const transporter = nodemailer.createTransport({
-                    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-                    port,
-                    secure: process.env.EMAIL_SECURE ? process.env.EMAIL_SECURE === 'true' : port === 465,
-                    auth: { user: emailUser, pass: emailPassword }
-                });
-
-                await transporter.sendMail({
-                    from: process.env.EMAIL_FROM || emailUser,
-                    to: email.trim(),
-                    subject: 'Invitation to Join SerbisYou Administration Portal',
-                    text: `Hello,\n\nYou have been invited by an administrator to access and manage the SerbisYou Platform.\n\nPlease log in or sign up at http://localhost:5173/admin/dashboard.\n\nBest regards,\nSerbisYou Admin Team`,
-                    html: `
-                        <div style="font-family: Arial, sans-serif; padding: 20px; color: #15253d; max-width: 500px; border: 1px solid #c8d3e0; border-radius: 12px; background: #ffffff;">
-                            <h2 style="color: #063a8f; margin-top: 0;">SerbisYou Administrator Invitation</h2>
-                            <p>Hello,</p>
-                            <p>You have been invited by an administrator to co-manage the <strong>SerbisYou Marketplace Platform</strong>.</p>
-                            <p>You will have permissions to review registered student accounts, inspect student ID proofs, verify user statuses, and monitor platform revenue.</p>
-                            <p style="margin: 25px 0;">
-                                <a href="http://localhost:5173/admin/dashboard" style="background: #ff7828; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 20px; font-weight: bold; display: inline-block;">
-                                    Access Admin Portal
-                                </a>
-                            </p>
-                            <p style="font-size: 12px; color: #7b92ab; margin-bottom: 0;">SerbisYou Campus Marketplace &bull; All rights reserved.</p>
-                        </div>
-                    `
-                });
-            } catch (mailErr) {
-                console.warn('Mail dispatch warning (proceeding with confirmation):', mailErr.message);
-            }
+        try {
+            await sendEmail({
+                to: email.trim(),
+                subject: 'Invitation to Join SerbisYou Administration Portal',
+                text: `Hello,\n\nYou have been invited by an administrator to access and manage the SerbisYou Platform.\n\nPlease log in or sign up at http://localhost:5173/admin/dashboard.\n\nBest regards,\nSerbisYou Admin Team`,
+                html: `
+                    <div style="font-family: Arial, sans-serif; padding: 20px; color: #15253d; max-width: 500px; border: 1px solid #c8d3e0; border-radius: 12px; background: #ffffff;">
+                        <h2 style="color: #063a8f; margin-top: 0;">SerbisYou Administrator Invitation</h2>
+                        <p>Hello,</p>
+                        <p>You have been invited by an administrator to co-manage the <strong>SerbisYou Marketplace Platform</strong>.</p>
+                        <p>You will have permissions to review registered student accounts, inspect student ID proofs, verify user statuses, and monitor platform revenue.</p>
+                        <p style="margin: 25px 0;">
+                            <a href="http://localhost:5173/admin/dashboard" style="background: #ff7828; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 20px; font-weight: bold; display: inline-block;">
+                                Access Admin Portal
+                            </a>
+                        </p>
+                        <p style="font-size: 12px; color: #7b92ab; margin-bottom: 0;">SerbisYou Campus Marketplace &bull; All rights reserved.</p>
+                    </div>
+                `
+            });
+        } catch (mailErr) {
+            console.warn('Mail dispatch warning (proceeding with confirmation):', mailErr.message);
         }
 
         return res.status(200).json({

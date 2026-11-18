@@ -1,8 +1,8 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
 const supabase = require('../db');
 const { unlockRequestsStore, userCooldowns, passwordOtpStore } = require('../utils/cooldownStore');
+const { sendOtpEmail } = require('../utils/emailService');
 
 const editableFields = [
     'first_name',
@@ -356,40 +356,16 @@ const requestPasswordOtp = async (req, res) => {
         const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
         passwordOtpStore.set(userId, { otp, expiresAt });
-        console.log(`[PASSWORD OTP DEV LOG] Code for ${email} (${userId}): ${otp}`);
 
-        const emailUser = process.env.EMAIL_USER;
-        const emailPassword = process.env.EMAIL_PASS;
-        if (emailUser && emailPassword) {
-            try {
-                const port = Number(process.env.EMAIL_PORT || 465);
-                const transporter = nodemailer.createTransport({
-                    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-                    port,
-                    secure: process.env.EMAIL_SECURE ? process.env.EMAIL_SECURE === 'true' : port === 465,
-                    auth: { user: emailUser, pass: emailPassword }
-                });
-
-                await transporter.sendMail({
-                    from: process.env.EMAIL_FROM || emailUser,
-                    to: email,
-                    subject: 'SerbisYou Password Change Verification Code',
-                    text: `Your 6-digit verification code to change your password is: ${otp}\n\nThis code expires in 10 minutes.`,
-                    html: `
-                        <div style="font-family: Arial, sans-serif; padding: 20px; color: #15253d; max-width: 500px; border: 1px solid #c8d3e0; border-radius: 12px; background: #ffffff;">
-                            <h2 style="color: #ff7828; margin-top: 0;">Password Change Verification</h2>
-                            <p>You requested to change your password for your SerbisYou account.</p>
-                            <p>Your 6-digit confirmation code is:</p>
-                            <div style="font-size: 28px; font-weight: bold; letter-spacing: 5px; color: #063a8f; background: #f0f4f9; padding: 12px; text-align: center; border-radius: 8px; margin: 20px 0;">
-                                ${otp}
-                            </div>
-                            <p style="font-size: 13px; color: #7b92ab;">This code expires in 10 minutes. If you did not request this, please ignore this email.</p>
-                        </div>
-                    `
-                });
-            } catch (mailErr) {
-                console.warn('Mail dispatch failed (proceeding with console OTP):', mailErr.message);
-            }
+        try {
+            await sendOtpEmail(
+                email,
+                otp,
+                'SerbisYou Password Change Verification Code',
+                'You requested to change your password for your SerbisYou account'
+            );
+        } catch (mailErr) {
+            console.warn('Mail dispatch warning:', mailErr.message);
         }
 
         return res.status(200).json({
