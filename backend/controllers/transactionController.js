@@ -7,7 +7,14 @@ const COMMISSION_RATE = 0.05;
 const createTransaction = async (req, res) => {
   try {
     const requestor_id = req.user && req.user.user_id;
-    const { service_id } = req.body;
+    const {
+      service_id,
+      notes,
+      booking_date,
+      start_time,
+      end_time,
+      custom_amount,
+    } = req.body;
 
     if (!requestor_id) {
       return res.status(401).json({ error: 'Unauthorized. Please log in again.' });
@@ -21,7 +28,7 @@ const createTransaction = async (req, res) => {
 
     const { data: service, error: serviceError } = await supabase
       .from('services')
-      .select('service_id, user_id, amount_topay, service_status, is_deleted')
+      .select('service_id, user_id, amount_topay, service_category, subcategory, service_description, rate_unit, service_status, is_deleted')
       .eq('service_id', normalizedServiceId)
       .single();
 
@@ -53,7 +60,29 @@ const createTransaction = async (req, res) => {
     }
 
     const provider_id = service.user_id;
-    const amount_topay = Number(service.amount_topay);
+    let baseAmount = Number(service.amount_topay);
+
+    // If custom amount is provided and valid, use it; or calculate hours for hourly rates
+    let amount_topay = baseAmount;
+    if (custom_amount && Number.isFinite(Number(custom_amount)) && Number(custom_amount) > 0) {
+      amount_topay = Number(custom_amount);
+    } else if (start_time && end_time) {
+      try {
+        const [startH, startM] = start_time.split(':').map(Number);
+        const [endH, endM] = end_time.split(':').map(Number);
+        const startMinutes = startH * 60 + (startM || 0);
+        const endMinutes = endH * 60 + (endM || 0);
+        if (endMinutes > startMinutes) {
+          const durationHours = (endMinutes - startMinutes) / 60;
+          const isHourly = service.rate_unit === 'per_hour' || (service.service_description && service.service_description.includes('[Rate: per_hour]'));
+          if (isHourly) {
+            amount_topay = Number((durationHours * baseAmount).toFixed(2));
+          }
+        }
+      } catch (err) {
+        amount_topay = baseAmount;
+      }
+    }
 
     if (!Number.isFinite(amount_topay) || amount_topay <= 0) {
       return res.status(400).json({ error: 'Invalid service amount.' });
@@ -66,23 +95,58 @@ const createTransaction = async (req, res) => {
     const total_topay = Number((amount_topay + booking_fee).toFixed(2));
     const qr_code = `SERBISYOU-${crypto.randomUUID()}`;
 
-    const { data: transaction, error: insertError } = await supabase
+    const insertPayload = {
+      provider_id,
+      requestor_id,
+      service_id: normalizedServiceId,
+      amount_topay,
+      booking_fee,
+      total_topay,
+      commission_fee,
+      service_status: 'pending',
+      qr_code,
+      notes: notes ? String(notes).trim() : null,
+      booking_date: booking_date || null,
+      start_time: start_time || null,
+      end_time: end_time || null,
+    };
+
+    let { data: transaction, error: insertError } = await supabase
       .from('transactions')
-      .insert([
-        {
-          provider_id,
-          requestor_id,
-          service_id: normalizedServiceId,
-          amount_topay,
-          booking_fee,
-          total_topay,
-          commission_fee,
-          service_status: 'pending',
-          qr_code,
-        },
-      ])
+      .insert([insertPayload])
       .select()
       .single();
+
+    // If columns do not exist yet in Supabase schema cache, retry without extra columns
+    if (insertError && (insertError.code === 'PGRST204' || insertError.message.includes('column'))) {
+      const fallbackPayload = {
+        provider_id,
+        requestor_id,
+        service_id: normalizedServiceId,
+        amount_topay,
+        booking_fee,
+        total_topay,
+        commission_fee,
+        service_status: 'pending',
+        qr_code,
+      };
+
+      const retryResult = await supabase
+        .from('transactions')
+        .insert([fallbackPayload])
+        .select()
+        .single();
+
+      transaction = retryResult.data;
+      insertError = retryResult.error;
+
+      if (transaction) {
+        transaction.notes = notes ? String(notes).trim() : null;
+        transaction.booking_date = booking_date || null;
+        transaction.start_time = start_time || null;
+        transaction.end_time = end_time || null;
+      }
+    }
 
     if (insertError) {
       return res.status(500).json({
@@ -94,11 +158,16 @@ const createTransaction = async (req, res) => {
     // Real-time notification & event emission via Socket.io
     const io = req.app && req.app.get('io');
     if (io) {
+      const scheduleText = booking_date
+        ? ` on ${booking_date}${start_time ? ` (${start_time} - ${end_time || 'TBD'})` : ''}`
+        : '';
+      const notesText = notes ? ` Note: "${notes}"` : '';
+
       const notifPayload = {
         id: `tx_${transaction.transaction_id}_${Date.now()}`,
         type: 'booking',
         title: 'New Service Booking Request',
-        description: `Student ${requestor_id} requested your service (Total: ₱${total_topay}).`,
+        description: `Student ${requestor_id} requested your service${scheduleText}.${notesText} (Total: ₱${total_topay}).`,
         timestamp: new Date().toISOString(),
         read: false,
         link: '/transactions',

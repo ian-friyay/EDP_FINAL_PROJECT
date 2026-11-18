@@ -49,6 +49,7 @@ export default function Layout() {
     window.localStorage.removeItem('token');
     window.localStorage.removeItem('user_id');
     window.localStorage.removeItem('user');
+    window.localStorage.removeItem('serbisyou_remember_me');
     navigate('/sign-in', { replace: true });
   };
 

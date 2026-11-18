@@ -290,6 +290,9 @@ export default function ServicesGrid({
                       >
                         {service.service_status || 'active'}
                       </Badge>
+                      <Badge bg="dark" className="shadow-sm text-capitalize bg-opacity-75">
+                        {service.rate_unit === 'per_hour' ? 'Per Hour' : service.rate_unit === 'per_day' ? 'Per Day' : 'Per Service'}
+                      </Badge>
                     </div>
                     {service.picture_proof && service.picture_proof.length > 1 && (
                       <Badge
@@ -334,6 +337,9 @@ export default function ServicesGrid({
                         <span>Service Rate:</span>
                         <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>
                           ₱{amount.toFixed(2)}
+                          <span className="text-muted fw-normal ms-1 small">
+                            {service.rate_unit === 'per_hour' ? '/ hour' : service.rate_unit === 'per_day' ? '/ day' : '/ service'}
+                          </span>
                         </span>
                       </div>
                       <div className="d-flex justify-content-between align-items-center text-muted small mb-1">

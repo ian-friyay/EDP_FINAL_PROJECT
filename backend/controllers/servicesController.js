@@ -31,7 +31,23 @@ const getActiveServices = async (req, res) => {
         return res.status(500).json({ error: 'Failed to fetch services.' });
     }
 
-    return res.status(200).json({ services: data });
+    // Normalize rate_unit for each service
+    const enriched = (data || []).map((service) => {
+        let rateUnit = service.rate_unit;
+        if (!rateUnit && service.service_description) {
+            const match = service.service_description.match(/\[Rate:\s*(per_hour|per_day|per_service)\]/i);
+            if (match) {
+                rateUnit = match[1].toLowerCase();
+            }
+        }
+        return {
+            ...service,
+            rate_unit: rateUnit || 'per_service',
+            service_description: service.service_description ? service.service_description.replace(/\[Rate:\s*(per_hour|per_day|per_service)\]\s*/i, '').trim() : '',
+        };
+    });
+
+    return res.status(200).json({ services: enriched });
 };
 
 const createService = async (req, res) => {
@@ -45,8 +61,11 @@ const createService = async (req, res) => {
         subcategory,
         service_description: serviceDescription,
         amount_topay: amountToPay,
+        rate_unit: rawRateUnit,
         picture_proof: pictureProof = []
     } = body;
+
+    const rateUnit = ['per_hour', 'per_day', 'per_service'].includes(rawRateUnit) ? rawRateUnit : 'per_service';
 
     const numericAmount = Number(amountToPay);
     if (
@@ -67,27 +86,49 @@ const createService = async (req, res) => {
         return res.status(400).json({ error: 'Subcategory must be a string.' });
     }
 
-    const { data, error } = await supabase
+    // Try inserting with rate_unit column first
+    const insertPayload = {
+        user_id: req.user.user_id,
+        service_category: serviceCategory.trim(),
+        subcategory: subcategory?.trim() || null,
+        service_description: serviceDescription.trim(),
+        amount_topay: numericAmount,
+        rate_unit: rateUnit,
+        service_status: 'active',
+        picture_proof: pictureProof,
+        is_deleted: false
+    };
+
+    let { data, error } = await supabase
         .from('services')
-        .insert({
-            user_id: req.user.user_id,
-            service_category: serviceCategory.trim(),
-            subcategory: subcategory?.trim() || null,
-            service_description: serviceDescription.trim(),
-            amount_topay: numericAmount,
-            service_status: 'active',
-            picture_proof: pictureProof,
-            is_deleted: false
-        })
+        .insert(insertPayload)
         .select('*')
         .single();
+
+    if (error && (error.code === 'PGRST204' || error.message.includes('rate_unit'))) {
+        // Fallback: embed [Rate: ...] tag into description if column does not exist
+        delete insertPayload.rate_unit;
+        insertPayload.service_description = `[Rate: ${rateUnit}] ${serviceDescription.trim()}`;
+        const retryResult = await supabase
+            .from('services')
+            .insert(insertPayload)
+            .select('*')
+            .single();
+        data = retryResult.data;
+        error = retryResult.error;
+    }
 
     if (error) {
         console.error('Failed to create service:', error);
         return res.status(500).json({ error: 'Failed to create service.' });
     }
 
-    return res.status(201).json({ service: data });
+    return res.status(201).json({
+        service: {
+            ...data,
+            rate_unit: rateUnit,
+        }
+    });
 };
 
 const isValidServiceId = (serviceId) => {
@@ -107,10 +148,14 @@ const updateService = async (req, res) => {
         subcategory,
         service_description,
         amount_topay,
+        rate_unit,
         picture_proof
     } = req.body || {};
 
     const updates = {};
+    if (rate_unit && ['per_hour', 'per_day', 'per_service'].includes(rate_unit)) {
+        updates.rate_unit = rate_unit;
+    }
     if (service_category && typeof service_category === 'string') updates.service_category = service_category.trim();
     if (subcategory !== undefined) updates.subcategory = subcategory ? String(subcategory).trim() : null;
     if (service_description && typeof service_description === 'string') updates.service_description = service_description.trim();

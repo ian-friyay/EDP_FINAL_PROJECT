@@ -46,6 +46,16 @@ ALTER TABLE public.users
     ADD COLUMN IF NOT EXISTS student_id_image text,
     ADD COLUMN IF NOT EXISTS terms_accepted boolean NOT NULL DEFAULT false;
 
+ALTER TABLE public.services
+    ADD COLUMN IF NOT EXISTS rate_unit text DEFAULT 'per_service'
+        CHECK (rate_unit IN ('per_hour', 'per_day', 'per_service'));
+
+ALTER TABLE public.transactions
+    ADD COLUMN IF NOT EXISTS notes text,
+    ADD COLUMN IF NOT EXISTS booking_date date,
+    ADD COLUMN IF NOT EXISTS start_time text,
+    ADD COLUMN IF NOT EXISTS end_time text;
+
 SELECT setval(
     'public.users_user_id_seq',
     GREATEST(

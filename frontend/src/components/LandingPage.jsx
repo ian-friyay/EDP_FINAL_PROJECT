@@ -16,6 +16,25 @@ export default function LandingPage() {
   const SUN_ORANGE = '#ff7828';
   const SUN_ORANGE_DARK = '#ea580c';
 
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  const [userRole, setUserRole] = React.useState('student');
+
+  React.useEffect(() => {
+    try {
+      const token = typeof window !== 'undefined' ? window.localStorage.getItem('token') : null;
+      const userStr = typeof window !== 'undefined' ? window.localStorage.getItem('user') : null;
+      if (token && userStr) {
+        setIsAuthenticated(true);
+        const parsed = JSON.parse(userStr);
+        if (parsed?.user_type === 'Admin' || (parsed?.department && parsed?.designation)) {
+          setUserRole('admin');
+        }
+      }
+    } catch {
+      // Non-blocking
+    }
+  }, []);
+
   const focusedCategories = [
     {
       id: 'creative',
@@ -110,51 +129,77 @@ export default function LandingPage() {
               </Nav.Link>
 
               <div className="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2 ms-lg-3 mt-3 mt-lg-0">
-                <Button
-                  as={Link}
-                  to="/sign-in"
-                  className="rounded-pill px-3 py-2 fw-semibold text-white text-decoration-none text-center"
-                  style={{
-                    backgroundColor: 'transparent',
-                    border: '1px solid rgba(255, 255, 255, 0.45)',
-                    boxShadow: 'none',
-                    fontSize: '14px',
-                    transition: 'all 0.2s ease',
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.borderColor = '#ffffff';
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
-                    e.currentTarget.style.boxShadow = '0 0 10px rgba(255, 255, 255, 0.25)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.45)';
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  Sign In
-                </Button>
-                <Button
-                  as={Link}
-                  to="/sign-up"
-                  className="rounded-pill px-4 py-2 fw-bold text-white border-0 text-center"
-                  style={{
-                    background: `linear-gradient(135deg, ${SUN_ORANGE} 0%, ${SUN_ORANGE_DARK} 100%)`,
-                    boxShadow: 'none',
-                    fontSize: '14px',
-                    transition: 'all 0.2s ease',
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(255, 120, 40, 0.55)';
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  Get Started
-                </Button>
+                {isAuthenticated ? (
+                  <Button
+                    as={Link}
+                    to={userRole === 'admin' ? '/admin/dashboard' : '/dashboard'}
+                    className="rounded-pill px-4 py-2 fw-bold text-white border-0 text-center"
+                    style={{
+                      background: `linear-gradient(135deg, ${SUN_ORANGE} 0%, ${SUN_ORANGE_DARK} 100%)`,
+                      boxShadow: '0 4px 14px rgba(255, 120, 40, 0.4)',
+                      fontSize: '14px',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.boxShadow = '0 4px 18px rgba(255, 120, 40, 0.65)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.boxShadow = '0 4px 14px rgba(255, 120, 40, 0.4)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    Go to Dashboard &rarr;
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      as={Link}
+                      to="/sign-in"
+                      className="rounded-pill px-3 py-2 fw-semibold text-white text-decoration-none text-center"
+                      style={{
+                        backgroundColor: 'transparent',
+                        border: '1px solid rgba(255, 255, 255, 0.45)',
+                        boxShadow: 'none',
+                        fontSize: '14px',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.borderColor = '#ffffff';
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
+                        e.currentTarget.style.boxShadow = '0 0 10px rgba(255, 255, 255, 0.25)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.45)';
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      Sign In
+                    </Button>
+                    <Button
+                      as={Link}
+                      to="/sign-up"
+                      className="rounded-pill px-4 py-2 fw-bold text-white border-0 text-center"
+                      style={{
+                        background: `linear-gradient(135deg, ${SUN_ORANGE} 0%, ${SUN_ORANGE_DARK} 100%)`,
+                        boxShadow: 'none',
+                        fontSize: '14px',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.boxShadow = '0 4px 16px rgba(255, 120, 40, 0.55)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      Get Started
+                    </Button>
+                  </>
+                )}
               </div>
             </Nav>
           </Navbar.Collapse>
@@ -195,7 +240,7 @@ export default function LandingPage() {
 
               {/* Big Headline */}
               <h1
-                className="fw-extrabold mb-3 text-center"
+                className="fw-extrabold mb-3 text-center hero-headline-animated"
                 style={{
                   fontSize: 'clamp(2.2rem, 5.5vw, 4rem)',
                   fontWeight: '800',
@@ -207,14 +252,7 @@ export default function LandingPage() {
               >
                 Your Skills Deserve
                 <br />
-                <span
-                  style={{
-                    color: SUN_ORANGE,
-                    background: `linear-gradient(90deg, ${SUN_ORANGE} 0%, ${SUN_ORANGE_DARK} 100%)`,
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                  }}
-                >
+                <span className="hero-accent-gleam">
                   To Be Seen.
                 </span>
               </h1>
@@ -751,17 +789,40 @@ export default function LandingPage() {
             <Button
               as={Link}
               to="/services"
-              className="neu-btn-orange rounded-pill px-4 py-3 fw-bold text-white shadow-sm w-100 w-sm-auto"
+              className="neu-btn-orange px-4 py-3 fw-bold text-white shadow-sm w-100 w-sm-auto"
               size="lg"
+              style={{
+                borderRadius: 'var(--neu-radius, 14px)',
+                boxShadow: '0 4px 16px rgba(255, 120, 40, 0.35)',
+              }}
             >
               Explore Services
             </Button>
             <Button
               as={Link}
               to="/sign-up"
-              className="neu-btn-outline rounded-pill px-4 py-3 fw-bold text-white w-100 w-sm-auto"
+              className="px-4 py-3 fw-bold w-100 w-sm-auto"
               size="lg"
-              style={{ borderColor: '#ffffff', color: '#ffffff' }}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                border: '1.5px solid rgba(255, 255, 255, 0.25)',
+                borderRadius: 'var(--neu-radius, 14px)',
+                color: '#ffffff',
+                boxShadow: 'none',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                transition: 'all 0.25s ease',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.55)';
+                e.currentTarget.style.color = '#ffffff';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+                e.currentTarget.style.color = '#ffffff';
+              }}
             >
               Join as Service Provider
             </Button>

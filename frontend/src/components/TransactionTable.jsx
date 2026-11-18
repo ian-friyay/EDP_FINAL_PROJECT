@@ -76,6 +76,11 @@ function TransactionTable({ transactions = [], currentUserId, onStatusUpdate }) 
                         ? `Requestor: ${transaction.requestor_name || transaction.requestor_id}`
                         : `Provider: ${transaction.provider_name || transaction.provider_id}`}
                     </small>
+                    {transaction.notes && (
+                      <div className="small text-secondary mt-1 p-1 rounded bg-light border fst-italic" style={{ maxWidth: '280px' }}>
+                        <span className="fw-semibold text-dark">Note:</span> "{transaction.notes}"
+                      </div>
+                    )}
                   </td>
                   <td className="d-none d-md-table-cell">{formatAmount(transaction.amount_topay)}</td>
                   <td className="fw-bold" style={{ color: '#063a8f' }}>
@@ -90,11 +95,22 @@ function TransactionTable({ transactions = [], currentUserId, onStatusUpdate }) 
                     </Badge>
                   </td>
                   <td className="d-none d-sm-table-cell">
-                    <small className="text-muted">
-                      {transaction.created_at
-                        ? new Date(transaction.created_at).toLocaleString('en-PH')
-                        : '-'}
-                    </small>
+                    {transaction.booking_date ? (
+                      <div>
+                        <div className="small fw-semibold text-dark">{transaction.booking_date}</div>
+                        {(transaction.start_time || transaction.end_time) && (
+                          <Badge bg="light" text="dark" className="border small font-monospace">
+                            🕒 {transaction.start_time || '--:--'} - {transaction.end_time || '--:--'}
+                          </Badge>
+                        )}
+                      </div>
+                    ) : (
+                      <small className="text-muted">
+                        {transaction.created_at
+                          ? new Date(transaction.created_at).toLocaleDateString('en-PH')
+                          : '-'}
+                      </small>
+                    )}
                   </td>
                   <td>
                     <div className="d-flex align-items-center gap-2 flex-wrap">

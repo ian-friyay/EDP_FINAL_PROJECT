@@ -72,14 +72,32 @@ export default function AuthPage({ mode }) {
       .catch(() => {});
   }, []);
 
-  // Load remembered email on mount
+  // Load remembered session or email on mount
   useEffect(() => {
-    const rememberedEmail = window.localStorage.getItem('serbisyou_remembered_email');
-    if (rememberedEmail && mode === 'sign-in') {
-      setEmail(rememberedEmail);
-      setRememberMe(true);
+    if (mode === 'sign-in') {
+      const token = window.localStorage.getItem('token');
+      const userStr = window.localStorage.getItem('user');
+      const isRemembered = window.localStorage.getItem('serbisyou_remember_me') === 'true';
+
+      // Auto-restore session if user checked Remember Me on this device
+      if (token && userStr && isRemembered) {
+        try {
+          const parsedUser = JSON.parse(userStr);
+          const isAdmin = parsedUser?.user_type === 'Admin' || (parsedUser?.department && parsedUser?.designation);
+          navigate(isAdmin ? '/admin/dashboard' : '/dashboard', { replace: true });
+          return;
+        } catch (e) {
+          // Non-blocking
+        }
+      }
+
+      const rememberedEmail = window.localStorage.getItem('serbisyou_remembered_email');
+      if (rememberedEmail) {
+        setEmail(rememberedEmail);
+        setRememberMe(true);
+      }
     }
-  }, [mode]);
+  }, [mode, navigate]);
 
   // Handle route & mode change reset
   useEffect(() => {
@@ -426,7 +444,11 @@ export default function AuthPage({ mode }) {
     // Sign In Submit
     setIsSubmitting(true);
     try {
-      const { data } = await api.post('/auth/login', { email, password });
+      const { data } = await api.post('/auth/login', {
+        email: email.trim(),
+        password,
+        rememberMe,
+      });
       if (typeof data.token !== 'string' || !data.token) {
         throw new Error('Authentication token missing from response.');
       }
@@ -439,8 +461,10 @@ export default function AuthPage({ mode }) {
       window.localStorage.setItem('user', JSON.stringify(data.user));
 
       if (rememberMe) {
+        window.localStorage.setItem('serbisyou_remember_me', 'true');
         window.localStorage.setItem('serbisyou_remembered_email', email.trim());
       } else {
+        window.localStorage.removeItem('serbisyou_remember_me');
         window.localStorage.removeItem('serbisyou_remembered_email');
       }
 
@@ -466,15 +490,45 @@ export default function AuthPage({ mode }) {
 
   return (
     <main
-      className="min-vh-100 py-4 py-md-5 d-flex align-items-center justify-content-center"
+      className="min-vh-100 py-4 py-md-5 d-flex align-items-center justify-content-center position-relative"
       style={{ background: 'var(--neu-bg)' }}
     >
-      <Container className="d-flex justify-content-center px-3">
+      {/* Blurred Service Icons Background Layer (Viewport-Fixed so size remains identical in both Sign In and Register) */}
+      <div
+        className="position-fixed top-0 start-0 w-100 h-100"
+        style={{
+          backgroundImage: 'url(/auth-bg.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          filter: 'blur(6px)',
+          transform: 'scale(1.06)',
+          opacity: 0.85,
+          zIndex: 0,
+          pointerEvents: 'none',
+        }}
+        aria-hidden="true"
+      />
+
+      {/* Subtle overlay tint for crisp neumorphic form contrast */}
+      <div
+        className="position-fixed top-0 start-0 w-100 h-100"
+        style={{
+          backgroundColor: 'rgba(235, 240, 246, 0.38)',
+          zIndex: 1,
+          pointerEvents: 'none',
+        }}
+        aria-hidden="true"
+      />
+
+      <Container className="d-flex justify-content-center px-3 position-relative" style={{ zIndex: 2 }}>
         <div
           className="neu-card p-4 p-md-5 w-100"
           style={{
             maxWidth: isSignUp && !verificationPending ? '780px' : '520px',
-            boxShadow: 'var(--neu-shadow-flat-lg)',
+            boxShadow: '0 20px 50px rgba(10, 25, 47, 0.28), var(--neu-shadow-flat-lg)',
+            backgroundColor: 'rgba(235, 240, 246, 0.94)',
+            backdropFilter: 'blur(12px)',
           }}
         >
           {/* Navigation & Back Buttons Bar */}
