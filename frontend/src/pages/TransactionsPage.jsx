@@ -11,6 +11,27 @@ export default function TransactionsPage() {
   const [error, setError] = useState(null);
   const currentUserId = getCurrentUserId();
 
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    api.get('/profile/me')
+      .then(({ data }) => {
+        if (data?.user) {
+          setCurrentUser(data.user);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const isProvider = String(currentUser?.user_type || '').toLowerCase() === 'provider';
+
   const fetchTransactions = useCallback(async () => {
     try {
       const res = await api.get('/transactions');
@@ -70,9 +91,13 @@ export default function TransactionsPage() {
     <Container fluid className="p-0">
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-          <h2 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>Transactions &amp; Bookings</h2>
+          <h2 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>
+            {isProvider ? 'Client Bookings & Transactions' : 'My Availed Bookings'}
+          </h2>
           <p className="text-muted mb-0">
-            Records of service bookings, booking fees (₱5), and 5% commission fees.
+            {isProvider
+              ? 'Manage incoming student client booking requests, track completion, and view 5% commission details.'
+              : 'View your scheduled campus service bookings, check status, and settle via QR vouchers.'}
           </p>
         </div>
         <Button

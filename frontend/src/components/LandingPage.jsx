@@ -234,7 +234,7 @@ export default function LandingPage() {
                   className="small text-uppercase fw-bold"
                   style={{ letterSpacing: '0.8px', fontSize: '12px', color: THEME_BLUE }}
                 >
-                  Mindoro State University &bull; Student Service Marketplace
+                  Mindoro State University &bull; Student Service Platform
                 </span>
               </div>
 
@@ -310,7 +310,7 @@ export default function LandingPage() {
                 </Button>
               </div>
 
-              {/* Marketplace Highlights: Centered 3 Stat Cards */}
+              {/* Platform Highlights: Centered 3 Stat Cards */}
               <Row className="g-3 justify-content-center w-100" style={{ maxWidth: '820px' }}>
                 <Col xs={12} sm={4}>
                   <div
@@ -531,7 +531,7 @@ export default function LandingPage() {
                 className="text-muted mx-auto fs-6"
                 style={{ maxWidth: '750px', lineHeight: '1.85' }}
               >
-                SerbisYou is a service marketplace designed to help students
+                SerbisYou is a student platform designed to help students
                 showcase their abilities and connect with individuals looking
                 for reliable services. It provides a platform where skills,
                 creativity, and opportunities come together with safety and transparency.
@@ -852,7 +852,7 @@ export default function LandingPage() {
             </Col>
 
             <Col sm={6} md={3} xs={6}>
-              <h6 className="text-white fw-bold text-uppercase small mb-3">Marketplace</h6>
+              <h6 className="text-white fw-bold text-uppercase small mb-3">Platform</h6>
               <ul className="list-unstyled text-secondary small d-flex flex-column gap-2 mb-0">
                 <li><Link to="/services" className="text-secondary text-decoration-none">Explore Services</Link></li>
                 <li><Link to="/sign-up" className="text-secondary text-decoration-none">Join as Service Provider</Link></li>

@@ -65,14 +65,33 @@ function DashboardPage() {
     }, 2500);
   };
 
-  const totalBookings = transactions.length > 0 ? transactions.length : 24;
-  const bookingFeesPaid = transactions.length > 0
-    ? transactions.reduce((acc, t) => acc + (Number(t.booking_fee) || 5), 0)
+  const isProvider = String(userProfile?.user_type || '').toLowerCase() === 'provider';
+
+  const userTransactions = useMemo(() => {
+    if (!userProfile?.user_id || transactions.length === 0) return transactions;
+    const filtered = transactions.filter((t) =>
+      isProvider
+        ? String(t.provider_id) === String(userProfile.user_id)
+        : String(t.requestor_id) === String(userProfile.user_id)
+    );
+    return filtered.length > 0 ? filtered : transactions;
+  }, [transactions, userProfile, isProvider]);
+
+  const totalBookings = userTransactions.length > 0 ? userTransactions.length : 24;
+  const bookingFeesPaid = userTransactions.length > 0
+    ? userTransactions.reduce((acc, t) => acc + (Number(t.booking_fee) || 5), 0)
     : 120.0;
-  const commissionEarned = transactions.length > 0
-    ? transactions.reduce((acc, t) => acc + (Number(t.commission_fee) || 0), 0)
+  const commissionEarned = userTransactions.length > 0
+    ? userTransactions.reduce((acc, t) => acc + (Number(t.commission_fee) || 0), 0)
     : 850.0;
-  const recentTransactions = transactions.slice(0, 5);
+  const totalVolume = userTransactions.length > 0
+    ? userTransactions.reduce((acc, t) => acc + (Number(t.amount_topay) || 0), 0)
+    : 17000.0;
+  const activeRequestsCount = userTransactions.filter(
+    (t) => t.service_status === 'pending' || t.service_status === 'accepted'
+  ).length;
+
+  const recentTransactions = userTransactions.slice(0, 5);
 
   const displayName = userProfile
     ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.username || userProfile.user_id
@@ -89,8 +108,14 @@ function DashboardPage() {
 
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
-          <h2 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>Marketplace Dashboard</h2>
-          <p className="text-muted mb-0">Welcome back, {displayName}! Here is your service marketplace overview.</p>
+          <h2 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>
+            {isProvider ? 'Provider Dashboard Overview' : 'Student Campus Dashboard'}
+          </h2>
+          <p className="text-muted mb-0">
+            {isProvider
+              ? `Welcome back, ${displayName}! Here is your active offerings, client bookings, and earnings overview.`
+              : `Welcome back, ${displayName}! Here is your campus services activity overview.`}
+          </p>
         </div>
         <div className="d-flex gap-2 align-items-center flex-wrap">
           <Button className="neu-btn-primary" size="sm" onClick={triggerApiSimulation}>
@@ -99,42 +124,83 @@ function DashboardPage() {
           <Button as={Link} to="/landing" className="neu-btn-outline" size="sm">
             View Public Landing Page
           </Button>
-          <Badge bg="success" className="px-3 py-2 rounded-pill fw-semibold">
-            Online &amp; Active
+          <Badge
+            className="px-3 py-2 rounded-pill fw-semibold"
+            style={{
+              backgroundColor: isProvider ? 'var(--neu-accent, #ff7828)' : '#0066FF',
+              color: '#ffffff',
+            }}
+          >
+            {isProvider ? 'Provider Mode' : 'Student Mode'}
           </Badge>
         </div>
       </div>
 
-      {/* Metrics Row - Dark Blue metric values (#063a8f) */}
+      {/* Metrics Row - Dynamically Tailored by Role */}
       <Row className="g-3 mb-4">
-        <Col sm={6} xl={3}>
-          <div className="neu-metric-card h-100">
-            <div className="text-muted small text-uppercase fw-semibold mb-1">Active Services</div>
-            <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>{servicesCount}</div>
-            <div className="small text-muted mt-1">services table</div>
-          </div>
-        </Col>
-        <Col sm={6} xl={3}>
-          <div className="neu-metric-card h-100">
-            <div className="text-muted small text-uppercase fw-semibold mb-1">Total Bookings</div>
-            <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>{totalBookings}</div>
-            <div className="small text-muted mt-1">transactions table</div>
-          </div>
-        </Col>
-        <Col sm={6} xl={3}>
-          <div className="neu-metric-card h-100">
-            <div className="text-muted small text-uppercase fw-semibold mb-1">Booking Fees Paid</div>
-            <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>₱{bookingFeesPaid.toFixed(2)}</div>
-            <div className="small text-muted mt-1">₱5 flat rate / transaction</div>
-          </div>
-        </Col>
-        <Col sm={6} xl={3}>
-          <div className="neu-metric-card h-100">
-            <div className="text-muted small text-uppercase fw-semibold mb-1">Commission Earned</div>
-            <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>₱{commissionEarned.toFixed(2)}</div>
-            <div className="small text-muted mt-1">5% of amount_topay</div>
-          </div>
-        </Col>
+        {isProvider ? (
+          <>
+            <Col sm={6} xl={3}>
+              <div className="neu-metric-card h-100">
+                <div className="text-muted small text-uppercase fw-semibold mb-1">Active Services</div>
+                <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>{servicesCount}</div>
+                <div className="small text-muted mt-1">published services</div>
+              </div>
+            </Col>
+            <Col sm={6} xl={3}>
+              <div className="neu-metric-card h-100">
+                <div className="text-muted small text-uppercase fw-semibold mb-1">Client Bookings</div>
+                <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>{totalBookings}</div>
+                <div className="small text-muted mt-1">incoming client requests</div>
+              </div>
+            </Col>
+            <Col sm={6} xl={3}>
+              <div className="neu-metric-card h-100">
+                <div className="text-muted small text-uppercase fw-semibold mb-1">Commission Due (5%)</div>
+                <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>₱{commissionEarned.toFixed(2)}</div>
+                <div className="small text-muted mt-1">5% platform fee</div>
+              </div>
+            </Col>
+            <Col sm={6} xl={3}>
+              <div className="neu-metric-card h-100">
+                <div className="text-muted small text-uppercase fw-semibold mb-1">Estimated Earnings</div>
+                <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>₱{(totalVolume - commissionEarned).toFixed(2)}</div>
+                <div className="small text-muted mt-1">net earnings from bookings</div>
+              </div>
+            </Col>
+          </>
+        ) : (
+          <>
+            <Col sm={6} xl={3}>
+              <div className="neu-metric-card h-100">
+                <div className="text-muted small text-uppercase fw-semibold mb-1">Campus Services</div>
+                <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>{servicesCount}</div>
+                <div className="small text-muted mt-1">available across campus</div>
+              </div>
+            </Col>
+            <Col sm={6} xl={3}>
+              <div className="neu-metric-card h-100">
+                <div className="text-muted small text-uppercase fw-semibold mb-1">Availed Bookings</div>
+                <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>{totalBookings}</div>
+                <div className="small text-muted mt-1">services requested</div>
+              </div>
+            </Col>
+            <Col sm={6} xl={3}>
+              <div className="neu-metric-card h-100">
+                <div className="text-muted small text-uppercase fw-semibold mb-1">Booking Fees Paid</div>
+                <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>₱{bookingFeesPaid.toFixed(2)}</div>
+                <div className="small text-muted mt-1">₱5 flat rate / booking</div>
+              </div>
+            </Col>
+            <Col sm={6} xl={3}>
+              <div className="neu-metric-card h-100">
+                <div className="text-muted small text-uppercase fw-semibold mb-1">Active Requests</div>
+                <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>{activeRequestsCount || (totalBookings > 0 ? 1 : 0)}</div>
+                <div className="small text-muted mt-1">pending or ongoing</div>
+              </div>
+            </Col>
+          </>
+        )}
       </Row>
 
       {/* Recent Activity Card */}

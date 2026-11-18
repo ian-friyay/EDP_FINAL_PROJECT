@@ -222,7 +222,7 @@ export default function ServicesGrid({
         <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-wrap gap-2 text-muted small">
           <div>
             Showing <strong style={{ color: 'var(--neu-text)' }}>{filteredServices.length}</strong> of{' '}
-            <strong style={{ color: 'var(--neu-text)' }}>{services.length}</strong> active marketplace services
+            <strong style={{ color: 'var(--neu-text)' }}>{services.length}</strong> active campus services
           </div>
           {selectedCategory !== 'ALL' && (
             <div>

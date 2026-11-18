@@ -150,14 +150,14 @@ function TransactionTable({ transactions = [], currentUserId, onStatusUpdate }) 
                         </Button>
                       )}
 
-                      {/* QR Settlement View */}
+                      {/* QR Settlement / Voucher View */}
                       <Button
                         as={Link}
                         to={`/transactions/${transaction.transaction_id}/qr`}
                         className="neu-btn-outline px-2 py-1"
                         size="sm"
                       >
-                        QR Code
+                        {isProvider ? 'QR Settlement' : 'QR Voucher'}
                       </Button>
                     </div>
                   </td>

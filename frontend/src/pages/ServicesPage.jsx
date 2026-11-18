@@ -42,6 +42,28 @@ export default function ServicesPage() {
   const [message, setMessage] = useState('');
   const currentUserId = window.localStorage.getItem('user_id');
 
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    api.get('/profile/me')
+      .then(({ data }) => {
+        if (data?.user) {
+          setCurrentUser(data.user);
+          window.localStorage.setItem('user', JSON.stringify(data.user));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const isProvider = String(currentUser?.user_type || '').toLowerCase() === 'provider';
+
   const refreshServices = useCallback(async () => {
     setIsLoading(true);
     setError('');
@@ -110,7 +132,7 @@ export default function ServicesPage() {
 
       setServiceForm(emptyService);
       setShowCreateModal(false);
-      setMessage('Your service was added to the marketplace.');
+      setMessage('Your service was added successfully.');
       await refreshServices();
     } catch (requestError) {
       setError(getRequestError(requestError));
@@ -172,7 +194,7 @@ export default function ServicesPage() {
 
     try {
       await api.patch(`/services/${encodeURIComponent(service.service_id)}/soft-delete`);
-      setMessage('Your service was removed from the marketplace.');
+      setMessage('Your service was removed successfully.');
       await refreshServices();
     } catch (requestError) {
       setError(getRequestError(requestError));
@@ -288,17 +310,23 @@ export default function ServicesPage() {
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-          <h2 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>Services Marketplace</h2>
+          <h2 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>
+            {isProvider ? 'My Offered Services' : 'Campus Services Directory'}
+          </h2>
           <p className="text-muted mb-0">
-            Browse and book active community services, or publish your own with flexible rates.
+            {isProvider
+              ? 'Manage and publish your student service offerings with flexible rates.'
+              : 'Browse and book active student services across campus with flexible scheduling.'}
           </p>
         </div>
-        <Button
-          className="neu-btn-primary rounded-pill px-4"
-          onClick={() => setShowCreateModal(true)}
-        >
-          + Add New Service
-        </Button>
+        {isProvider && (
+          <Button
+            className="neu-btn-primary rounded-pill px-4"
+            onClick={() => setShowCreateModal(true)}
+          >
+            + Add New Service
+          </Button>
+        )}
       </div>
 
       {message && <Alert variant="success" dismissible onClose={() => setMessage('')} className="neu-alert">{message}</Alert>}
