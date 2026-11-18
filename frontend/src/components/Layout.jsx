@@ -161,8 +161,8 @@ export default function Layout() {
                   {user.email}
                 </div>
               </div>
-              <NavDropdown.Item as={Link} to="/profile">
-                My Profile
+              <NavDropdown.Item as={Link} to="/settings">
+                Account Settings &amp; Profile
               </NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/services">
                 My Services

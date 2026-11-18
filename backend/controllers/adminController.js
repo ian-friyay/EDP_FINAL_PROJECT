@@ -1,18 +1,5 @@
 const supabase = require('../db');
-
-// In-memory store for profile unlock requests if not yet persisted in dedicated Supabase table
-let unlockRequestsStore = [
-  {
-    id: 1,
-    user_id: 'MMC-0001',
-    student_id: 'MMC-0001',
-    user_name: 'Jasmine Requestor',
-    email: 'jasmine@serbisyou.ph',
-    reason: 'Incorrect contact number submitted during initial registration.',
-    status: 'pending',
-    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-  }
-];
+const { unlockRequestsStore, userCooldowns } = require('../utils/cooldownStore');
 
 const checkAdminExists = async (req, res) => {
     try {
@@ -249,8 +236,12 @@ const approveUnlockRequest = async (req, res) => {
         const { id } = req.params;
         const reqIndex = unlockRequestsStore.findIndex((r) => String(r.id) === String(id));
         if (reqIndex !== -1) {
-            unlockRequestsStore[reqIndex].status = 'approved';
-            unlockRequestsStore[reqIndex].admin_notes = req.body.admin_notes || 'Approved by administrator.';
+            const reqItem = unlockRequestsStore[reqIndex];
+            reqItem.status = 'approved';
+            reqItem.admin_notes = req.body.admin_notes || 'Approved by administrator. Cooldown cleared.';
+            if (reqItem.user_id) {
+                userCooldowns.set(reqItem.user_id, { updatedAt: null, unlockedByAdmin: true });
+            }
         }
         return res.status(200).json({
             message: 'Student profile editing cooldown cleared successfully.'
@@ -279,6 +270,7 @@ const rejectUnlockRequest = async (req, res) => {
 const unlockUserProfile = async (req, res) => {
     try {
         const { id } = req.params;
+        userCooldowns.set(id, { updatedAt: null, unlockedByAdmin: true });
         return res.status(200).json({
             message: `Profile editing cooldown reset for ${id}. Student can now update info.`
         });

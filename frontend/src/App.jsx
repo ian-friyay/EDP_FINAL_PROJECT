@@ -10,6 +10,7 @@ import MessagesPage from './pages/MessagesPage';
 import ChatPage from './pages/ChatPage';
 import TransactionQRPage from './pages/TransactionQRPage';
 import AuthPage from './pages/AuthPage';
+import SettingsPage from './pages/SettingsPage';
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
@@ -566,7 +567,8 @@ export default function App() {
           <Route path="/transactions/:transactionId/qr" element={<TransactionQRPage />} />
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/messages/:id" element={<ChatPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/profile" element={<SettingsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
 
         {/* Admin Portal Routes (No CMS) */}
