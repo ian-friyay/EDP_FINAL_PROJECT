@@ -143,55 +143,81 @@ const seedDatabase = async () => {
   if (!services || services.length === 0) {
     const initialServices = [
       {
-        user_id: 'MMC-2015',
-        service_category: 'Plumbing & Sanitation',
-        subcategory: 'Pipe Installation & Leak Repair',
+        user_id: 'MMC-3046',
+        service_category: 'Creatives',
+        subcategory: 'Graphic Designer',
         service_description:
-          'Emergency pipe repair, bathroom sink unclogging, PVC and GI pipe fitting, and high-pressure water leak troubleshooting. Tools and standard sealants provided.',
+          'Campus event posters, org logos, infographics, club shirts, and publication materials. High-res vector and printable files delivered.',
+        amount_topay: 450.0,
+        service_status: 'active',
+        rate_unit: 'per_service',
+        picture_proof: [
+          'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=800&auto=format&fit=crop&q=80',
+        ],
+      },
+      {
+        user_id: 'MMC-2015',
+        service_category: 'Creatives',
+        subcategory: 'Art Painter',
+        service_description:
+          'Custom canvas acrylic paintings, department wall murals, and traditional portrait art commissions for campus events and personal gifts.',
         amount_topay: 1200.0,
         service_status: 'active',
         rate_unit: 'per_service',
         picture_proof: [
-          'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=800&auto=format&fit=crop&q=80',
-        ],
-      },
-      {
-        user_id: 'MMC-3044',
-        service_category: 'Electrical Works',
-        subcategory: 'Residential Circuit & Breaker Wiring',
-        service_description:
-          'Comprehensive home electrical inspection, short-circuit troubleshooting, breaker panel replacement, main line re-routing, and smart lighting installations.',
-        amount_topay: 2500.0,
-        service_status: 'active',
-        rate_unit: 'per_service',
-        picture_proof: [
-          'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80',
         ],
       },
       {
         user_id: 'MMC-1042',
-        service_category: 'Carpentry & Handyman',
-        subcategory: 'Custom Furniture & Home Repair',
+        service_category: 'Event Support',
+        subcategory: 'Makeup Artist',
         service_description:
-          'Door alignment, cabinet hinge repairs, wooden table varnish, wall bracket installation, and general campus carpentry services.',
+          'Professional makeup and hair styling for graduation pictorials, college pageants, faculty programs, and university theater performances.',
         amount_topay: 850.0,
         service_status: 'active',
         rate_unit: 'per_service',
         picture_proof: [
-          'https://images.unsplash.com/photo-1581141849291-1125c7b692b5?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=800&auto=format&fit=crop&q=80',
+        ],
+      },
+      {
+        user_id: 'MMC-3044',
+        service_category: 'Event Support',
+        subcategory: 'Event Host',
+        service_description:
+          'Energetic and bilingual emcee/host for university departmental symposiums, sports fests, cultural nights, and acquaintance parties.',
+        amount_topay: 1500.0,
+        service_status: 'active',
+        rate_unit: 'per_service',
+        picture_proof: [
+          'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=800&auto=format&fit=crop&q=80',
+        ],
+      },
+      {
+        user_id: 'MMC-1042',
+        service_category: 'Digital Service',
+        subcategory: 'Photographer',
+        service_description:
+          'DSLR campus portrait sessions, event coverage, graduation pictorials, and color-graded digital photography with lighting equipment.',
+        amount_topay: 750.0,
+        service_status: 'active',
+        rate_unit: 'per_hour',
+        picture_proof: [
+          'https://images.unsplash.com/photo-1554048612-b6a482bc67e5?w=800&auto=format&fit=crop&q=80',
         ],
       },
       {
         user_id: 'MMC-3046',
-        service_category: 'Academic & Creative Services',
-        subcategory: 'Graphic Design & Layout',
+        service_category: 'Digital Service',
+        subcategory: 'Video Editor',
         service_description:
-          'Custom event posters, academic infographics, logo designs, and club presentation decks.',
-        amount_topay: 500.0,
+          'High-paced Reels, TikToks, club recap videos, academic documentary video projects, and cinematic color grading with sound design.',
+        amount_topay: 600.0,
         service_status: 'active',
-        rate_unit: 'per_hour',
+        rate_unit: 'per_service',
         picture_proof: [
-          'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800&auto=format&fit=crop&q=80',
         ],
       },
     ];

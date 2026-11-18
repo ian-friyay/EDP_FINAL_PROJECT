@@ -62,6 +62,19 @@ const createTransaction = async (req, res) => {
       });
     }
 
+    // Role check: Only Requestors can book services
+    const { data: requestorUser } = await supabase
+      .from('users')
+      .select('user_type')
+      .eq('user_id', requestor_id)
+      .maybeSingle();
+
+    if (requestorUser?.user_type === 'Provider') {
+      return res.status(403).json({
+        error: 'Only Requestors can book campus services. Providers offer services for clients to book.',
+      });
+    }
+
     const provider_id = service.user_id;
     let baseAmount = Number(service.amount_topay);
 
@@ -98,6 +111,14 @@ const createTransaction = async (req, res) => {
     const total_topay = Number((amount_topay + booking_fee).toFixed(2));
     const qr_code = `SERBISYOU-${crypto.randomUUID()}`;
 
+    const meetingLocation = rendezvous_location || 'Main Campus - Student Center';
+    const meetingTime = scheduled_date || booking_date;
+    const combinedNotes = [
+      `📍 Rendezvous Meeting Location: ${meetingLocation}`,
+      meetingTime ? `📅 Meeting Date & Time: ${meetingTime} ${start_time ? `(${start_time} - ${end_time || ''})` : ''}` : null,
+      notes ? `📝 Special Instructions: ${String(notes).trim()}` : null,
+    ].filter(Boolean).join('\n');
+
     const insertPayload = {
       provider_id,
       requestor_id,
@@ -108,7 +129,7 @@ const createTransaction = async (req, res) => {
       commission_fee,
       service_status: 'pending',
       qr_code,
-      notes: notes ? String(notes).trim() : null,
+      notes: combinedNotes,
       booking_date: booking_date || scheduled_date || null,
       start_time: start_time || null,
       end_time: end_time || null,

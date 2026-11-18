@@ -16,6 +16,7 @@ import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminAdvertisements from './pages/admin/AdminAdvertisements';
 import { Row, Col, Badge, Table, Button, Form, Alert } from 'react-bootstrap';
 import api from './api/axios';
 
@@ -369,6 +370,7 @@ export default function App() {
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
+          <Route path="advertisements" element={<AdminAdvertisements />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="statistics" element={<AdminPage />} />
         </Route>

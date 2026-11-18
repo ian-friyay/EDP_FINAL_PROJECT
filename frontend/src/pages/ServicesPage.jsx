@@ -2,15 +2,15 @@ import { useCallback, useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Button, Form, Modal, Row, Col, Badge, InputGroup } from 'react-bootstrap';
 import api from '../api/axios';
-import ServicesGrid from '../components/ServicesGrid';
+import ServicesGrid, { SERVICE_TAXONOMY } from '../components/ServicesGrid';
 import WeatherWidget from '../components/WeatherWidget';
 import AdBanner from '../components/AdBanner';
 import { DEFAULT_SERVICE_PLACEHOLDER } from '../utils/placeholder';
 import { queueOfflineAction } from '../utils/offlineQueue';
 
 const emptyService = {
-  service_category: '',
-  subcategory: '',
+  service_category: 'Creatives',
+  subcategory: 'Graphic Designer',
   service_description: '',
   amount_topay: '',
   rate_unit: 'per_service',
@@ -216,6 +216,16 @@ export default function ServicesPage() {
   const [message, setMessage] = useState('');
   const currentUserId = window.localStorage.getItem('user_id');
 
+  const currentUser = useMemo(() => {
+    try {
+      return JSON.parse(window.localStorage.getItem('user')) || {};
+    } catch {
+      return {};
+    }
+  }, []);
+  const userType = currentUser.user_type || 'Requestor';
+  const isProvider = userType === 'Provider';
+
   const refreshServices = useCallback(async () => {
     setIsLoading(true);
     setError('');
@@ -368,62 +378,17 @@ export default function ServicesPage() {
     }
   };
 
-  // Open the Booking Details Modal when a student clicks "Book Service"
-  const handleOpenBooking = (service) => {
-    setError('');
-    setMessage('');
-    setBookingModalService(service);
-    const today = new Date().toISOString().split('T')[0];
-    setBookingDate(today);
-    setStartTime('09:00');
-    setEndTime('12:00');
-    setBookingNotes('');
-  };
-
+  // Execute booking submission directly with rendezvous location, schedule, and notes
   const handleBookService = async (service, bookingDetails = {}) => {
-    handleOpenBooking(service);
-  };
-
-  // Compute duration and service cost dynamically inside booking modal
-  const { calculatedHours, calculatedServiceCost } = useMemo(() => {
-    if (!bookingModalService) return { calculatedHours: 1, calculatedServiceCost: 0 };
-    const base = Number(bookingModalService.amount_topay) || 0;
-
-    if (bookingModalService.rate_unit === 'per_hour' && startTime && endTime) {
-      const [startH, startM] = startTime.split(':').map(Number);
-      const [endH, endM] = endTime.split(':').map(Number);
-      const startMin = startH * 60 + (startM || 0);
-      const endMin = endH * 60 + (endM || 0);
-      if (endMin > startMin) {
-        const hours = (endMin - startMin) / 60;
-        return {
-          calculatedHours: hours,
-          calculatedServiceCost: Number((hours * base).toFixed(2)),
-        };
-      }
-    }
-
-    return { calculatedHours: 1, calculatedServiceCost: base };
-  }, [bookingModalService, startTime, endTime]);
-
-  // Execute booking submission with schedule and notes
-  const handleConfirmBooking = async (event) => {
-    event.preventDefault();
-    if (!bookingModalService) return;
-
-    const service = bookingModalService;
     setError('');
     setMessage('');
     setBookingServiceId(service.service_id);
-    setBookingModalService(null);
 
     const payload = {
       service_id: service.service_id,
-      notes: bookingNotes.trim(),
-      booking_date: bookingDate,
-      start_time: startTime,
-      end_time: endTime,
-      custom_amount: calculatedServiceCost,
+      rendezvous_location: bookingDetails.rendezvous_location || 'Main Campus - Student Center',
+      scheduled_date: bookingDetails.scheduled_date || new Date().toISOString(),
+      notes: bookingDetails.special_instructions || '',
     };
 
     try {
@@ -433,10 +398,10 @@ export default function ServicesPage() {
           endpoint: '/transactions',
           method: 'post',
           payload,
-          description: `Booking: ${service.subcategory || service.service_category} on ${bookingDate} (${startTime} - ${endTime})`,
+          description: `Booking: ${service.subcategory || service.service_category} at ${payload.rendezvous_location}`,
         });
         setMessage(
-          `Offline Mode: Your booking request has been queued locally in IndexedDB with your schedule (${startTime} - ${endTime}) and notes. It will automatically sync when reconnected.`
+          `Offline Mode: Your booking request at ${payload.rendezvous_location} has been queued locally in IndexedDB. It will automatically sync when reconnected.`
         );
         window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
@@ -447,12 +412,12 @@ export default function ServicesPage() {
       if (txId) {
         navigate(`/transactions/${txId}/qr`, {
           state: {
-            message: `Booking confirmed! Transaction #${txId} created. Scheduled for ${bookingDate} (${startTime} to ${endTime}). QR Code generated.`,
+            message: `Booking confirmed! Rendezvous set at ${payload.rendezvous_location}. Transaction #${txId} QR Code generated.`,
           },
         });
       } else {
         setMessage(
-          `Booking confirmed! Transaction ID: #${data.transaction.transaction_id}. Scheduled for ${bookingDate} (${startTime} to ${endTime}). QR Code generated. Visit Transactions to view.`
+          `Booking confirmed! Transaction ID: #${data.transaction?.transaction_id || ''}. Rendezvous set at ${payload.rendezvous_location}.`
         );
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
@@ -467,10 +432,10 @@ export default function ServicesPage() {
             endpoint: '/transactions',
             method: 'post',
             payload,
-            description: `Booking: ${service.subcategory || service.service_category} on ${bookingDate} (${startTime} - ${endTime})`,
+            description: `Booking: ${service.subcategory || service.service_category} at ${payload.rendezvous_location}`,
           });
           setMessage(
-            `Connection issue: Your booking request with notes & schedule has been queued locally and will automatically sync upon reconnection.`
+            `Connection issue: Your booking request has been queued locally and will automatically sync upon reconnection.`
           );
           window.scrollTo({ top: 0, behavior: 'smooth' });
           return;
@@ -499,12 +464,28 @@ export default function ServicesPage() {
             Browse and book active community services, or publish your own with flexible rates.
           </p>
         </div>
-        <Button
-          className="neu-btn-primary rounded-pill px-4"
-          onClick={() => setShowCreateModal(true)}
-        >
-          + Add New Service
-        </Button>
+        {isProvider ? (
+          <Button
+            className="neu-btn-primary rounded-pill px-4"
+            onClick={() => {
+              setServiceForm({
+                service_category: 'Creatives',
+                subcategory: 'Graphic Designer',
+                service_description: '',
+                amount_topay: '',
+                rate_unit: 'per_service',
+                picture_proof: [],
+              });
+              setShowCreateModal(true);
+            }}
+          >
+            + Add New Service
+          </Button>
+        ) : (
+          <Badge bg="primary-subtle" className="text-primary border border-primary-subtle px-3 py-2 rounded-pill font-monospace small">
+            🎓 Requestor Account (Browse &amp; Book)
+          </Badge>
+        )}
       </div>
 
       {message && <Alert variant="success" dismissible onClose={() => setMessage('')} className="neu-alert">{message}</Alert>}
@@ -516,10 +497,11 @@ export default function ServicesPage() {
         <ServicesGrid
           services={services}
           currentUserId={currentUserId}
+          currentUserType={userType}
           onDeleteService={handleDeleteService}
           deletingServiceId={deletingServiceId}
           onEditService={handleOpenEdit}
-          onBookService={handleOpenBooking}
+          onBookService={handleBookService}
           bookingServiceId={bookingServiceId}
           onToggleStatus={handleToggleServiceStatus}
         />
@@ -533,24 +515,42 @@ export default function ServicesPage() {
         <Form onSubmit={handleCreateService}>
           <Modal.Body style={{ background: 'var(--neu-bg)', maxHeight: 'calc(85vh - 130px)', overflowY: 'auto' }}>
             <Form.Group className="mb-3" controlId="serviceCategory">
-              <Form.Label className="small fw-semibold text-muted">Category</Form.Label>
-              <Form.Control
+              <Form.Label className="small fw-semibold text-muted">Category <span className="text-danger">*</span></Form.Label>
+              <Form.Select
                 className="neu-input"
-                placeholder="e.g. Creatives, Plumbing, Electrical, Digital Service"
                 value={serviceForm.service_category}
-                onChange={(event) => setServiceForm({ ...serviceForm, service_category: event.target.value })}
+                onChange={(event) => {
+                  const newCategory = event.target.value;
+                  const availableSubs = SERVICE_TAXONOMY[newCategory] || [];
+                  setServiceForm({
+                    ...serviceForm,
+                    service_category: newCategory,
+                    subcategory: availableSubs[0] || '',
+                  });
+                }}
                 required
-              />
+              >
+                {Object.keys(SERVICE_TAXONOMY).map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </Form.Select>
             </Form.Group>
             <Form.Group className="mb-3" controlId="serviceSubcategory">
-              <Form.Label className="small fw-semibold text-muted">Service Name / Title</Form.Label>
-              <Form.Control
+              <Form.Label className="small fw-semibold text-muted">Service Subcategory <span className="text-danger">*</span></Form.Label>
+              <Form.Select
                 className="neu-input"
-                placeholder="e.g. Graphic Design, Pipe Leak Repair, Tutoring"
                 value={serviceForm.subcategory}
                 onChange={(event) => setServiceForm({ ...serviceForm, subcategory: event.target.value })}
                 required
-              />
+              >
+                {(SERVICE_TAXONOMY[serviceForm.service_category] || []).map((sub) => (
+                  <option key={sub} value={sub}>
+                    {sub}
+                  </option>
+                ))}
+              </Form.Select>
             </Form.Group>
             <Form.Group className="mb-3" controlId="serviceDescription">
               <Form.Label className="small fw-semibold text-muted">Description</Form.Label>
@@ -623,22 +623,42 @@ export default function ServicesPage() {
         <Form onSubmit={handleUpdateService}>
           <Modal.Body style={{ background: 'var(--neu-bg)', maxHeight: 'calc(85vh - 130px)', overflowY: 'auto' }}>
             <Form.Group className="mb-3" controlId="editServiceCategory">
-              <Form.Label className="small fw-semibold text-muted">Category</Form.Label>
-              <Form.Control
+              <Form.Label className="small fw-semibold text-muted">Category <span className="text-danger">*</span></Form.Label>
+              <Form.Select
                 className="neu-input"
                 value={editForm.service_category}
-                onChange={(event) => setEditForm({ ...editForm, service_category: event.target.value })}
+                onChange={(event) => {
+                  const newCategory = event.target.value;
+                  const availableSubs = SERVICE_TAXONOMY[newCategory] || [];
+                  setEditForm({
+                    ...editForm,
+                    service_category: newCategory,
+                    subcategory: availableSubs[0] || '',
+                  });
+                }}
                 required
-              />
+              >
+                {Object.keys(SERVICE_TAXONOMY).map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </Form.Select>
             </Form.Group>
             <Form.Group className="mb-3" controlId="editServiceSubcategory">
-              <Form.Label className="small fw-semibold text-muted">Service Name / Title</Form.Label>
-              <Form.Control
+              <Form.Label className="small fw-semibold text-muted">Service Subcategory <span className="text-danger">*</span></Form.Label>
+              <Form.Select
                 className="neu-input"
                 value={editForm.subcategory}
                 onChange={(event) => setEditForm({ ...editForm, subcategory: event.target.value })}
                 required
-              />
+              >
+                {(SERVICE_TAXONOMY[editForm.service_category] || []).map((sub) => (
+                  <option key={sub} value={sub}>
+                    {sub}
+                  </option>
+                ))}
+              </Form.Select>
             </Form.Group>
             <Form.Group className="mb-3" controlId="editServiceDescription">
               <Form.Label className="small fw-semibold text-muted">Description</Form.Label>
@@ -698,142 +718,6 @@ export default function ServicesPage() {
             </Button>
           </Modal.Footer>
         </Form>
-      </Modal>
-
-      {/* 3. Student Requestor Booking Details Modal (Hours Needed & Notes) */}
-      <Modal show={Boolean(bookingModalService)} onHide={() => setBookingModalService(null)} centered>
-        <Modal.Header closeButton style={{ background: 'var(--neu-bg-dark)', borderBottom: '1px solid rgba(154, 172, 196, 0.35)' }}>
-          <Modal.Title className="fw-bold fs-5" style={{ color: 'var(--neu-text)' }}>
-            Book Service Appointment
-          </Modal.Title>
-        </Modal.Header>
-        {bookingModalService && (
-          <Form onSubmit={handleConfirmBooking}>
-            <Modal.Body style={{ background: 'var(--neu-bg)' }}>
-              {/* Service Summary Card */}
-              <div className="p-3 mb-3 rounded-3" style={{ background: 'rgba(255, 255, 255, 0.65)', border: '1px solid rgba(154, 172, 196, 0.3)' }}>
-                <div className="d-flex justify-content-between align-items-center mb-1">
-                  <h6 className="fw-bold mb-0" style={{ color: 'var(--neu-text)' }}>
-                    {bookingModalService.subcategory || bookingModalService.service_category}
-                  </h6>
-                  <Badge bg="primary">
-                    {bookingModalService.service_category}
-                  </Badge>
-                </div>
-                <div className="small text-muted mb-2 font-monospace">
-                  Provider: {bookingModalService.user_id}
-                </div>
-                <div className="d-flex justify-content-between align-items-center small">
-                  <span className="text-muted">Rate Type:</span>
-                  <span className="fw-bold text-capitalize" style={{ color: 'var(--neu-text)' }}>
-                    {bookingModalService.rate_unit === 'per_hour'
-                      ? `₱${Number(bookingModalService.amount_topay).toFixed(2)} / Hour`
-                      : bookingModalService.rate_unit === 'per_day'
-                      ? `₱${Number(bookingModalService.amount_topay).toFixed(2)} / Day`
-                      : `₱${Number(bookingModalService.amount_topay).toFixed(2)} / Service (Flat)`}
-                  </span>
-                </div>
-              </div>
-
-              {/* Service Date */}
-              <Form.Group className="mb-3" controlId="bookingDate">
-                <Form.Label className="small fw-semibold text-muted">
-                  Service Date <span className="text-danger">*</span>
-                </Form.Label>
-                <Form.Control
-                  type="date"
-                  className="neu-input"
-                  value={bookingDate}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setBookingDate(e.target.value)}
-                  required
-                />
-              </Form.Group>
-
-              {/* Scheduled Hours (What hour needed and until) */}
-              <Row className="mb-3 g-2">
-                <Col sm={6}>
-                  <Form.Group controlId="bookingStartTime">
-                    <Form.Label className="small fw-semibold text-muted">
-                      Hour Needed From <span className="text-danger">*</span>
-                    </Form.Label>
-                    <Form.Control
-                      type="time"
-                      className="neu-input"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col sm={6}>
-                  <Form.Group controlId="bookingEndTime">
-                    <Form.Label className="small fw-semibold text-muted">
-                      Until Hour <span className="text-danger">*</span>
-                    </Form.Label>
-                    <Form.Control
-                      type="time"
-                      className="neu-input"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              {/* Notes & Instructions for Provider */}
-              <Form.Group className="mb-3" controlId="bookingNotes">
-                <Form.Label className="small fw-semibold text-muted">
-                  Notes &amp; Special Instructions for Provider
-                </Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={3}
-                  className="neu-input"
-                  placeholder="Specify campus location, room details, materials needed, or specific tasks for the student provider..."
-                  value={bookingNotes}
-                  onChange={(e) => setBookingNotes(e.target.value)}
-                />
-              </Form.Group>
-
-              {/* Calculated Pricing Summary */}
-              <div className="neu-price-box p-3 rounded-3 mt-3">
-                <div className="d-flex justify-content-between text-muted small mb-1">
-                  <span>
-                    Service Fee {bookingModalService.rate_unit === 'per_hour' ? `(${calculatedHours} hr${calculatedHours > 1 ? 's' : ''})` : ''}:
-                  </span>
-                  <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>
-                    ₱{calculatedServiceCost.toFixed(2)}
-                  </span>
-                </div>
-                <div className="d-flex justify-content-between text-muted small mb-1">
-                  <span>Platform Booking Fee:</span>
-                  <span style={{ color: 'var(--neu-text)' }}>₱5.00</span>
-                </div>
-                <hr className="my-1 border-secondary opacity-25" />
-                <div className="d-flex justify-content-between align-items-center">
-                  <span className="fw-bold small" style={{ color: 'var(--neu-text)' }}>Total to Pay:</span>
-                  <strong className="fs-5" style={{ color: '#063a8f' }}>
-                    ₱{(calculatedServiceCost + 5).toFixed(2)}
-                  </strong>
-                </div>
-              </div>
-            </Modal.Body>
-            <Modal.Footer style={{ background: 'var(--neu-bg-dark)', borderTop: '1px solid rgba(154, 172, 196, 0.35)' }}>
-              <Button className="neu-btn-ghost" onClick={() => setBookingModalService(null)}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className="neu-btn-primary px-4 fw-semibold"
-                disabled={bookingServiceId === bookingModalService.service_id}
-              >
-                {bookingServiceId === bookingModalService.service_id ? 'Confirming...' : 'Confirm Booking'}
-              </Button>
-            </Modal.Footer>
-          </Form>
-        )}
       </Modal>
     </div>
   );

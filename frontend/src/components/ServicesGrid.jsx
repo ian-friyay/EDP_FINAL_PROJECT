@@ -15,22 +15,94 @@ import {
   Alert,
 } from 'react-bootstrap';
 
-// 3 Dummy Service Objects strictly matching the Universal Database Schema
+// Strict Service Taxonomy
+export const SERVICE_TAXONOMY = {
+  'Creatives': ['Graphic Designer', 'Art Painter'],
+  'Event Support': ['Makeup Artist', 'Event Host'],
+  'Digital Service': ['Photographer', 'Video Editor']
+};
+
+// Official Mindoro State University (MinSU) Campus Rendezvous Landmarks
+export const MINSU_LANDMARKS = {
+  MMC: [
+    {
+      name: 'MinSU Main Gate & Guardhouse (Alcate Entrance)',
+      desc: 'Official Mindoro State University – Main Campus, Alcate, Victoria, Oriental Mindoro meeting spot.',
+    },
+    {
+      name: 'Student Center & University Canteen Hub',
+      desc: 'Central campus pavilion for student collaborations, graphic design review, and project handover.',
+    },
+    {
+      name: 'University Library & Research Commons Lobby',
+      desc: 'Quiet, secure air-conditioned lobby ideal for digital media transfer and design consultations.',
+    },
+    {
+      name: 'College of Arts & Sciences Building Hallway',
+      desc: 'Accessible landmark near CAS classrooms and faculty offices.',
+    },
+    {
+      name: 'Campus Gymnasium & Athletic Field Grandstand',
+      desc: 'Spacious sports and cultural venue for event coordination, makeup sessions, and photoshoot prep.',
+    },
+    {
+      name: 'Custom Campus Rendezvous Spot',
+      desc: 'Specify your preferred campus bench, kiosk, or building department.',
+    },
+  ],
+  MCC: [
+    {
+      name: 'MinSU Calapan Main Gate & Waiting Shed',
+      desc: 'Official Calapan City Campus entrance gate along Masipit highway.',
+    },
+    {
+      name: 'IT & Computer Studies Building Lobby',
+      desc: 'Primary tech and digital creative diagnostics rendezvous area.',
+    },
+    {
+      name: 'Calapan Campus Student Lounge & Canteen',
+      desc: 'Popular central landmark for fast meeting and project exchange.',
+    },
+    {
+      name: 'Custom Campus Rendezvous Spot',
+      desc: 'Specify your preferred campus bench, kiosk, or building department.',
+    },
+  ],
+  MBC: [
+    {
+      name: 'MinSU Bongabong Main Gate Entrance',
+      desc: 'Official Bongabong Campus entrance and security guardhouse.',
+    },
+    {
+      name: 'Fisheries & Marine Science Building Lobby',
+      desc: 'Open academic landmark near department labs.',
+    },
+    {
+      name: 'Bongabong Campus Audio-Visual Hall Pavilion',
+      desc: 'Designated student event hub and meeting rendezvous.',
+    },
+    {
+      name: 'Custom Campus Rendezvous Spot',
+      desc: 'Specify your preferred campus bench, kiosk, or building department.',
+    },
+  ],
+};
+
 const INITIAL_SERVICES = [
   {
     service_id: 'SRV-101',
-    user_id: 'MMC-1042',
-    provider_name: 'Juan Dela Cruz',
-    provider_location: 'Brgy. Central, Quezon City',
-    service_category: 'Home Maintenance',
-    subcategory: 'Aircon Cleaning & Maintenance',
+    user_id: 'MMC-3046',
+    provider_name: 'Keizy Lara',
+    provider_location: 'MinSU Main Campus - Victoria',
+    service_category: 'Creatives',
+    subcategory: 'Graphic Designer',
     service_description:
-      'Professional split-type and window-type air conditioning unit cleaning. Includes chemical coil wash, fan blower cleaning, freon pressure diagnostic, and drainage flush.',
-    amount_topay: 850.0,
+      'Campus event posters, org logos, academic infographics, club shirt mockups, and publication materials. High-res vector and printable files delivered.',
+    amount_topay: 450.0,
     service_status: 'active',
+    rate_unit: 'per_service',
     picture_proof: [
-      'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=800&auto=format&fit=crop&q=80',
     ],
     is_deleted: false,
   },
@@ -38,33 +110,84 @@ const INITIAL_SERVICES = [
     service_id: 'SRV-102',
     user_id: 'MMC-2015',
     provider_name: 'Maria Santos',
-    provider_location: 'Brgy. Batasan Hills, Quezon City',
-    service_category: 'Plumbing & Sanitation',
-    subcategory: 'Pipe Installation & Leak Repair',
+    provider_location: 'MinSU Calapan Campus',
+    service_category: 'Creatives',
+    subcategory: 'Art Painter',
     service_description:
-      'Emergency pipe repair, bathroom sink unclogging, PVC and GI pipe fitting, and high-pressure water leak troubleshooting. Tools and standard sealants provided.',
+      'Custom canvas acrylic paintings, university department wall murals, and traditional portrait art commissions for campus events and personal gifts.',
     amount_topay: 1200.0,
     service_status: 'active',
+    rate_unit: 'per_service',
     picture_proof: [
-      'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=800&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?w=800&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80',
     ],
     is_deleted: false,
   },
   {
     service_id: 'SRV-103',
+    user_id: 'MMC-1042',
+    provider_name: 'Juan Dela Cruz',
+    provider_location: 'MinSU Bongabong Campus',
+    service_category: 'Event Support',
+    subcategory: 'Makeup Artist',
+    service_description:
+      'Professional makeup and hair styling for graduation pictorials, college pageants, faculty programs, and university theater performances.',
+    amount_topay: 850.0,
+    service_status: 'active',
+    rate_unit: 'per_service',
+    picture_proof: [
+      'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=800&auto=format&fit=crop&q=80',
+    ],
+    is_deleted: false,
+  },
+  {
+    service_id: 'SRV-104',
     user_id: 'MMC-3044',
     provider_name: 'Pedro Penduko',
-    provider_location: 'Brgy. Commonwealth, Quezon City',
-    service_category: 'Electrical Works',
-    subcategory: 'Residential Circuit & Breaker Wiring',
+    provider_location: 'MinSU Main Campus - Victoria',
+    service_category: 'Event Support',
+    subcategory: 'Event Host',
     service_description:
-      'Comprehensive home electrical inspection, short-circuit troubleshooting, breaker panel replacement, main line re-routing, and smart lighting installations.',
-    amount_topay: 2500.0,
+      'Energetic and bilingual emcee/host for university departmental symposiums, sports fests, cultural nights, and acquaintance parties.',
+    amount_topay: 1500.0,
     service_status: 'active',
+    rate_unit: 'per_service',
     picture_proof: [
-      'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1544724569-5f546fd6f2b6?w=800&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=800&auto=format&fit=crop&q=80',
+    ],
+    is_deleted: false,
+  },
+  {
+    service_id: 'SRV-105',
+    user_id: 'MMC-1042',
+    provider_name: 'Juan Dela Cruz',
+    provider_location: 'MinSU Main Campus - Victoria',
+    service_category: 'Digital Service',
+    subcategory: 'Photographer',
+    service_description:
+      'DSLR campus portrait sessions, event coverage, graduation pictorials, and color-graded digital photography with lighting equipment.',
+    amount_topay: 750.0,
+    service_status: 'active',
+    rate_unit: 'per_hour',
+    picture_proof: [
+      'https://images.unsplash.com/photo-1554048612-b6a482bc67e5?w=800&auto=format&fit=crop&q=80',
+    ],
+    is_deleted: false,
+  },
+  {
+    service_id: 'SRV-106',
+    user_id: 'MMC-3046',
+    provider_name: 'Keizy Lara',
+    provider_location: 'MinSU Calapan Campus',
+    service_category: 'Digital Service',
+    subcategory: 'Video Editor',
+    service_description:
+      'High-paced Reels, TikToks, club recap videos, academic documentary video projects, and cinematic color grading with sound design.',
+    amount_topay: 600.0,
+    service_status: 'active',
+    rate_unit: 'per_service',
+    picture_proof: [
+      'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800&auto=format&fit=crop&q=80',
     ],
     is_deleted: false,
   },
@@ -73,6 +196,7 @@ const INITIAL_SERVICES = [
 export default function ServicesGrid({
   services = INITIAL_SERVICES,
   currentUserId,
+  currentUserType,
   onDeleteService,
   deletingServiceId,
   onEditService,
@@ -83,13 +207,29 @@ export default function ServicesGrid({
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [selectedSubcategory, setSelectedSubcategory] = useState('ALL');
+  const [selectedCampus, setSelectedCampus] = useState('ALL');
   const [viewScope, setViewScope] = useState('ALL'); // 'ALL' | 'MINE' | 'OTHERS'
   const [activeModalService, setActiveModalService] = useState(null);
   const [bookingSuccessAlert, setBookingSuccessAlert] = useState(null);
 
+  // Role detection
+  const userRole = useMemo(() => {
+    if (currentUserType) return currentUserType;
+    try {
+      const u = JSON.parse(window.localStorage.getItem('user'));
+      return u?.user_type || 'Requestor';
+    } catch {
+      return 'Requestor';
+    }
+  }, [currentUserType]);
+
+  const isViewerProvider = userRole === 'Provider';
+
   // Booking & Campus Rendezvous Modal State
   const [bookingModalService, setBookingModalService] = useState(null);
-  const [rendezvousLocation, setRendezvousLocation] = useState('Main Campus - Student Center');
+  const [rendezvousLocation, setRendezvousLocation] = useState('MinSU Main Gate & Guardhouse (Alcate Entrance)');
+  const [customRendezvous, setCustomRendezvous] = useState('');
   const [scheduledDateTime, setScheduledDateTime] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
@@ -116,9 +256,16 @@ export default function ServicesGrid({
 
   // Extract unique categories for the dropdown filter
   const categories = useMemo(() => {
-    const set = new Set(services.map((s) => s.service_category));
-    return Array.from(set);
-  }, [services]);
+    return Object.keys(SERVICE_TAXONOMY);
+  }, []);
+
+  // Available subcategories given the current category filter
+  const availableSubcategories = useMemo(() => {
+    if (selectedCategory !== 'ALL' && SERVICE_TAXONOMY[selectedCategory]) {
+      return SERVICE_TAXONOMY[selectedCategory];
+    }
+    return Object.values(SERVICE_TAXONOMY).flat();
+  }, [selectedCategory]);
 
   // Counts for role-aware filtering
   const myServicesCount = useMemo(() => {
@@ -138,7 +285,7 @@ export default function ServicesGrid({
     ).length;
   }, [services, currentUserId]);
 
-  // Filter services by search term, category, view scope, and soft-delete status
+  // Filter services by search term, category, subcategory, campus, view scope, and soft-delete status
   const filteredServices = useMemo(() => {
     return services.filter((item) => {
       // Exclude soft-deleted items
@@ -164,6 +311,24 @@ export default function ServicesGrid({
       const matchesCategory =
         selectedCategory === 'ALL' || item.service_category === selectedCategory;
 
+      // Subcategory filter
+      const matchesSubcategory =
+        selectedSubcategory === 'ALL' || item.subcategory === selectedSubcategory;
+
+      // Campus filter
+      let matchesCampus = true;
+      if (selectedCampus !== 'ALL') {
+        const idUpper = String(item.user_id || '').toUpperCase();
+        const locLower = String(item.provider_location || '').toLowerCase();
+        if (selectedCampus === 'MMC') {
+          matchesCampus = idUpper.startsWith('MMC') || locLower.includes('victoria') || locLower.includes('main');
+        } else if (selectedCampus === 'MCC') {
+          matchesCampus = idUpper.startsWith('MCC') || locLower.includes('calapan');
+        } else if (selectedCampus === 'MBC') {
+          matchesCampus = idUpper.startsWith('MBC') || locLower.includes('bongabong');
+        }
+      }
+
       // Search keyword filter
       const query = searchTerm.toLowerCase().trim();
       const matchesSearch =
@@ -174,30 +339,55 @@ export default function ServicesGrid({
         (item.user_id || '').toLowerCase().includes(query) ||
         (item.provider_name && item.provider_name.toLowerCase().includes(query));
 
-      return matchesCategory && matchesSearch;
+      return matchesCategory && matchesSubcategory && matchesCampus && matchesSearch;
     });
-  }, [services, searchTerm, selectedCategory, viewScope, currentUserId]);
+  }, [services, searchTerm, selectedCategory, selectedSubcategory, selectedCampus, viewScope, currentUserId]);
 
   const handleClearFilters = () => {
     setSearchTerm('');
     setSelectedCategory('ALL');
+    setSelectedSubcategory('ALL');
+    setSelectedCampus('ALL');
+  };
+
+  const getCampusCodeForService = (service) => {
+    if (!service) return 'MMC';
+    const id = String(service.user_id || '').toUpperCase();
+    const loc = String(service.provider_location || '').toLowerCase();
+    if (id.startsWith('MCC') || loc.includes('calapan')) return 'MCC';
+    if (id.startsWith('MBC') || loc.includes('bongabong')) return 'MBC';
+    return 'MMC';
   };
 
   const handleOpenBookingModal = (service) => {
     setActiveModalService(null);
     setBookingModalService(service);
+    const code = getCampusCodeForService(service);
+    const landmarks = MINSU_LANDMARKS[code] || MINSU_LANDMARKS.MMC;
+    setRendezvousLocation(landmarks[0].name);
+    setCustomRendezvous('');
+
+    // Default scheduled time: tomorrow at 01:22 PM
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(10, 0, 0, 0);
-    setScheduledDateTime(tomorrow.toISOString().slice(0, 16));
+    tomorrow.setHours(13, 22, 0, 0);
+    const pad = (n) => String(n).padStart(2, '0');
+    const localIso = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}T${pad(tomorrow.getHours())}:${pad(tomorrow.getMinutes())}`;
+    setScheduledDateTime(localIso);
+    setSpecialInstructions('');
   };
 
   const handleExecuteBooking = async () => {
     if (!bookingModalService) return;
     setIsSubmittingBooking(true);
     const service = bookingModalService;
+    const finalRendezvous =
+      rendezvousLocation === 'Custom Campus Rendezvous Spot'
+        ? (customRendezvous.trim() || 'MinSU Campus Meeting Point')
+        : rendezvousLocation;
+
     const bookingDetails = {
-      rendezvous_location: rendezvousLocation,
+      rendezvous_location: finalRendezvous,
       scheduled_date: scheduledDateTime || new Date().toISOString(),
       special_instructions: specialInstructions,
     };
@@ -305,9 +495,9 @@ export default function ServicesGrid({
           </div>
         </div>
 
-        <Row className="g-3 align-items-center">
+        <Row className="g-2 align-items-center mb-3">
           {/* Search Bar */}
-          <Col lg={7}>
+          <Col xs={12} lg={4}>
             <Form.Label htmlFor="service-search-input" className="visually-hidden">
               Search Services
             </Form.Label>
@@ -322,7 +512,7 @@ export default function ServicesGrid({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search services by keyword, subcategory, or MMC provider ID..."
+                placeholder="Search services, skills, or student ID..."
                 aria-describedby="search-addon"
                 className="neu-input border-start-0"
               />
@@ -340,17 +530,18 @@ export default function ServicesGrid({
           </Col>
 
           {/* Category Dropdown Filter */}
-          <Col sm={8} lg={3}>
-            <Form.Label htmlFor="category-select" className="visually-hidden">
-              Filter by Category
-            </Form.Label>
+          <Col xs={6} sm={4} lg={3}>
             <Form.Select
               id="category-select"
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+              onChange={(e) => {
+                const newCat = e.target.value;
+                setSelectedCategory(newCat);
+                setSelectedSubcategory('ALL');
+              }}
               className="neu-select"
             >
-              <option value="ALL">All Categories</option>
+              <option value="ALL">All 3 Categories</option>
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
@@ -359,17 +550,102 @@ export default function ServicesGrid({
             </Form.Select>
           </Col>
 
-          {/* Action / Reset Button */}
-          <Col sm={4} lg={2} className="text-sm-end">
-            <Button
-              className="neu-btn-ghost w-100 text-nowrap"
-              onClick={handleClearFilters}
-              disabled={searchTerm === '' && selectedCategory === 'ALL'}
+          {/* Subcategory Dropdown Filter */}
+          <Col xs={6} sm={4} lg={3}>
+            <Form.Select
+              id="subcategory-select"
+              value={selectedSubcategory}
+              onChange={(e) => setSelectedSubcategory(e.target.value)}
+              className="neu-select"
             >
-              Reset Filters
-            </Button>
+              <option value="ALL">All Subcategories</option>
+              {availableSubcategories.map((sub) => (
+                <option key={sub} value={sub}>
+                  {sub}
+                </option>
+              ))}
+            </Form.Select>
+          </Col>
+
+          {/* Campus Location Filter */}
+          <Col xs={12} sm={4} lg={2}>
+            <Form.Select
+              id="campus-select"
+              value={selectedCampus}
+              onChange={(e) => setSelectedCampus(e.target.value)}
+              className="neu-select"
+            >
+              <option value="ALL">All Campuses</option>
+              <option value="MMC">MMC - Victoria</option>
+              <option value="MCC">MCC - Calapan</option>
+              <option value="MBC">MBC - Bongabong</option>
+            </Form.Select>
           </Col>
         </Row>
+
+        {/* 1-Click Category Pill Chips for Requestors */}
+        <div className="d-flex align-items-center gap-2 flex-wrap mb-2">
+          <span className="small text-muted fw-semibold me-1">Browse Category:</span>
+          <Button
+            size="sm"
+            className={`rounded-pill px-3 py-1 ${
+              selectedCategory === 'ALL' ? 'neu-btn-primary' : 'neu-btn-ghost'
+            }`}
+            onClick={() => {
+              setSelectedCategory('ALL');
+              setSelectedSubcategory('ALL');
+            }}
+          >
+            All Offers
+          </Button>
+          <Button
+            size="sm"
+            className={`rounded-pill px-3 py-1 ${
+              selectedCategory === 'Creatives' ? 'neu-btn-primary' : 'neu-btn-ghost'
+            }`}
+            onClick={() => {
+              setSelectedCategory('Creatives');
+              setSelectedSubcategory('ALL');
+            }}
+          >
+            🎨 Creatives (Graphic Design &amp; Art)
+          </Button>
+          <Button
+            size="sm"
+            className={`rounded-pill px-3 py-1 ${
+              selectedCategory === 'Event Support' ? 'neu-btn-primary' : 'neu-btn-ghost'
+            }`}
+            onClick={() => {
+              setSelectedCategory('Event Support');
+              setSelectedSubcategory('ALL');
+            }}
+          >
+            🎉 Event Support (Makeup &amp; Hosting)
+          </Button>
+          <Button
+            size="sm"
+            className={`rounded-pill px-3 py-1 ${
+              selectedCategory === 'Digital Service' ? 'neu-btn-primary' : 'neu-btn-ghost'
+            }`}
+            onClick={() => {
+              setSelectedCategory('Digital Service');
+              setSelectedSubcategory('ALL');
+            }}
+          >
+            💻 Digital Service (Photo &amp; Video)
+          </Button>
+
+          {(searchTerm || selectedCategory !== 'ALL' || selectedSubcategory !== 'ALL' || selectedCampus !== 'ALL') && (
+            <Button
+              size="sm"
+              variant="link"
+              className="text-danger p-0 ms-auto text-decoration-none small"
+              onClick={handleClearFilters}
+            >
+              &times; Reset All Filters
+            </Button>
+          )}
+        </div>
 
         {/* Results Count & Current Active Filters Summary */}
         <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-wrap gap-2 text-muted small">
@@ -377,14 +653,17 @@ export default function ServicesGrid({
             Showing <strong style={{ color: 'var(--neu-text)' }}>{filteredServices.length}</strong> of{' '}
             <strong style={{ color: 'var(--neu-text)' }}>{services.length}</strong> active marketplace services
           </div>
-          {selectedCategory !== 'ALL' && (
-            <div>
-              Active Filter:{' '}
-              <Badge bg="primary" className="ms-1">
-                {selectedCategory}
-              </Badge>
-            </div>
-          )}
+          <div className="d-flex gap-1 flex-wrap">
+            {selectedCategory !== 'ALL' && (
+              <Badge bg="primary">Category: {selectedCategory}</Badge>
+            )}
+            {selectedSubcategory !== 'ALL' && (
+              <Badge bg="info" className="text-dark">Sub: {selectedSubcategory}</Badge>
+            )}
+            {selectedCampus !== 'ALL' && (
+              <Badge bg="secondary">Campus: {selectedCampus}</Badge>
+            )}
+          </div>
         </div>
       </div>
 
@@ -576,14 +855,25 @@ export default function ServicesGrid({
                           >
                             View Details
                           </Button>
-                          <Button
-                            className="neu-btn-primary w-50 fw-semibold"
-                            size="sm"
-                            disabled={bookingServiceId === service.service_id}
-                            onClick={() => handleOpenBookingModal(service)}
-                          >
-                            {bookingServiceId === service.service_id ? 'Booking...' : 'Book Now'}
-                          </Button>
+                          {isViewerProvider ? (
+                            <Button
+                              className="neu-btn-ghost w-50 fw-semibold text-muted"
+                              size="sm"
+                              disabled
+                              title="Providers offer services; switch to Requestor account to book."
+                            >
+                              Provider Mode
+                            </Button>
+                          ) : (
+                            <Button
+                              className="neu-btn-primary w-50 fw-semibold"
+                              size="sm"
+                              disabled={bookingServiceId === service.service_id}
+                              onClick={() => handleOpenBookingModal(service)}
+                            >
+                              {bookingServiceId === service.service_id ? 'Booking...' : 'Book Now'}
+                            </Button>
+                          )}
                         </div>
                         <Button
                           className="neu-btn-ghost w-100 fw-semibold d-flex align-items-center justify-content-center gap-2"
@@ -697,9 +987,17 @@ export default function ServicesGrid({
                             <h5 className="fw-bold mb-0" style={{ color: 'var(--neu-text)' }}>
                               {activeModalService.provider_name || 'Campus Provider'}
                             </h5>
-                            {isOwner && (
+                            {isOwner ? (
                               <Badge bg="success" className="px-2 py-1 rounded-pill small">
-                                Your Listing
+                                Your Active Listing
+                              </Badge>
+                            ) : isViewerProvider ? (
+                              <Badge bg="secondary-subtle" className="text-secondary border px-2 py-1 rounded-pill small">
+                                Peer Provider
+                              </Badge>
+                            ) : (
+                              <Badge bg="primary-subtle" className="text-primary border border-primary-subtle px-2 py-1 rounded-pill small">
+                                Verified Student Provider
                               </Badge>
                             )}
                           </div>
@@ -709,14 +1007,14 @@ export default function ServicesGrid({
                             </span>
                             <span className="text-muted">•</span>
                             <Badge bg="primary">{activeModalService.service_category}</Badge>
-                            {activeModalService.provider_location ? (
+                            {activeModalService.provider_location && activeModalService.provider_location.trim() ? (
                               <>
                                 <span className="text-muted">•</span>
                                 <span className="text-muted d-flex align-items-center gap-1">
                                   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
                                     <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6"/>
                                   </svg>
-                                  {activeModalService.provider_location}
+                                  {activeModalService.provider_location.trim()}
                                 </span>
                               </>
                             ) : null}
@@ -724,7 +1022,7 @@ export default function ServicesGrid({
                         </div>
                       </div>
 
-                      {isOwner ? (
+                      {isOwner && (
                         <Button
                           className="neu-btn-primary rounded-pill px-3 py-2 d-flex align-items-center gap-2 fw-semibold"
                           onClick={() => {
@@ -739,26 +1037,6 @@ export default function ServicesGrid({
                             <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/>
                           </svg>
                           Edit Service
-                        </Button>
-                      ) : (
-                        <Button
-                          className="neu-btn-outline rounded-pill px-3 py-2 d-flex align-items-center gap-2 fw-semibold"
-                          onClick={() => {
-                            const targetService = activeModalService;
-                            setActiveModalService(null);
-                            navigate(`/messages/${targetService.user_id}`, {
-                              state: {
-                                name: targetService.provider_name,
-                                provider_name: targetService.provider_name,
-                                user_id: targetService.user_id,
-                              },
-                            });
-                          }}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
-                          </svg>
-                          Chat with Provider
                         </Button>
                       )}
                     </div>
@@ -775,32 +1053,91 @@ export default function ServicesGrid({
                   </div>
 
                   {/* Financial & Commission Terms */}
-                  <div className="border rounded-3 p-3" style={{ background: 'var(--neu-bg-dark)' }}>
-                    <h6 className="fw-bold text-uppercase text-muted small mb-2">
-                      Transaction Calculation Breakdown
-                    </h6>
-                    <div className="d-flex justify-content-between small text-muted mb-1">
-                      <span>Base Service Rate:</span>
-                      <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>₱{(Number(activeModalService.amount_topay) || 0).toFixed(2)}</span>
+                  {isOwner ? (
+                    <div className="border rounded-4 p-3 mb-4" style={{ background: 'var(--neu-bg-dark)' }}>
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <h6 className="fw-bold text-uppercase text-muted small mb-0">
+                          Your Service Revenue Breakdown
+                        </h6>
+                        <Badge bg="success-subtle" className="text-success border border-success-subtle px-2 py-1 small">
+                          Provider View
+                        </Badge>
+                      </div>
+                      <div className="d-flex justify-content-between small text-muted mb-1">
+                        <span>Base Service Rate:</span>
+                        <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>₱{(Number(activeModalService.amount_topay) || 0).toFixed(2)}</span>
+                      </div>
+                      <div className="d-flex justify-content-between small text-muted mb-1">
+                        <span>Platform Booking Fee (paid by client):</span>
+                        <span style={{ color: 'var(--neu-text)' }}>₱5.00</span>
+                      </div>
+                      <div className="d-flex justify-content-between small text-muted mb-1">
+                        <span>MinSU Peer Guarantee (5% commission):</span>
+                        <span className="text-danger">-₱{((Number(activeModalService.amount_topay) || 0) * 0.05).toFixed(2)}</span>
+                      </div>
+                      <hr className="my-2" />
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                          <span className="fw-bold d-block" style={{ color: 'var(--neu-text)' }}>
+                            Your Net Provider Take-Home:
+                          </span>
+                          <span className="text-muted small" style={{ fontSize: '0.75rem' }}>
+                            Total client pays: ₱{((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)}
+                          </span>
+                        </div>
+                        <strong className="fs-4 text-success fw-bold">
+                          ₱{((Number(activeModalService.amount_topay) || 0) * 0.95).toFixed(2)}
+                        </strong>
+                      </div>
                     </div>
-                    <div className="d-flex justify-content-between small text-muted mb-1">
-                      <span>Platform Booking Fee:</span>
-                      <span style={{ color: 'var(--neu-text)' }}>₱5.00 Flat</span>
+                  ) : isViewerProvider ? (
+                    <div className="border rounded-4 p-3 mb-4" style={{ background: 'var(--neu-bg-dark)' }}>
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <h6 className="fw-bold text-uppercase text-muted small mb-0">
+                          Peer Service Pricing
+                        </h6>
+                        <Badge bg="secondary-subtle" className="text-secondary border px-2 py-1 small">
+                          Peer Provider
+                        </Badge>
+                      </div>
+                      <div className="d-flex justify-content-between small text-muted mb-1">
+                        <span>Listed Service Rate:</span>
+                        <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>₱{(Number(activeModalService.amount_topay) || 0).toFixed(2)}</span>
+                      </div>
+                      <div className="d-flex justify-content-between small text-muted mb-1">
+                        <span>Client Platform Booking Fee:</span>
+                        <span style={{ color: 'var(--neu-text)' }}>₱5.00 Flat</span>
+                      </div>
+                      <hr className="my-2" />
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>Total Client Rate:</span>
+                        <strong className="fs-5" style={{ color: '#063a8f' }}>
+                          ₱{((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)}
+                        </strong>
+                      </div>
                     </div>
-                    <div className="d-flex justify-content-between small text-muted mb-1">
-                      <span>Provider Commission (5% of rate):</span>
-                      <span className="text-success">₱{((Number(activeModalService.amount_topay) || 0) * 0.05).toFixed(2)}</span>
+                  ) : (
+                    <div className="border rounded-4 p-3 mb-4" style={{ background: 'var(--neu-bg-dark)' }}>
+                      <h6 className="fw-bold text-uppercase text-muted small mb-2">
+                        Transaction Pricing Breakdown
+                      </h6>
+                      <div className="d-flex justify-content-between small text-muted mb-1">
+                        <span>Base Service Fee:</span>
+                        <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>₱{(Number(activeModalService.amount_topay) || 0).toFixed(2)}</span>
+                      </div>
+                      <div className="d-flex justify-content-between small text-muted mb-1">
+                        <span>Campus Platform Convenience Fee:</span>
+                        <span style={{ color: 'var(--neu-text)' }}>₱5.00 Flat</span>
+                      </div>
+                      <hr className="my-2" />
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>Total Requestor to Pay:</span>
+                        <strong className="fs-4 fw-bold" style={{ color: '#16a34a' }}>
+                          ₱{((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)}
+                        </strong>
+                      </div>
                     </div>
-                    <hr className="my-2" />
-                    <div className="d-flex justify-content-between align-items-center">
-                      <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>
-                        {isOwner ? 'Total Client Booking Cost:' : 'Total Requestor to Pay:'}
-                      </span>
-                      <strong className="fs-5" style={{ color: '#063a8f' }}>
-                        ₱{((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)}
-                      </strong>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Customer Ratings & Reviews */}
                   <div className="mt-4">
@@ -882,6 +1219,37 @@ export default function ServicesGrid({
                         </Button>
                       </div>
                     </>
+                  ) : isViewerProvider ? (
+                    <>
+                      <Button
+                        className="neu-btn-outline rounded-pill px-3 py-2 d-flex align-items-center gap-2 fw-semibold"
+                        onClick={() => {
+                          const targetService = activeModalService;
+                          setActiveModalService(null);
+                          navigate(`/messages/${targetService.user_id}`, {
+                            state: {
+                              name: targetService.provider_name,
+                              provider_name: targetService.provider_name,
+                              user_id: targetService.user_id,
+                              initialMessage: `Hi ${targetService.provider_name || 'peer provider'}, connecting regarding your campus service: ${targetService.subcategory || targetService.service_category}.`,
+                            },
+                          });
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
+                        </svg>
+                        Chat with Peer Provider
+                      </Button>
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="badge bg-secondary-subtle text-secondary border px-3 py-2 rounded-pill small">
+                          Peer Listing &bull; Bookings reserved for Requestor accounts
+                        </span>
+                        <Button className="neu-btn-ghost" onClick={() => setActiveModalService(null)}>
+                          Close
+                        </Button>
+                      </div>
+                    </>
                   ) : (
                     <>
                       <Button
@@ -926,162 +1294,187 @@ export default function ServicesGrid({
         </Modal>
       )}
 
-      {/* Booking & Rendezvous Modal */}
-      {bookingModalService && (
-        <Modal
-          show={!!bookingModalService}
-          onHide={() => setBookingModalService(null)}
-          centered
-          scrollable
-          size="md"
-        >
-          <Modal.Header
-            closeButton
-            style={{
-              background: 'var(--neu-bg-dark)',
-              borderBottom: '1px solid rgba(154, 172, 196, 0.35)',
-            }}
+      {/* Book Student Service Modal (Exact match to requested UI) */}
+      {bookingModalService && (() => {
+        const campusCode = getCampusCodeForService(bookingModalService);
+        const campusLabel =
+          campusCode === 'MCC'
+            ? 'MinSU Calapan Campus'
+            : campusCode === 'MBC'
+            ? 'MinSU Bongabong Campus'
+            : 'MinSU Victoria Campus';
+        const landmarks = MINSU_LANDMARKS[campusCode] || MINSU_LANDMARKS.MMC;
+        const currentLandmarkObj =
+          landmarks.find((lm) => lm.name === rendezvousLocation) || landmarks[0];
+        const landmarkDesc = currentLandmarkObj?.desc || 'Official Mindoro State University meeting spot.';
+
+        const amount = Number(bookingModalService.amount_topay || 0);
+        const bookingFee = 5.0;
+        const total = amount + bookingFee;
+
+        return (
+          <Modal
+            show={!!bookingModalService}
+            onHide={() => setBookingModalService(null)}
+            centered
+            contentClassName="rounded-4 border-0 shadow-lg overflow-hidden"
+            dialogClassName="modal-dialog-centered"
           >
-            <Modal.Title className="fw-bold fs-5" style={{ color: 'var(--neu-text)' }}>
-              Confirm Booking &amp; Rendezvous
-            </Modal.Title>
-          </Modal.Header>
+            <div className="p-4" style={{ background: '#ffffff' }}>
+              {/* Modal Header */}
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h4 className="fw-bold mb-0 text-dark" style={{ letterSpacing: '-0.02em' }}>
+                  Book Student Service
+                </h4>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-light rounded-circle p-1 d-flex align-items-center justify-content-center text-muted"
+                  style={{ width: 28, height: 28 }}
+                  onClick={() => setBookingModalService(null)}
+                  aria-label="Close"
+                >
+                  <span className="fs-5 leading-none" style={{ lineHeight: 1 }}>&times;</span>
+                </button>
+              </div>
 
-          <Modal.Body
-            style={{
-              background: 'var(--neu-bg)',
-              maxHeight: 'calc(85vh - 130px)',
-              overflowY: 'auto',
-            }}
-          >
-            {/* Service Summary */}
-            <div
-              className="p-3 rounded-4 mb-3"
-              style={{
-                background: 'var(--neu-bg-dark)',
-                border: '1px solid rgba(154, 172, 196, 0.35)',
-              }}
-            >
-              <div className="small text-muted mb-1">Service:</div>
-              <h6 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>
-                {bookingModalService.subcategory || bookingModalService.service_category}
-              </h6>
-              <div className="small text-muted mb-2">
-                Provider: <strong>{bookingModalService.provider_name || bookingModalService.user_id}</strong>
-              </div>
-              <hr className="my-2 border-secondary opacity-25" />
-              <div className="d-flex justify-content-between text-muted small mb-1">
-                <span>Service Rate:</span>
-                <span>₱{Number(bookingModalService.amount_topay || 0).toFixed(2)}</span>
-              </div>
-              <div className="d-flex justify-content-between text-muted small mb-1">
-                <span>Platform Booking Fee:</span>
-                <span>₱5.00</span>
-              </div>
-              <hr className="my-1 border-secondary opacity-25" />
-              <div className="d-flex justify-content-between align-items-center">
-                <span className="fw-bold small" style={{ color: 'var(--neu-text)' }}>Total to Pay:</span>
-                <strong className="fs-5" style={{ color: '#063a8f' }}>
-                  ₱{(Number(bookingModalService.amount_topay || 0) + 5.0).toFixed(2)}
-                </strong>
-              </div>
-            </div>
-
-            {/* Campus Weather Note */}
-            <div
-              className="p-2.5 px-3 rounded-3 mb-3 d-flex align-items-center gap-2 small"
-              style={{
-                background: 'rgba(25, 135, 84, 0.08)',
-                border: '1px solid rgba(25, 135, 84, 0.25)',
-                color: '#146c43',
-              }}
-            >
-              <span>🌤️</span>
-              <div>
-                <strong>Campus Weather Advisory:</strong> Suitable conditions for campus landmark meetings &amp; photography handovers.
-              </div>
-            </div>
-
-            {/* Rendezvous Location Selector */}
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold text-muted">
-                📍 Campus Rendezvous Meeting Location <span className="text-danger">*</span>
-              </Form.Label>
-              <Form.Select
-                className="neu-input"
-                value={rendezvousLocation}
-                onChange={(e) => setRendezvousLocation(e.target.value)}
+              {/* Service Summary Card */}
+              <div
+                className="p-3 rounded-4 mb-3"
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                }}
               >
-                <option value="Main Campus - Student Center">
-                  Main Campus - Student Center (Hub for creative &amp; event meetings)
-                </option>
-                <option value="IT &amp; Engineering Building">
-                  IT &amp; Engineering Building (Tech support &amp; diagnostics)
-                </option>
-                <option value="Campus Gymnasium &amp; Auditorium">
-                  Campus Gymnasium &amp; Auditorium (Photography &amp; sports)
-                </option>
-                <option value="University Library Commons">
-                  University Library Commons (Consultations &amp; quiet review)
-                </option>
-              </Form.Select>
-              <Form.Text className="text-muted" style={{ fontSize: '0.75rem' }}>
-                Official campus rendezvous landmark where you and the student provider will meet.
-              </Form.Text>
-            </Form.Group>
+                <h5 className="fw-bold mb-1" style={{ color: '#2563eb' }}>
+                  {bookingModalService.subcategory || bookingModalService.service_category}
+                </h5>
+                <div className="text-secondary small mb-3">
+                  Offered by {bookingModalService.provider_name || bookingModalService.user_id}
+                </div>
+                <hr className="my-2 border-secondary opacity-25" />
+                <div className="d-flex justify-content-between text-secondary small mb-1">
+                  <span>Service Fee:</span>
+                  <span className="text-dark fw-semibold">₱{amount.toFixed(2)}</span>
+                </div>
+                <div className="d-flex justify-content-between text-secondary small mb-2">
+                  <span>Platform Convenience Fee:</span>
+                  <span className="text-dark fw-semibold">₱5.00</span>
+                </div>
+                <div className="d-flex justify-content-between align-items-center pt-2 border-top">
+                  <span className="fw-bold text-dark fs-6">Total to Pay:</span>
+                  <strong className="fs-5 fw-bold" style={{ color: '#16a34a' }}>
+                    ₱{total.toFixed(2)}
+                  </strong>
+                </div>
+              </div>
 
-            {/* Date and Time Selector */}
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-semibold text-muted">
-                📅 Preferred Meeting Date &amp; Time
-              </Form.Label>
-              <Form.Control
-                type="datetime-local"
-                className="neu-input"
-                value={scheduledDateTime}
-                onChange={(e) => setScheduledDateTime(e.target.value)}
-              />
-            </Form.Group>
+              {/* Appointment Schedule */}
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-semibold small text-dark mb-1">
+                  Appointment Schedule <span className="text-danger">*</span>
+                </Form.Label>
+                <Form.Control
+                  type="datetime-local"
+                  className="neu-input rounded-3"
+                  value={scheduledDateTime}
+                  min={new Date().toISOString().slice(0, 16)}
+                  onChange={(e) => setScheduledDateTime(e.target.value)}
+                  required
+                />
+              </Form.Group>
 
-            {/* Special Instructions */}
-            <Form.Group className="mb-2">
-              <Form.Label className="small fw-semibold text-muted">
-                Notes for Provider (Optional)
-              </Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={2}
-                className="neu-input"
-                placeholder="e.g. I will be wearing a blue cap near the lobby entrance."
-                value={specialInstructions}
-                onChange={(e) => setSpecialInstructions(e.target.value)}
-              />
-            </Form.Group>
-          </Modal.Body>
+              {/* Campus Rendezvous Point */}
+              <Form.Group className="mb-3">
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <Form.Label className="fw-semibold small text-dark mb-0">
+                    Campus Rendezvous Point ({campusLabel}) <span className="text-danger">*</span>
+                  </Form.Label>
+                  <span
+                    className="badge rounded-pill fw-semibold"
+                    style={{
+                      background: '#dbeafe',
+                      color: '#2563eb',
+                      fontSize: '0.72rem',
+                      padding: '4px 8px',
+                    }}
+                  >
+                    MinSU Campus Only
+                  </span>
+                </div>
+                <Form.Select
+                  className="neu-input rounded-3"
+                  value={rendezvousLocation}
+                  onChange={(e) => setRendezvousLocation(e.target.value)}
+                >
+                  {landmarks.map((lm) => (
+                    <option key={lm.name} value={lm.name}>
+                      {lm.name}
+                    </option>
+                  ))}
+                </Form.Select>
+                {rendezvousLocation === 'Custom Campus Rendezvous Spot' && (
+                  <Form.Control
+                    className="neu-input rounded-3 mt-2"
+                    placeholder="Specify building, kiosk, bench, or room..."
+                    value={customRendezvous}
+                    onChange={(e) => setCustomRendezvous(e.target.value)}
+                    required
+                  />
+                )}
+                <div className="text-muted small mt-1" style={{ fontSize: '0.75rem', lineHeight: '1.4' }}>
+                  {landmarkDesc}
+                </div>
+              </Form.Group>
 
-          <Modal.Footer
-            style={{
-              background: 'var(--neu-bg-dark)',
-              borderTop: '1px solid rgba(154, 172, 196, 0.35)',
-            }}
-          >
-            <Button
-              className="neu-btn-ghost"
-              onClick={() => setBookingModalService(null)}
-              disabled={isSubmittingBooking}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="neu-btn-primary px-4 fw-semibold"
-              disabled={isSubmittingBooking}
-              onClick={handleExecuteBooking}
-            >
-              {isSubmittingBooking ? 'Confirming...' : 'Confirm & View QR Code'}
-            </Button>
-          </Modal.Footer>
-        </Modal>
-      )}
+              {/* Notes / Special Instructions (Optional) */}
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-semibold small text-dark mb-1">
+                  Notes for Provider (Optional)
+                </Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={2}
+                  className="neu-input rounded-3"
+                  placeholder="e.g. I will be wearing a blue cap near the lobby entrance."
+                  value={specialInstructions}
+                  onChange={(e) => setSpecialInstructions(e.target.value)}
+                />
+              </Form.Group>
+
+              {/* Modal Buttons (← Back and Confirm Request in bright orange) */}
+              <div className="d-flex justify-content-center align-items-center gap-3 pt-2">
+                <Button
+                  variant="outline-secondary"
+                  className="rounded-pill px-4 py-2 fw-semibold d-flex align-items-center gap-2"
+                  style={{
+                    borderColor: '#cbd5e1',
+                    color: '#475569',
+                    background: '#ffffff',
+                    minWidth: '110px',
+                    justifyContent: 'center',
+                  }}
+                  onClick={() => setBookingModalService(null)}
+                  disabled={isSubmittingBooking}
+                >
+                  <span>&larr;</span> Back
+                </Button>
+                <Button
+                  className="rounded-pill px-4 py-2 fw-bold text-white shadow-sm"
+                  style={{
+                    background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                    border: 'none',
+                    minWidth: '170px',
+                  }}
+                  disabled={isSubmittingBooking}
+                  onClick={handleExecuteBooking}
+                >
+                  {isSubmittingBooking ? 'Confirming...' : 'Confirm Request'}
+                </Button>
+              </div>
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }

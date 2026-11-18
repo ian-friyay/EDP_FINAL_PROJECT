@@ -1,5 +1,12 @@
 const supabase = require('../db');
 
+// Strict SerbisYou Service Taxonomy
+const ALLOWED_TAXONOMY = {
+    'Creatives': ['Graphic Designer', 'Art Painter'],
+    'Event Support': ['Makeup Artist', 'Event Host'],
+    'Digital Service': ['Photographer', 'Video Editor']
+};
+
 const isValidPictureProof = (pictureProof) => {
     if (!Array.isArray(pictureProof)) {
         return false;
@@ -61,6 +68,19 @@ const createService = async (req, res) => {
         return res.status(400).json({ error: 'A service object is required.' });
     }
 
+    // Role check: Only Providers can publish services to the marketplace
+    const { data: userRecord } = await supabase
+        .from('users')
+        .select('user_type')
+        .eq('user_id', req.user.user_id)
+        .maybeSingle();
+
+    if (userRecord?.user_type !== 'Provider' && req.user.user_type !== 'Provider') {
+        return res.status(403).json({
+            error: 'Only verified student Providers can publish services to the marketplace. Requestors can browse and book available services.'
+        });
+    }
+
     const {
         service_category: serviceCategory,
         subcategory,
@@ -87,15 +107,25 @@ const createService = async (req, res) => {
         return res.status(400).json({ error: 'Invalid service details.' });
     }
 
-    if (subcategory !== undefined && subcategory !== null && typeof subcategory !== 'string') {
-        return res.status(400).json({ error: 'Subcategory must be a string.' });
+    const trimmedCategory = serviceCategory.trim();
+    if (!ALLOWED_TAXONOMY[trimmedCategory]) {
+        return res.status(400).json({
+            error: `Invalid service category "${trimmedCategory}". Must be one of: ${Object.keys(ALLOWED_TAXONOMY).join(', ')}.`
+        });
+    }
+
+    const trimmedSubcategory = subcategory ? String(subcategory).trim() : '';
+    if (!ALLOWED_TAXONOMY[trimmedCategory].includes(trimmedSubcategory)) {
+        return res.status(400).json({
+            error: `Invalid subcategory "${trimmedSubcategory}" for ${trimmedCategory}. Allowed subcategories: ${ALLOWED_TAXONOMY[trimmedCategory].join(', ')}.`
+        });
     }
 
     // Try inserting with rate_unit column first
     const insertPayload = {
         user_id: req.user.user_id,
-        service_category: serviceCategory.trim(),
-        subcategory: subcategory?.trim() || null,
+        service_category: trimmedCategory,
+        subcategory: trimmedSubcategory,
         service_description: serviceDescription.trim(),
         amount_topay: numericAmount,
         rate_unit: rateUnit,
@@ -164,8 +194,20 @@ const updateService = async (req, res) => {
     if (service_status && ['active', 'inactive'].includes(service_status)) {
         updates.service_status = service_status;
     }
-    if (service_category && typeof service_category === 'string') updates.service_category = service_category.trim();
-    if (subcategory !== undefined) updates.subcategory = subcategory ? String(subcategory).trim() : null;
+    if (service_category && typeof service_category === 'string') {
+        const cat = service_category.trim();
+        if (!ALLOWED_TAXONOMY[cat]) {
+            return res.status(400).json({ error: `Invalid category. Must be one of: ${Object.keys(ALLOWED_TAXONOMY).join(', ')}.` });
+        }
+        updates.service_category = cat;
+    }
+    if (subcategory !== undefined) {
+        const sub = subcategory ? String(subcategory).trim() : null;
+        if (sub && updates.service_category && !ALLOWED_TAXONOMY[updates.service_category].includes(sub)) {
+            return res.status(400).json({ error: `Invalid subcategory for ${updates.service_category}. Allowed: ${ALLOWED_TAXONOMY[updates.service_category].join(', ')}.` });
+        }
+        updates.subcategory = sub;
+    }
     if (service_description && typeof service_description === 'string') updates.service_description = service_description.trim();
     if (amount_topay !== undefined && amount_topay !== null && amount_topay !== '') {
         const num = Number(amount_topay);
