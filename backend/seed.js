@@ -13,7 +13,7 @@ const seedDatabase = async () => {
       first_name: 'Administrator',
       last_name: 'Console',
       username: 'admin',
-      email: 'admin@serbisyou.ph',
+      email: 'adriandadoviernes@gmail.com',
       contact_number: '09123456789',
       region: 'NCR',
       province: 'Metro Manila',
@@ -120,7 +120,7 @@ const seedDatabase = async () => {
   for (const u of initialUsers) {
     const { data: existing } = await supabase
       .from('users')
-      .select('user_id')
+      .select('user_id, email')
       .eq('user_id', u.user_id)
       .maybeSingle();
 
@@ -130,6 +130,25 @@ const seedDatabase = async () => {
         console.error(`Failed to seed user ${u.user_id}:`, error.message);
       } else {
         console.log(`Seeded user: ${u.user_id} (${u.email})`);
+      }
+    } else if (
+      u.user_id === 'MMC-0000' &&
+      existing.email === 'admin@serbisyou.ph'
+    ) {
+      const { data: updated, error } = await supabase
+        .from('users')
+        .update({ email: u.email })
+        .eq('user_id', u.user_id)
+        .eq('email', existing.email)
+        .select('user_id')
+        .maybeSingle();
+
+      if (error) {
+        console.error(`Failed to update admin email for ${u.user_id}:`, error.message);
+      } else if (updated) {
+        console.log(`Updated admin email for ${u.user_id} to ${u.email}`);
+      } else {
+        console.error(`Failed to update admin email for ${u.user_id}: no matching row was updated.`);
       }
     }
   }
