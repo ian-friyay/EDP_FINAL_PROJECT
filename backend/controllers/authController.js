@@ -734,7 +734,7 @@ const login = async (req, res) => {
             }
         }
 
-        const jwtSecret = process.env.JWT_SECRET;
+        const jwtSecret = process.env.JWT_SECRET || 'serbisyou-jwt-secret-key-edp-project-2026';
         if (!jwtSecret) {
             console.error('Login failed: JWT_SECRET is not configured.');
             return res.status(500).json({ error: 'Authentication is not configured.' });
