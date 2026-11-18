@@ -226,9 +226,12 @@ export default function LandingPage() {
                 <Button
                   as={Link}
                   to="/services"
-                  className="neu-btn-orange rounded-pill px-4 py-3 fw-bold text-white d-inline-flex align-items-center justify-content-center gap-2 shadow-sm text-nowrap w-100 w-sm-auto"
+                  className="neu-btn-orange px-4 py-3 fw-bold text-white d-inline-flex align-items-center justify-content-center gap-2 shadow-sm text-nowrap w-100 w-sm-auto"
                   size="lg"
-                  style={{ whiteSpace: 'nowrap' }}
+                  style={{
+                    borderRadius: 'var(--neu-radius, 14px)',
+                    whiteSpace: 'nowrap',
+                  }}
                 >
                   <span>Explore Services</span>
                   <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -239,11 +242,12 @@ export default function LandingPage() {
                 <Button
                   as={Link}
                   to="/sign-up"
-                  className="rounded-pill px-4 py-3 fw-semibold text-white d-inline-flex align-items-center justify-content-center gap-2 shadow-sm text-nowrap w-100 w-sm-auto"
+                  className="neu-btn-primary px-4 py-3 fw-semibold text-white d-inline-flex align-items-center justify-content-center gap-2 shadow-sm text-nowrap w-100 w-sm-auto"
                   size="lg"
                   style={{
                     backgroundColor: THEME_BLUE,
                     border: 'none',
+                    borderRadius: 'var(--neu-radius, 14px)',
                     boxShadow: '0 4px 14px rgba(10, 25, 47, 0.35)',
                     whiteSpace: 'nowrap',
                   }}
