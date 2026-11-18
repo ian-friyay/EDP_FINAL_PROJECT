@@ -270,6 +270,16 @@ body {
     overflow-y: auto !important;
     z-index: 1020 !important;
     align-self: flex-start !important;
+    width: 275px !important;
+    min-width: 275px !important;
+    max-width: 275px !important;
+    flex: 0 0 275px !important;
+  }
+
+  .neu-main {
+    flex: 1 1 0% !important;
+    max-width: calc(100% - 275px) !important;
+    min-width: 0 !important;
   }
 
   .neu-sidebar-col::-webkit-scrollbar {

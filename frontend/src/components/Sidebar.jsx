@@ -152,35 +152,46 @@ export default function Sidebar({
       <Offcanvas.Body className="d-flex flex-column justify-content-between p-3">
         <div>
           {/* User Profile Card grounded in users table */}
-          <Card className="neu-profile-card mb-3 p-3 border-0 shadow-sm rounded-4">
+          <div
+            className="neu-card p-3 mb-3 rounded-4 shadow-sm"
+            style={{
+              background: 'var(--neu-bg)',
+              border: '1px solid rgba(154, 172, 196, 0.25)',
+            }}
+          >
             <div className="d-flex align-items-center gap-3">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
                   alt={displayName}
                   className="rounded-circle flex-shrink-0 border border-2 border-primary border-opacity-25"
-                  style={{ width: '46px', height: '46px', objectFit: 'cover' }}
+                  style={{ width: '48px', height: '48px', objectFit: 'cover' }}
                 />
               ) : (
                 <div
                   className="neu-avatar-sidebar flex-shrink-0 d-flex align-items-center justify-content-center text-white fw-bold rounded-circle shadow-sm"
-                  style={{ width: '46px', height: '46px', fontSize: '1rem' }}
+                  style={{ width: '48px', height: '48px', fontSize: '1.05rem' }}
                 >
                   {initials}
                 </div>
               )}
-              <div className="overflow-hidden flex-grow-1">
+              <div className="overflow-hidden flex-grow-1" style={{ minWidth: 0 }}>
                 <div
                   className="fw-bold text-truncate mb-0"
-                  style={{ color: 'var(--neu-text)', fontSize: '0.92rem', lineHeight: 1.25 }}
+                  style={{
+                    color: 'var(--neu-text)',
+                    fontSize: '0.96rem',
+                    lineHeight: 1.25,
+                    whiteSpace: 'nowrap',
+                  }}
                   title={displayName}
                 >
                   {displayName}
                 </div>
-                <div className="d-flex align-items-center gap-1.5 mt-1 flex-wrap">
+                <div className="mt-1">
                   <span
-                    className="badge rounded-pill bg-light text-secondary border px-2 py-0.5 font-monospace"
-                    style={{ fontSize: '0.68rem', letterSpacing: '0.3px' }}
+                    className="badge rounded-pill bg-white text-dark border px-2 py-0.5 font-monospace shadow-xs"
+                    style={{ fontSize: '0.72rem', letterSpacing: '0.4px' }}
                   >
                     {user.user_id || 'MMC-XXXX'}
                   </span>
@@ -188,24 +199,24 @@ export default function Sidebar({
               </div>
             </div>
 
-            <div className="d-flex align-items-center justify-content-between pt-2 mt-2 border-top border-light-subtle">
+            <div className="d-flex align-items-center justify-content-between pt-2.5 mt-2.5 border-top border-light-subtle">
               <Badge
                 bg={user.user_type === 'Provider' ? 'success' : 'primary'}
                 className="rounded-pill px-2.5 py-1 text-white fw-semibold"
-                style={{ fontSize: '0.7rem' }}
+                style={{ fontSize: '0.72rem' }}
               >
                 {user.user_type || 'User'}
               </Badge>
               <span
                 className="text-muted small text-truncate d-flex align-items-center gap-1"
-                style={{ fontSize: '0.72rem', maxWidth: '125px' }}
+                style={{ fontSize: '0.75rem', maxWidth: '140px' }}
                 title={locationString}
               >
                 <span style={{ fontSize: '0.8rem' }}>📍</span>
                 {locationString}
               </span>
             </div>
-          </Card>
+          </div>
 
           {/* Navigation Links Section */}
           <div className="neu-nav-label text-uppercase fw-bold small px-2 mb-2">
