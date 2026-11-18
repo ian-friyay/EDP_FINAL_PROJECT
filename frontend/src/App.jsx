@@ -20,6 +20,7 @@ import AdminTransactions from './pages/admin/AdminTransactions';
 import AdminReviews from './pages/admin/AdminReviews';
 import AdminAdvertisements from './pages/admin/AdminAdvertisements';
 import AdminSettings from './pages/admin/AdminSettings';
+import OfflineToast from './components/OfflineToast';
 import { Row, Col, Badge, Table, Button, Form, Alert } from 'react-bootstrap';
 import api from './api/axios';
 
@@ -622,6 +623,7 @@ function RequireAuth({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <OfflineToast />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
