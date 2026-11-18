@@ -16,7 +16,7 @@ const {
     unlockUserProfile,
     shareAdminAccess
 } = require('../controllers/adminController');
-const { getAllAds, updateAdStatus } = require('../controllers/advertisementController');
+const { getAllAds, updateAdStatus, deleteAd } = require('../controllers/advertisementController');
 
 const router = express.Router();
 
@@ -48,5 +48,6 @@ router.post('/share-access', shareAdminAccess);
 // Campus Advertisements approval routes
 router.get('/advertisements', requireAuth, requireAdmin, getAllAds);
 router.patch('/advertisements/:id/status', requireAuth, requireAdmin, updateAdStatus);
+router.delete('/advertisements/:id', requireAuth, requireAdmin, deleteAd);
 
 module.exports = router;

@@ -393,6 +393,38 @@ const updateAdStatus = async (req, res) => {
   }
 };
 
+/**
+ * Admin: Delete specific advertisement
+ */
+const deleteAd = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Try deleting from Supabase remote
+    try {
+      await supabase
+        .from('advertisements')
+        .delete()
+        .eq('id', id);
+    } catch (dbErr) {
+      console.warn('Supabase ad delete fallback:', dbErr.message);
+    }
+
+    // Remove from local fallback JSON
+    const all = loadFallbackAds();
+    const remaining = all.filter((ad) => String(ad.id) !== String(id));
+    saveFallbackAds(remaining);
+
+    return res.status(200).json({
+      status: 'success',
+      message: 'Advertisement deleted successfully.',
+    });
+  } catch (err) {
+    console.error('deleteAd error:', err);
+    return res.status(500).json({ error: 'Failed to delete advertisement.' });
+  }
+};
+
 module.exports = {
   getActiveAds,
   getPricing,
@@ -400,6 +432,7 @@ module.exports = {
   getMyAds,
   getAllAds,
   updateAdStatus,
+  deleteAd,
   loadFallbackAds,
   saveFallbackAds,
 };

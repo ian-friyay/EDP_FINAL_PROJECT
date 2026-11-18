@@ -451,16 +451,16 @@ export default function ServicesPage() {
 
   return (
     <div>
-      {/* Campus Weather & Events Advisory */}
-      <WeatherWidget compact={true} />
-
       {/* Campus Advertisements Spotlight Carousel */}
       <AdBanner />
 
-      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
-          <h2 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>Services Marketplace</h2>
-          <p className="text-muted mb-0">
+          <div className="d-flex align-items-center gap-3 flex-wrap">
+            <h2 className="fw-bold mb-0" style={{ color: 'var(--neu-text)' }}>Services Marketplace</h2>
+            <WeatherWidget />
+          </div>
+          <p className="text-muted mb-0 mt-1">
             Browse and book active community services, or publish your own with flexible rates.
           </p>
         </div>

@@ -195,9 +195,9 @@ function DashboardPage() {
           </Col>
           <Col sm={6} xl={3}>
             <div className="neu-metric-card h-100">
-              <div className="text-muted small text-uppercase fw-semibold mb-1">My Offered Services</div>
-              <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>{requestorMyOffersCount}</div>
-              <div className="small text-muted mt-1">Services you offer to students</div>
+              <div className="text-muted small text-uppercase fw-semibold mb-1">Completed Services</div>
+              <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>{requestorCompleted.length}</div>
+              <div className="small text-muted mt-1">Successfully fulfilled campus orders</div>
             </div>
           </Col>
         </Row>

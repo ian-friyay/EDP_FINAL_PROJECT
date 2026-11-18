@@ -21,6 +21,10 @@ export default function AdminAdvertisements() {
   // Banner Preview Modal State
   const [previewAd, setPreviewAd] = useState(null);
 
+  // Delete Ad Confirmation State
+  const [adToDelete, setAdToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const fetchAds = async () => {
     setIsLoading(true);
     setActionError('');
@@ -52,6 +56,24 @@ export default function AdminAdvertisements() {
       setActionError(err.response?.data?.error || err.message || `Failed to update status to ${nextStatus}.`);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleDeleteAd = async () => {
+    if (!adToDelete) return;
+    setIsDeleting(true);
+    setActionError('');
+    setActionSuccess('');
+    try {
+      await api.delete(`/admin/advertisements/${adToDelete.id}`);
+      setActionSuccess(`Advertisement "${adToDelete.title}" deleted successfully.`);
+      setAdToDelete(null);
+      await fetchAds();
+      setTimeout(() => setActionSuccess(''), 5000);
+    } catch (err) {
+      setActionError(err.response?.data?.error || err.message || 'Failed to delete advertisement.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -331,6 +353,21 @@ export default function AdminAdvertisements() {
                               Re-activate
                             </Button>
                           )}
+
+                          <Button
+                            size="sm"
+                            variant="outline-danger"
+                            className="rounded-pill px-2.5 py-1 fw-semibold d-inline-flex align-items-center gap-1"
+                            disabled={isProcessing}
+                            onClick={() => setAdToDelete(ad)}
+                            title="Permanently delete this advertisement"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                              <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                              <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                            </svg>
+                            Delete
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -455,6 +492,25 @@ export default function AdminAdvertisements() {
           </Modal.Body>
         </Modal>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal show={Boolean(adToDelete)} onHide={() => setAdToDelete(null)} centered size="sm">
+        <Modal.Header closeButton style={{ background: 'var(--neu-bg-dark)' }}>
+          <Modal.Title className="fw-bold fs-6 text-danger">Confirm Ad Deletion</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-3 text-center">
+          <p className="mb-2">Are you sure you want to permanently delete this campus advertisement?</p>
+          <div className="fw-bold text-dark mb-3">"{adToDelete?.title}"</div>
+          <div className="d-flex justify-content-center gap-2">
+            <Button variant="outline-secondary" size="sm" onClick={() => setAdToDelete(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" size="sm" disabled={isDeleting} onClick={handleDeleteAd}>
+              {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+            </Button>
+          </div>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 }

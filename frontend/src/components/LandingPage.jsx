@@ -611,7 +611,12 @@ export default function LandingPage() {
       {/* Campus Weather & Active Advertisements Spotlight */}
       <section className="py-4 border-bottom" style={{ background: 'var(--neu-bg)' }}>
         <Container>
-          <WeatherWidget compact={true} />
+          <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <span className="fw-bold small text-muted text-uppercase tracking-wider">
+              📢 Campus Bulletins &amp; Announcements
+            </span>
+            <WeatherWidget />
+          </div>
           <AdBanner />
         </Container>
       </section>

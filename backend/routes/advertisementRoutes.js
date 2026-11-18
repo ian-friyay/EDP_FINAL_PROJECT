@@ -7,6 +7,7 @@ const {
   getMyAds,
   getAllAds,
   updateAdStatus,
+  deleteAd,
 } = require('../controllers/advertisementController');
 const { requireAuth } = require('../middleware/authMiddleware');
 
@@ -22,5 +23,6 @@ router.get('/my-ads', getMyAds);
 // Admin routes
 router.get('/admin/all', getAllAds);
 router.patch('/admin/:id/status', updateAdStatus);
+router.delete('/admin/:id', deleteAd);
 
 module.exports = router;

@@ -188,11 +188,13 @@ export default function Layout() {
               <NavDropdown.Item as={Link} to="/profile">
                 My Profile
               </NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/services">
-                My Services
-              </NavDropdown.Item>
+              {user.user_type === 'Provider' && (
+                <NavDropdown.Item as={Link} to="/services">
+                  My Services
+                </NavDropdown.Item>
+              )}
               <NavDropdown.Item as={Link} to="/transactions">
-                My Transactions
+                {user.user_type === 'Provider' ? 'My Transactions' : 'My Bookings'}
               </NavDropdown.Item>
               {isAdmin && (
                 <NavDropdown.Item as={Link} to="/admin" className="fw-semibold text-primary">

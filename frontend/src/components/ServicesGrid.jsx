@@ -226,6 +226,13 @@ export default function ServicesGrid({
 
   const isViewerProvider = userRole === 'Provider';
 
+  // For Requestors, viewScope is locked to 'ALL' (Requestors do not offer services)
+  useEffect(() => {
+    if (!isViewerProvider && viewScope !== 'ALL') {
+      setViewScope('ALL');
+    }
+  }, [isViewerProvider, viewScope]);
+
   // Booking & Campus Rendezvous Modal State
   const [bookingModalService, setBookingModalService] = useState(null);
   const [rendezvousLocation, setRendezvousLocation] = useState('MinSU Main Gate & Guardhouse (Alcate Entrance)');
@@ -437,73 +444,44 @@ export default function ServicesGrid({
         </Alert>
       )}
 
-      {/* Header and Filter Bar */}
-      <div className="neu-filter-bar p-3 p-md-4 mb-4">
-        {/* View Mode Pill Switcher */}
-        <div className="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom flex-wrap gap-2">
-          <div className="d-flex align-items-center gap-2 flex-wrap">
-            <span className="small fw-bold text-muted text-uppercase me-1" style={{ letterSpacing: '0.05em' }}>
-              Marketplace View:
+      {/* Clean & Professional Unified Filter Toolbar */}
+      <div className="neu-filter-bar p-3 p-md-4 mb-4 rounded-4 shadow-sm" style={{ background: 'var(--neu-bg)' }}>
+        {/* Provider-only view toggle (Hidden completely for Requestors) */}
+        {isViewerProvider && (
+          <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom flex-wrap gap-2">
+            <span className="small fw-semibold text-muted">
+              Provider Mode:
             </span>
-            <Button
-              size="sm"
-              className={`rounded-pill px-3 py-1.5 fw-semibold ${
-                viewScope === 'ALL' ? 'neu-btn-primary' : 'neu-btn-ghost'
-              }`}
-              onClick={() => setViewScope('ALL')}
-            >
-              🌐 All Campus Services ({services.length})
-            </Button>
-            <Button
-              size="sm"
-              className={`rounded-pill px-3 py-1.5 fw-semibold ${
-                viewScope === 'OTHERS' ? 'neu-btn-primary' : 'neu-btn-ghost'
-              }`}
-              onClick={() => setViewScope('OTHERS')}
-            >
-              👥 Offered by Others ({othersServicesCount})
-            </Button>
-            <Button
-              size="sm"
-              className={`rounded-pill px-3 py-1.5 fw-semibold ${
-                viewScope === 'MINE' ? 'neu-btn-primary' : 'neu-btn-ghost'
-              }`}
-              onClick={() => setViewScope('MINE')}
-            >
-              🏷️ My Offered Services ({myServicesCount})
-            </Button>
-          </div>
-
-          <div>
-            {viewScope === 'MINE' ? (
+            <div className="d-flex gap-2">
               <Button
                 size="sm"
-                className="neu-btn-outline rounded-pill px-3 py-1.5 fw-semibold text-nowrap"
-                onClick={() => setViewScope('OTHERS')}
+                className={`rounded-pill px-3 py-1 fw-semibold ${
+                  viewScope === 'ALL' ? 'neu-btn-primary' : 'neu-btn-ghost'
+                }`}
+                onClick={() => setViewScope('ALL')}
               >
-                🔍 Explore Others' Services ({othersServicesCount})
+                All Campus Services ({services.length})
               </Button>
-            ) : (
               <Button
                 size="sm"
-                className="neu-btn-outline rounded-pill px-3 py-1.5 fw-semibold text-nowrap"
+                className={`rounded-pill px-3 py-1 fw-semibold ${
+                  viewScope === 'MINE' ? 'neu-btn-primary' : 'neu-btn-ghost'
+                }`}
                 onClick={() => setViewScope('MINE')}
               >
-                🏷️ View My Offered Services ({myServicesCount})
+                My Offered Services ({myServicesCount})
               </Button>
-            )}
+            </div>
           </div>
-        </div>
+        )}
 
-        <Row className="g-2 align-items-center mb-3">
-          {/* Search Bar */}
-          <Col xs={12} lg={4}>
-            <Form.Label htmlFor="service-search-input" className="visually-hidden">
-              Search Services
-            </Form.Label>
+        {/* Clean Dropdown Filter Grid */}
+        <Row className="g-2 align-items-center">
+          {/* Keyword Search */}
+          <Col xs={12} md={4} lg={4}>
             <InputGroup>
-              <InputGroup.Text id="search-addon" className="neu-input-group-text">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <InputGroup.Text className="neu-input-group-text bg-white border-end-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16" className="text-muted">
                   <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
                 </svg>
               </InputGroup.Text>
@@ -512,8 +490,7 @@ export default function ServicesGrid({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search services, skills, or student ID..."
-                aria-describedby="search-addon"
+                placeholder="Search services or student name..."
                 className="neu-input border-start-0"
               />
               {searchTerm && (
@@ -529,8 +506,8 @@ export default function ServicesGrid({
             </InputGroup>
           </Col>
 
-          {/* Category Dropdown Filter */}
-          <Col xs={6} sm={4} lg={3}>
+          {/* Category Dropdown */}
+          <Col xs={6} md={3} lg={3}>
             <Form.Select
               id="category-select"
               value={selectedCategory}
@@ -539,9 +516,9 @@ export default function ServicesGrid({
                 setSelectedCategory(newCat);
                 setSelectedSubcategory('ALL');
               }}
-              className="neu-select"
+              className="neu-select rounded-3 fw-semibold text-secondary"
             >
-              <option value="ALL">All 3 Categories</option>
+              <option value="ALL">All Categories</option>
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
@@ -550,15 +527,18 @@ export default function ServicesGrid({
             </Form.Select>
           </Col>
 
-          {/* Subcategory Dropdown Filter */}
-          <Col xs={6} sm={4} lg={3}>
+          {/* Subcategory Dropdown */}
+          <Col xs={6} md={3} lg={3}>
             <Form.Select
               id="subcategory-select"
               value={selectedSubcategory}
               onChange={(e) => setSelectedSubcategory(e.target.value)}
-              className="neu-select"
+              className="neu-select rounded-3 fw-semibold text-secondary"
+              disabled={selectedCategory !== 'ALL' && availableSubcategories.length === 0}
             >
-              <option value="ALL">All Subcategories</option>
+              <option value="ALL">
+                {selectedCategory === 'ALL' ? 'All Subcategories' : `All ${selectedCategory}`}
+              </option>
               {availableSubcategories.map((sub) => (
                 <option key={sub} value={sub}>
                   {sub}
@@ -568,102 +548,37 @@ export default function ServicesGrid({
           </Col>
 
           {/* Campus Location Filter */}
-          <Col xs={12} sm={4} lg={2}>
+          <Col xs={12} md={2} lg={2}>
             <Form.Select
               id="campus-select"
               value={selectedCampus}
               onChange={(e) => setSelectedCampus(e.target.value)}
-              className="neu-select"
+              className="neu-select rounded-3 fw-semibold text-secondary"
             >
               <option value="ALL">All Campuses</option>
-              <option value="MMC">MMC - Victoria</option>
-              <option value="MCC">MCC - Calapan</option>
-              <option value="MBC">MBC - Bongabong</option>
+              <option value="MMC">MMC (Victoria)</option>
+              <option value="MCC">MCC (Calapan)</option>
+              <option value="MBC">MBC (Bongabong)</option>
             </Form.Select>
           </Col>
         </Row>
 
-        {/* 1-Click Category Pill Chips for Requestors */}
-        <div className="d-flex align-items-center gap-2 flex-wrap mb-2">
-          <span className="small text-muted fw-semibold me-1">Browse Category:</span>
-          <Button
-            size="sm"
-            className={`rounded-pill px-3 py-1 ${
-              selectedCategory === 'ALL' ? 'neu-btn-primary' : 'neu-btn-ghost'
-            }`}
-            onClick={() => {
-              setSelectedCategory('ALL');
-              setSelectedSubcategory('ALL');
-            }}
-          >
-            All Offers
-          </Button>
-          <Button
-            size="sm"
-            className={`rounded-pill px-3 py-1 ${
-              selectedCategory === 'Creatives' ? 'neu-btn-primary' : 'neu-btn-ghost'
-            }`}
-            onClick={() => {
-              setSelectedCategory('Creatives');
-              setSelectedSubcategory('ALL');
-            }}
-          >
-            🎨 Creatives (Graphic Design &amp; Art)
-          </Button>
-          <Button
-            size="sm"
-            className={`rounded-pill px-3 py-1 ${
-              selectedCategory === 'Event Support' ? 'neu-btn-primary' : 'neu-btn-ghost'
-            }`}
-            onClick={() => {
-              setSelectedCategory('Event Support');
-              setSelectedSubcategory('ALL');
-            }}
-          >
-            🎉 Event Support (Makeup &amp; Hosting)
-          </Button>
-          <Button
-            size="sm"
-            className={`rounded-pill px-3 py-1 ${
-              selectedCategory === 'Digital Service' ? 'neu-btn-primary' : 'neu-btn-ghost'
-            }`}
-            onClick={() => {
-              setSelectedCategory('Digital Service');
-              setSelectedSubcategory('ALL');
-            }}
-          >
-            💻 Digital Service (Photo &amp; Video)
-          </Button>
-
+        {/* Clean Results Bar & Active Filter Clearer */}
+        <div className="d-flex justify-content-between align-items-center mt-3 pt-2 border-top flex-wrap gap-2 text-muted small">
+          <div>
+            Showing <strong style={{ color: 'var(--neu-text)' }}>{filteredServices.length}</strong> of{' '}
+            <strong style={{ color: 'var(--neu-text)' }}>{services.length}</strong> available services
+          </div>
           {(searchTerm || selectedCategory !== 'ALL' || selectedSubcategory !== 'ALL' || selectedCampus !== 'ALL') && (
             <Button
               size="sm"
               variant="link"
-              className="text-danger p-0 ms-auto text-decoration-none small"
+              className="text-danger p-0 text-decoration-none small fw-semibold"
               onClick={handleClearFilters}
             >
-              &times; Reset All Filters
+              &times; Clear Filters
             </Button>
           )}
-        </div>
-
-        {/* Results Count & Current Active Filters Summary */}
-        <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-wrap gap-2 text-muted small">
-          <div>
-            Showing <strong style={{ color: 'var(--neu-text)' }}>{filteredServices.length}</strong> of{' '}
-            <strong style={{ color: 'var(--neu-text)' }}>{services.length}</strong> active marketplace services
-          </div>
-          <div className="d-flex gap-1 flex-wrap">
-            {selectedCategory !== 'ALL' && (
-              <Badge bg="primary">Category: {selectedCategory}</Badge>
-            )}
-            {selectedSubcategory !== 'ALL' && (
-              <Badge bg="info" className="text-dark">Sub: {selectedSubcategory}</Badge>
-            )}
-            {selectedCampus !== 'ALL' && (
-              <Badge bg="secondary">Campus: {selectedCampus}</Badge>
-            )}
-          </div>
         </div>
       </div>
 
