@@ -27,6 +27,7 @@ export default function TransactionsPage() {
   const [qrModalSuccess, setQrModalSuccess] = useState('');
 
   const currentUserId = currentUser?.user_id || getCurrentUserId();
+  const isProvider = String(currentUser?.user_type || '').toLowerCase() === 'provider';
 
   // Load profile once on mount without triggering re-render loops
   useEffect(() => {
@@ -123,8 +124,6 @@ export default function TransactionsPage() {
     }
   };
 
-  const isProvider = currentUser?.user_type === 'Provider';
-
   // Find any accepted bookings for this provider that can be quick-verified
   const pendingQrBookings = transactions.filter(
     (t) => (t.service_status === 'accepted' || t.service_status === 'pending') && t.provider_id === currentUser?.user_id && t.qr_code
@@ -134,9 +133,13 @@ export default function TransactionsPage() {
     <Container fluid className="p-0">
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-          <h2 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>Transactions &amp; Bookings</h2>
+          <h2 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>
+            {isProvider ? 'Client Bookings & Transactions' : 'My Availed Bookings'}
+          </h2>
           <p className="text-muted mb-0">
-            Records of service bookings, booking fees (₱5), 5% commission fees, and provider ratings.
+            {isProvider
+              ? 'Manage incoming student client booking requests, track completion, and view 5% commission details.'
+              : 'View your scheduled campus service bookings, check status, and settle via QR vouchers.'}
           </p>
         </div>
         <div className="d-flex gap-2 align-items-center flex-wrap">

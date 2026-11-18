@@ -1,23 +1,27 @@
-import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import Layout from './components/Layout';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
 import LandingPage from './components/LandingPage';
 import TermsAndConditions from './components/TermsAndConditions';
-import GlobalLoader from './components/GlobalLoader';
+import Layout from './components/Layout';
 import ServicesPage from './pages/ServicesPage';
 import TransactionsPage from './pages/TransactionsPage';
 import MessagesPage from './pages/MessagesPage';
 import ChatPage from './pages/ChatPage';
 import TransactionQRPage from './pages/TransactionQRPage';
 import AuthPage from './pages/AuthPage';
-import ProfilePage from './pages/ProfilePage';
+import SettingsPage from './pages/SettingsPage';
 import AdminPage from './pages/AdminPage';
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
-import AdminSettings from './pages/admin/AdminSettings';
+import AdminUnlockRequests from './pages/admin/AdminUnlockRequests';
+import AdminServices from './pages/admin/AdminServices';
+import AdminTransactions from './pages/admin/AdminTransactions';
+import AdminReviews from './pages/admin/AdminReviews';
 import AdminAdvertisements from './pages/admin/AdminAdvertisements';
-import { Row, Col, Badge, Table, Button, Form, Alert } from 'react-bootstrap';
+import AdminSettings from './pages/admin/AdminSettings';
+import OfflineToast from './components/OfflineToast';
+import { Row, Col, Badge, Table, Button } from 'react-bootstrap';
 import api from './api/axios';
 
 function DashboardPage() {
@@ -29,10 +33,9 @@ function DashboardPage() {
 
   useEffect(() => {
     let isMounted = true;
-
     Promise.all([
       api.get('/services').catch(() => ({ data: { services: [] } })),
-      api.get('/services/mine').catch(() => ({ data: { services: [] } })),
+      api.get('/services/my-services').catch(() => ({ data: { services: [] } })),
       api.get('/transactions').catch(() => ({ data: { transactions: [] } })),
       api.get('/profile/me').catch(() => ({ data: { user: null } })),
     ]).then(([servicesRes, myServicesRes, transactionsRes, profileRes]) => {
@@ -99,7 +102,6 @@ function DashboardPage() {
   const requestorActiveCount = requestorBookings.filter(
     (t) => t.service_status === 'pending' || t.service_status === 'accepted'
   ).length;
-  const requestorMyOffersCount = myServices.filter((s) => !s.is_deleted).length;
 
   // User-specific transaction list
   const userRelevantTransactions = transactions.filter(
@@ -344,6 +346,7 @@ function RequireAdmin({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <OfflineToast />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
@@ -360,16 +363,20 @@ export default function App() {
           <Route path="/transactions/:transactionId/qr" element={<TransactionQRPage />} />
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/messages/:id" element={<ChatPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/admin" element={<RequireAdmin><AdminPage /></RequireAdmin>} />
+          <Route path="/profile" element={<SettingsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/admin/statistics" element={<RequireAdmin><AdminPage /></RequireAdmin>} />
         </Route>
 
-        {/* Admin Portal Routes (No CMS) */}
+        {/* Admin Portal Routes matching ITE11_Finalproject */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
+          <Route path="unlock-requests" element={<AdminUnlockRequests />} />
+          <Route path="services" element={<AdminServices />} />
+          <Route path="transactions" element={<AdminTransactions />} />
+          <Route path="reviews" element={<AdminReviews />} />
           <Route path="advertisements" element={<AdminAdvertisements />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="statistics" element={<AdminPage />} />

@@ -258,7 +258,7 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   SIDEBAR
+   SIDEBAR & COLLAPSIBLE DESKTOP SHELL
    ═══════════════════════════════════════════════════════════ */
 
 @media (max-width: 991.98px) {
@@ -321,6 +321,67 @@ body {
 .neu-sidebar-header {
   background: var(--neu-bg) !important;
   border-bottom: 1px solid rgba(154, 172, 196, 0.4) !important;
+}
+
+/* Collapsible Desktop Sidebar Shell */
+.neu-sidebar-desktop {
+  background: var(--neu-bg);
+  box-shadow:
+    inset -3px 0 8px rgba(154, 172, 196, 0.35),
+    3px 0 12px rgba(232, 239, 248, 0.6);
+  position: fixed;
+  top: 56px;
+  left: 0;
+  bottom: 0;
+  z-index: 1020;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.25s ease;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-right: 1px solid rgba(154, 172, 196, 0.25);
+}
+
+.neu-sidebar-desktop.expanded {
+  width: 260px;
+  padding: 1.15rem;
+}
+
+.neu-sidebar-desktop.collapsed {
+  width: 76px;
+  padding: 1rem 0.5rem;
+}
+
+.neu-sidebar-desktop.collapsed .neu-profile-card {
+  padding: 0.5rem !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.neu-sidebar-desktop.collapsed .neu-avatar-sidebar {
+  margin: 0 auto;
+  width: 42px;
+  height: 42px;
+  font-size: 1rem;
+}
+
+.neu-sidebar-desktop.collapsed .neu-nav-link {
+  justify-content: center !important;
+  padding: 12px 0 !important;
+  border-radius: 12px;
+}
+
+.neu-sidebar-desktop.collapsed .neu-nav-link span,
+.neu-sidebar-desktop.collapsed .neu-nav-link .badge,
+.neu-sidebar-desktop.collapsed .neu-nav-label,
+.neu-sidebar-desktop.collapsed .neu-profile-details,
+.neu-sidebar-desktop.collapsed .neu-sidebar-footer-box {
+  display: none !important;
+}
+
+.neu-sidebar-desktop.collapsed .neu-nav-link svg {
+  margin: 0 auto;
 }
 
 /* Profile card in sidebar */
@@ -857,11 +918,11 @@ body {
 
 .modal-content {
   background: var(--neu-bg) !important;
-  border: none !important;
+  border: 1px solid rgba(154, 172, 196, 0.35) !important;
   border-radius: var(--neu-radius-xl) !important;
   box-shadow:
-    14px 14px 35px rgba(100, 126, 160, 0.5),
-    -14px -14px 35px rgba(232, 239, 248, 0.9) !important;
+    0 12px 32px rgba(15, 23, 42, 0.22),
+    0 2px 8px rgba(15, 23, 42, 0.12) !important;
   overflow: hidden;
 }
 

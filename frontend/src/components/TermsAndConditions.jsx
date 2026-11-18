@@ -44,14 +44,14 @@ export default function TermsAndConditions() {
                 border: '1px solid rgba(6, 58, 143, 0.25)',
               }}
             >
-              SerbisYou Service Marketplace
+              SerbisYou Campus Service Platform
             </Badge>
           </div>
           <h1 className="display-6 fw-bold mb-2" style={{ color: 'var(--neu-text)' }}>
             Terms and Conditions
           </h1>
           <p className="lead text-muted mb-0">
-            Please read these terms carefully before creating an account or using any service on the SerbisYou marketplace platform.
+            Please read these terms carefully before creating an account or using any service on the SerbisYou campus platform.
           </p>
         </div>
 
@@ -155,7 +155,7 @@ export default function TermsAndConditions() {
                   <td className="fw-bold text-warning">Platform Commission</td>
                   <td><strong>5% of amount_topay</strong></td>
                   <td>Provider pays (deducted)</td>
-                  <td>Marketplace facilitation, marketing, and dispute insurance.</td>
+                  <td>Platform facilitation, marketing, and dispute insurance.</td>
                 </tr>
               </tbody>
             </Table>

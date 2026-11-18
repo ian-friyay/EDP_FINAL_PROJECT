@@ -740,17 +740,6 @@ export default function AuthPage({ mode }) {
           <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom" style={{ borderColor: 'rgba(154, 172, 196, 0.35)' }}>
             <Link to="/" className="text-decoration-none d-flex align-items-center gap-2">
               <img src="/logo-transparent.png" alt="SerbisYou" style={{ height: '42px', objectFit: 'contain' }} />
-              <span
-                className="badge small fw-bold px-2 py-1 rounded-pill shadow-sm"
-                style={{
-                  backgroundColor: '#ffffff',
-                  color: '#063a8f',
-                  fontSize: '0.68rem',
-                  letterSpacing: '0.3px',
-                }}
-              >
-                Marketplace
-              </span>
             </Link>
 
             {isSignUp && !verificationPending && role === 'student' && (

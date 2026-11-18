@@ -4,9 +4,6 @@ import {
   Navbar,
   Nav,
   Container,
-  Row,
-  Col,
-  Button,
   Badge,
   NavDropdown,
 } from 'react-bootstrap';
@@ -17,6 +14,8 @@ import api from '../api/axios';
 
 export default function Layout() {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 992 : false);
   const navigate = useNavigate();
 
   const [currentUser, setCurrentUser] = useState(() => {
@@ -27,6 +26,16 @@ export default function Layout() {
       return null;
     }
   });
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 992;
+      setIsMobile(mobile);
+      if (!mobile) setShowMobileSidebar(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -45,6 +54,19 @@ export default function Layout() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleUserChange = () => {
+      try {
+        const stored = window.localStorage.getItem('user');
+        if (stored) setCurrentUser(JSON.parse(stored));
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener('serbisyou_user_changed', handleUserChange);
+    return () => window.removeEventListener('serbisyou_user_changed', handleUserChange);
+  }, []);
+
   const handleSignOut = () => {
     window.localStorage.removeItem('token');
     window.localStorage.removeItem('user_id');
@@ -60,26 +82,14 @@ export default function Layout() {
     username: 'juandelacruz',
     email: 'juan.delacruz@serbisyou.ph',
     contact_number: '+63 912 345 6789',
-    user_type: 'Provider',
+    user_type: 'Requestor',
     region: 'NCR',
     province: 'Metro Manila',
     city: 'Quezon City',
     barangay: 'Brgy. Central',
   };
 
-  useEffect(() => {
-    const handleUserChange = () => {
-      try {
-        const stored = window.localStorage.getItem('user');
-        if (stored) setCurrentUser(JSON.parse(stored));
-      } catch {
-        // ignore
-      }
-    };
-    window.addEventListener('serbisyou_user_changed', handleUserChange);
-    return () => window.removeEventListener('serbisyou_user_changed', handleUserChange);
-  }, []);
-
+  const isProvider = String(user.user_type || '').toLowerCase() === 'provider';
   const displayName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.user_id || 'User';
   const initial = (user.first_name || displayName || 'U')[0]?.toUpperCase();
   const isAdmin = Boolean(
@@ -89,51 +99,68 @@ export default function Layout() {
   );
 
   return (
-    <div className="d-flex flex-column" style={{ height: '100vh', maxHeight: '100vh', overflow: 'hidden' }}>
+    <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: 'var(--neu-bg)' }}>
       {/* 1. Top Navbar */}
       <Navbar className="neu-navbar py-2 px-3 flex-shrink-0" style={{ zIndex: 1030 }}>
         <Container fluid className="p-0">
           <div className="d-flex align-items-center">
-            {/* Hamburger button for Mobile (< lg) */}
-            <Button
-              variant="link"
-              className="text-white p-0 me-3 d-lg-none neu-hamburger"
-              onClick={() => setShowMobileSidebar(true)}
-              aria-label="Open Navigation Sidebar"
+            {/* The Logo itself is the interactive sidebar toggle button (no hamburger icon) */}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                if (isMobile) {
+                  setShowMobileSidebar(true);
+                } else {
+                  setCollapsed(!collapsed);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  if (isMobile) setShowMobileSidebar(true);
+                  else setCollapsed(!collapsed);
+                }
+              }}
+              className="d-flex align-items-center gap-2 m-0 text-white"
+              style={{ cursor: 'pointer', userSelect: 'none' }}
+              title={isMobile ? 'Open navigation menu' : (collapsed ? 'Expand sidebar' : 'Collapse sidebar')}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                <path fillRule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z" />
-              </svg>
-            </Button>
-
-            {/* Brand Logo & Name */}
-            <Navbar.Brand as={Link} to="/dashboard" className="fw-bold d-flex align-items-center gap-2 m-0 text-white">
-              {/* Full logo for desktop */}
+              {/* Full logo for desktop when expanded, compact hands logo when collapsed */}
               <img
-                src="/logo-transparent.png"
+                src={collapsed ? '/logo-hands.png' : '/logo-transparent.png'}
                 alt="SerbisYou"
                 className="logo-white-shadow d-none d-lg-inline-block"
-                style={{ height: '32px', objectFit: 'contain', background: 'transparent' }}
+                style={{
+                  height: '32px',
+                  width: collapsed ? '32px' : 'auto',
+                  maxWidth: '150px',
+                  objectFit: 'contain',
+                  background: 'transparent',
+                  transition: 'transform 0.15s ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.06)')}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
               />
-              {/* Compact hands logo when hamburger is collapsed / mobile view */}
+              {/* Compact hands logo when on mobile view */}
               <img
                 src="/logo-hands.png"
                 alt="SerbisYou"
                 className="logo-white-shadow d-inline-block d-lg-none"
                 style={{ height: '30px', width: '30px', objectFit: 'contain', background: 'transparent' }}
               />
+              {/* Strictly Role Badge: Provider or Student (No Marketplace) */}
               <Badge
                 className="ms-1 small fw-bold px-2 py-1 rounded-pill d-none d-sm-inline-block shadow-sm"
                 style={{
-                  backgroundColor: '#ffffff',
-                  color: '#063a8f',
+                  backgroundColor: isProvider ? 'var(--neu-accent, #ff7828)' : '#0066FF',
+                  color: '#ffffff',
                   fontSize: '0.72rem',
                   letterSpacing: '0.3px',
                 }}
               >
-                Marketplace
+                {isProvider ? 'Provider' : 'Student'}
               </Badge>
-            </Navbar.Brand>
+            </div>
           </div>
 
           {/* Right-side Navbar Actions */}
@@ -146,7 +173,7 @@ export default function Layout() {
               </svg>
             </Nav.Link>
 
-            {/* User Dropdown */}
+            {/* User Dropdown without redundant role badge */}
             <NavDropdown
               align="end"
               id="user-nav-dropdown"
@@ -156,9 +183,6 @@ export default function Layout() {
                   <span className="d-none d-md-inline small fw-semibold">
                     {displayName}
                   </span>
-                  <Badge bg="light" text="dark" className="d-none d-md-inline small rounded-pill">
-                    {user.user_type || 'User'}
-                  </Badge>
                   {user.profile_picture || user.profile_image ? (
                     <img
                       src={user.profile_picture || user.profile_image}
@@ -185,16 +209,20 @@ export default function Layout() {
                   {user.email}
                 </div>
               </div>
-              <NavDropdown.Item as={Link} to="/profile">
-                My Profile
+              <NavDropdown.Item as={Link} to="/settings">
+                Account Settings &amp; Profile
               </NavDropdown.Item>
-              {user.user_type === 'Provider' && (
+              {isProvider ? (
                 <NavDropdown.Item as={Link} to="/services">
-                  My Services
+                  My Offered Services
+                </NavDropdown.Item>
+              ) : (
+                <NavDropdown.Item as={Link} to="/services">
+                  Browse Services
                 </NavDropdown.Item>
               )}
               <NavDropdown.Item as={Link} to="/transactions">
-                {user.user_type === 'Provider' ? 'My Transactions' : 'My Bookings'}
+                {isProvider ? 'Client Bookings' : 'Availed Bookings'}
               </NavDropdown.Item>
               {isAdmin && (
                 <NavDropdown.Item as={Link} to="/admin" className="fw-semibold text-primary">
@@ -210,19 +238,26 @@ export default function Layout() {
         </Container>
       </Navbar>
 
-      {/* 2. Responsive Layout Body (Sidebar + Main Content Area) */}
-      <div className="flex-grow-1 d-flex flex-row overflow-hidden position-relative" style={{ minHeight: 0 }}>
-        {/* Desktop / Responsive Sidebar Column */}
-        <div className="neu-sidebar-col flex-shrink-0 h-100 overflow-y-auto">
-          <Sidebar
-            show={showMobileSidebar}
-            onHide={() => setShowMobileSidebar(false)}
-            currentUser={user}
-          />
-        </div>
+      {/* 2. Responsive Collapsible Layout Body (Sidebar + Dynamic Main Area) */}
+      <div className="d-flex flex-grow-1 position-relative" style={{ minHeight: 'calc(100vh - 56px)' }}>
+        <Sidebar
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+          show={showMobileSidebar}
+          onHide={() => setShowMobileSidebar(false)}
+          currentUser={user}
+        />
 
         {/* 3. Main Content Area Rendering Child Routes with <Outlet /> */}
-        <main className="neu-main p-3 p-md-4 flex-grow-1 h-100 overflow-y-auto" style={{ minWidth: 0 }}>
+        <main
+          className="neu-main flex-grow-1 p-3 p-md-4 overflow-auto"
+          style={{
+            marginLeft: isMobile ? 0 : (collapsed ? '76px' : '260px'),
+            transition: 'margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+            minWidth: 0,
+            width: isMobile ? '100%' : (collapsed ? 'calc(100% - 76px)' : 'calc(100% - 260px)'),
+          }}
+        >
           <Outlet />
         </main>
       </div>
