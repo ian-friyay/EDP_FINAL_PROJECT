@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt', // Prompts user and triggers offline ready / update hooks
+      registerType: 'autoUpdate', // Automatically update in background without nagging the user
       includeAssets: ['favicon.svg', 'icons.svg'],
       manifest: {
         name: 'SerbisYou - Service Marketplace',

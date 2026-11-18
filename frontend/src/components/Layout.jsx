@@ -158,9 +158,18 @@ export default function Layout() {
                   <Badge bg="light" text="dark" className="d-none d-md-inline small rounded-pill">
                     {user.user_type || 'User'}
                   </Badge>
-                  <span className="neu-avatar">
-                    {initial}
-                  </span>
+                  {user.profile_picture || user.profile_image ? (
+                    <img
+                      src={user.profile_picture || user.profile_image}
+                      alt={displayName}
+                      className="rounded-circle border border-white border-opacity-50"
+                      style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <span className="neu-avatar">
+                      {initial}
+                    </span>
+                  )}
                 </span>
               }
             >

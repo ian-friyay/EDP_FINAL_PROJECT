@@ -28,33 +28,35 @@ export default function TransactionsPage() {
 
   const currentUserId = currentUser?.user_id || getCurrentUserId();
 
-  const fetchProfileAndTransactions = useCallback(async () => {
-    setIsLoading(true);
+  // Load profile once on mount without triggering re-render loops
+  useEffect(() => {
+    api.get('/profile/me')
+      .then((res) => {
+        if (res.data?.user) {
+          setCurrentUser(res.data.user);
+          window.localStorage.setItem('user', JSON.stringify(res.data.user));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const fetchTransactions = useCallback(async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
     setError(null);
     try {
-      const [txRes, profileRes] = await Promise.all([
-        api.get('/transactions').catch(() => ({ data: { transactions: [] } })),
-        api.get('/profile/me').catch(() => ({ data: { user: currentUser } })),
-      ]);
-
-      setTransactions(txRes.data.transactions || []);
-      if (profileRes.data.user) {
-        setCurrentUser(profileRes.data.user);
-        window.localStorage.setItem('user', JSON.stringify(profileRes.data.user));
-      }
+      const res = await api.get('/transactions');
+      setTransactions(res.data.transactions || []);
     } catch (err) {
       console.warn('Failed to load transactions:', err);
-      if (transactions.length === 0) {
-        setError('Unable to load latest transactions from server. Please try refreshing.');
-      }
+      setError('Unable to load latest transactions from server. Please try refreshing.');
     } finally {
       setIsLoading(false);
     }
-  }, [currentUser, transactions.length]);
+  }, []);
 
   useEffect(() => {
-    fetchProfileAndTransactions();
-  }, [fetchProfileAndTransactions]);
+    fetchTransactions(true);
+  }, [fetchTransactions]);
 
   // Real-time WebSocket listeners for instant booking lifecycle updates
   useEffect(() => {
@@ -66,7 +68,7 @@ export default function TransactionsPage() {
     }
 
     const handleTransactionChange = () => {
-      fetchProfileAndTransactions();
+      fetchTransactions(false);
     };
 
     socket.on('transaction_created', handleTransactionChange);
@@ -76,7 +78,7 @@ export default function TransactionsPage() {
       socket.off('transaction_created', handleTransactionChange);
       socket.off('transaction_updated', handleTransactionChange);
     };
-  }, [currentUserId, fetchProfileAndTransactions]);
+  }, [currentUserId, fetchTransactions]);
 
   const handleStatusUpdate = async (transactionId, newStatus) => {
     try {
@@ -109,7 +111,7 @@ export default function TransactionsPage() {
       setQrModalSuccess(data.message || 'QR Code verified successfully! Booking completed.');
       setSuccessMsg(`QR Code Verified: Booking #${data.transaction?.transaction_id || ''} has been marked as Completed!`);
       setQrInput('');
-      await fetchProfileAndTransactions();
+      await fetchTransactions(false);
       setTimeout(() => {
         setShowScannerModal(false);
         setQrModalSuccess('');
@@ -154,7 +156,7 @@ export default function TransactionsPage() {
               Scan / Verify QR Code
             </Button>
           )}
-          <Button className="neu-btn-ghost btn-sm" onClick={fetchProfileAndTransactions} disabled={isLoading}>
+          <Button className="neu-btn-ghost btn-sm" onClick={() => fetchTransactions(true)} disabled={isLoading}>
             {isLoading ? 'Refreshing...' : '↻ Refresh Transactions'}
           </Button>
         </div>
@@ -182,7 +184,7 @@ export default function TransactionsPage() {
           <TransactionTable
             transactions={transactions}
             currentUserId={currentUserId}
-            onRefresh={fetchProfileAndTransactions}
+            onRefresh={() => fetchTransactions(false)}
             onStatusUpdate={handleStatusUpdate}
           />
         )}

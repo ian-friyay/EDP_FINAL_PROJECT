@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Offcanvas,
@@ -12,7 +12,35 @@ export default function Sidebar({
   onHide = () => {},
   currentUser,
 }) {
-  const user = currentUser || {
+  const [internalUser, setInternalUser] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (currentUser) {
+      setInternalUser(currentUser);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    const handleUserChange = () => {
+      try {
+        const stored = window.localStorage.getItem('user');
+        if (stored) setInternalUser(JSON.parse(stored));
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener('serbisyou_user_changed', handleUserChange);
+    return () => window.removeEventListener('serbisyou_user_changed', handleUserChange);
+  }, []);
+
+  const user = internalUser || currentUser || {
     user_id: 'MMC-1042',
     first_name: 'Juan',
     last_name: 'Dela Cruz',
@@ -29,6 +57,7 @@ export default function Sidebar({
   const displayName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.user_id || 'User';
   const initials = `${(user.first_name || 'U')[0] || ''}${(user.last_name || '')[0] || ''}`.toUpperCase();
   const locationString = [user.barangay, user.city].filter(Boolean).join(', ') || 'Philippines';
+  const avatarUrl = user.profile_picture || user.profile_image || user.avatar || null;
 
   const isAdmin = Boolean(
     (user.department && user.designation) ||
@@ -123,28 +152,56 @@ export default function Sidebar({
       <Offcanvas.Body className="d-flex flex-column justify-content-between p-3">
         <div>
           {/* User Profile Card grounded in users table */}
-          <Card className="neu-profile-card mb-4">
-            <div className="d-flex align-items-center gap-2 mb-2">
-              <div className="neu-avatar-sidebar flex-shrink-0">
-                {initials}
-              </div>
-              <div className="overflow-hidden">
-                <div className="fw-bold text-truncate" style={{ color: 'var(--neu-text)' }}>
+          <Card className="neu-profile-card mb-3 p-3 border-0 shadow-sm rounded-4">
+            <div className="d-flex align-items-center gap-3">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={displayName}
+                  className="rounded-circle flex-shrink-0 border border-2 border-primary border-opacity-25"
+                  style={{ width: '46px', height: '46px', objectFit: 'cover' }}
+                />
+              ) : (
+                <div
+                  className="neu-avatar-sidebar flex-shrink-0 d-flex align-items-center justify-content-center text-white fw-bold rounded-circle shadow-sm"
+                  style={{ width: '46px', height: '46px', fontSize: '1rem' }}
+                >
+                  {initials}
+                </div>
+              )}
+              <div className="overflow-hidden flex-grow-1">
+                <div
+                  className="fw-bold text-truncate mb-0"
+                  style={{ color: 'var(--neu-text)', fontSize: '0.92rem', lineHeight: 1.25 }}
+                  title={displayName}
+                >
                   {displayName}
                 </div>
-                <div className="text-muted small font-monospace">
-                  ID: {user.user_id || '---'}
+                <div className="d-flex align-items-center gap-1.5 mt-1 flex-wrap">
+                  <span
+                    className="badge rounded-pill bg-light text-secondary border px-2 py-0.5 font-monospace"
+                    style={{ fontSize: '0.68rem', letterSpacing: '0.3px' }}
+                  >
+                    {user.user_id || 'MMC-XXXX'}
+                  </span>
                 </div>
               </div>
             </div>
-            <div className="d-flex align-items-center justify-content-between pt-2 border-top">
+
+            <div className="d-flex align-items-center justify-content-between pt-2 mt-2 border-top border-light-subtle">
               <Badge
-                bg={user.user_type === 'Provider' ? 'success' : 'info'}
-                className="text-white"
+                bg={user.user_type === 'Provider' ? 'success' : 'primary'}
+                className="rounded-pill px-2.5 py-1 text-white fw-semibold"
+                style={{ fontSize: '0.7rem' }}
               >
                 {user.user_type || 'User'}
               </Badge>
-              <span className="text-muted small text-truncate">
+              <span
+                className="text-muted small text-truncate d-flex align-items-center gap-1"
+                style={{ fontSize: '0.72rem', maxWidth: '125px' }}
+                title={locationString}
+              >
+                <span style={{ fontSize: '0.8rem' }}>📍</span>
                 {locationString}
               </span>
             </div>

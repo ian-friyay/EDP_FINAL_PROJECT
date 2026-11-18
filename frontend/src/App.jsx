@@ -25,12 +25,6 @@ function DashboardPage() {
   const [userProfile, setUserProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [loadingState, setLoadingState] = useState({
-    show: false,
-    message: '',
-    subMessage: '',
-  });
-
   useEffect(() => {
     let isMounted = true;
 
@@ -54,18 +48,6 @@ function DashboardPage() {
     };
   }, []);
 
-  const triggerApiSimulation = () => {
-    setLoadingState({
-      show: true,
-      message: 'Processing Transaction (TX-1004)...',
-      subMessage: 'Applying ₱5 booking fee, calculating 5% commission, and saving to Supabase...',
-    });
-
-    setTimeout(() => {
-      setLoadingState({ show: false, message: '', subMessage: '' });
-    }, 2500);
-  };
-
   const totalBookings = transactions.length > 0 ? transactions.length : 24;
   const bookingFeesPaid = transactions.length > 0
     ? transactions.reduce((acc, t) => acc + (Number(t.booking_fee) || 5), 0)
@@ -81,25 +63,12 @@ function DashboardPage() {
 
   return (
     <div>
-      {/* Global Blocking Loader */}
-      <GlobalLoader
-        show={loadingState.show}
-        message={loadingState.message}
-        subMessage={loadingState.subMessage}
-      />
-
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
           <h2 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>Marketplace Dashboard</h2>
           <p className="text-muted mb-0">Welcome back, {displayName}! Here is your service marketplace overview.</p>
         </div>
         <div className="d-flex gap-2 align-items-center flex-wrap">
-          <Button className="neu-btn-primary" size="sm" onClick={triggerApiSimulation}>
-            Simulate API Call
-          </Button>
-          <Button as={Link} to="/landing" className="neu-btn-outline" size="sm">
-            View Public Landing Page
-          </Button>
           <Badge bg="success" className="px-3 py-2 rounded-pill fw-semibold">
             Online &amp; Active
           </Badge>
