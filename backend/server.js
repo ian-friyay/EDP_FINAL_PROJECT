@@ -20,6 +20,7 @@ const mapRoutes = require('./routes/mapRoutes');
 const advertisementRoutes = require('./routes/advertisementRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const { initSocket } = require('./socket/socketServer');
+const seedDatabase = require('./seed');
 
 const app = express();
 const server = http.createServer(app);
@@ -120,6 +121,7 @@ app.post('/api/auth/login', login);
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+    seedDatabase().catch((err) => console.error('Database seeder error on start:', err.message));
 });
 
 module.exports = { app, server, io };

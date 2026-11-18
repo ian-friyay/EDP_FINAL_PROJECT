@@ -261,6 +261,19 @@ body {
    SIDEBAR
    ═══════════════════════════════════════════════════════════ */
 
+@media (max-width: 991.98px) {
+  .neu-sidebar-col {
+    display: contents !important;
+  }
+  .neu-main {
+    flex: 1 1 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow-y: auto !important;
+  }
+}
+
 @media (min-width: 992px) {
   .neu-sidebar-col {
     position: relative !important;
