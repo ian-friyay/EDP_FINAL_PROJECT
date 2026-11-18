@@ -1,7 +1,7 @@
 const supabase = require('../db');
 const { createNotification } = require('./notificationController');
 const { unlockRequestsStore, userCooldowns } = require('../utils/cooldownStore');
-const { sendEmail } = require('../utils/emailService');
+const { sendEmail, sendAccountApprovedEmail } = require('../utils/emailService');
 
 const checkAdminExists = async (req, res) => {
     try {
@@ -128,14 +128,18 @@ const updateVerificationStatus = async (req, res) => {
             return res.status(400).json({ error: 'Status must be verified, rejected, or pending.' });
         }
 
+        let updatedUser = null;
         try {
-            await supabase
+            const { data } = await supabase
                 .from('users')
                 .update({
                     verification_status: status,
                     verification_notes: notes || null
                 })
-                .eq('user_id', String(userId));
+                .eq('user_id', String(userId))
+                .select()
+                .maybeSingle();
+            updatedUser = data;
         } catch (dbErr) {
             console.warn('[Admin Warning] Could not update verification status in DB:', dbErr.message);
         }
@@ -155,6 +159,14 @@ const updateVerificationStatus = async (req, res) => {
             notifDesc,
             '/profile'
         );
+
+        if (status === 'verified' && updatedUser) {
+            try {
+                await sendAccountApprovedEmail(updatedUser);
+            } catch (mailErr) {
+                console.warn('[Admin Warning] Could not dispatch account approved email:', mailErr.message);
+            }
+        }
 
         return res.status(200).json({
             message: `User ${userId} verification status updated to '${status}'.`,
@@ -399,6 +411,14 @@ const updateUserStatus = async (req, res) => {
         if (error) {
             console.error('updateUserStatus error:', error.message);
             return res.status(500).json({ error: 'Failed to update user account status.' });
+        }
+
+        if (isActive && data) {
+            try {
+                await sendAccountApprovedEmail(data);
+            } catch (mailErr) {
+                console.warn('[Admin Warning] Could not dispatch account approved email:', mailErr.message);
+            }
         }
 
         return res.status(200).json({

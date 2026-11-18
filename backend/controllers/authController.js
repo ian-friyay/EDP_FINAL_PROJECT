@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const supabase = require('../db');
-const { sendOtpEmail, renderOtpEmailHtml } = require('../utils/emailService');
+const { sendOtpEmail, sendPendingValidationEmail, renderOtpEmailHtml } = require('../utils/emailService');
 
 const userFields = 'user_id, first_name, last_name, username, contact_number, email, region, province, city, barangay, user_type, department, designation, password, is_active';
 
@@ -360,6 +360,13 @@ const verifyOtp = async (req, res) => {
         }
         if (!updatedVerification) {
             return res.status(400).json({ error: 'The verification code has already been used.' });
+        }
+
+        // Send "Waiting for Approval" email notification
+        try {
+            await sendPendingValidationEmail(user);
+        } catch (mailErr) {
+            console.warn('[Registration Notice] Could not send pending approval email:', mailErr.message);
         }
 
         return res.status(200).json({ message: 'Email verified successfully. You can now log in.' });
