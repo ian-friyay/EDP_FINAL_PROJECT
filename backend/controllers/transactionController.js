@@ -91,6 +91,24 @@ const createTransaction = async (req, res) => {
       });
     }
 
+    // Real-time notification & event emission via Socket.io
+    const io = req.app && req.app.get('io');
+    if (io) {
+      const notifPayload = {
+        id: `tx_${transaction.transaction_id}_${Date.now()}`,
+        type: 'booking',
+        title: 'New Service Booking Request',
+        description: `Student ${requestor_id} requested your service (Total: ₱${total_topay}).`,
+        timestamp: new Date().toISOString(),
+        read: false,
+        link: '/transactions',
+        target_id: String(transaction.transaction_id),
+      };
+
+      io.to(String(provider_id)).emit('transaction_created', transaction);
+      io.to(String(provider_id)).emit('new_notification', notifPayload);
+    }
+
     return res.status(201).json({
       message: 'Transaction created successfully.',
       transaction,
@@ -185,8 +203,121 @@ const getTransactionById = async (req, res) => {
   }
 };
 
+const updateTransactionStatus = async (req, res) => {
+  try {
+    const userId = req.user && req.user.user_id;
+    const { transaction_id } = req.params;
+    const { status } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized.' });
+    }
+
+    if (!['accepted', 'completed', 'cancelled'].includes(status)) {
+      return res.status(400).json({
+        error: "Invalid status. Allowed statuses are: 'accepted', 'completed', 'cancelled'.",
+      });
+    }
+
+    const { data: transaction, error: fetchError } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('transaction_id', transaction_id)
+      .maybeSingle();
+
+    if (fetchError || !transaction) {
+      return res.status(404).json({ error: 'Transaction not found.' });
+    }
+
+    const isProvider = transaction.provider_id === userId;
+    const isRequestor = transaction.requestor_id === userId;
+
+    if (!isProvider && !isRequestor) {
+      return res.status(403).json({ error: 'You are not a participant in this transaction.' });
+    }
+
+    // Role & status validation
+    if (status === 'accepted') {
+      if (!isProvider) {
+        return res.status(403).json({ error: 'Only the provider can accept this booking.' });
+      }
+      if (transaction.service_status !== 'pending') {
+        return res.status(400).json({
+          error: `Cannot accept transaction with status '${transaction.service_status}'.`,
+        });
+      }
+    } else if (status === 'completed') {
+      if (!isProvider && !isRequestor) {
+        return res.status(403).json({ error: 'Unauthorized.' });
+      }
+      if (transaction.service_status !== 'accepted') {
+        return res.status(400).json({
+          error: `Cannot complete transaction with status '${transaction.service_status}'. Must be 'accepted' first.`,
+        });
+      }
+    } else if (status === 'cancelled') {
+      if (transaction.service_status !== 'pending') {
+        return res.status(400).json({
+          error: `Cannot cancel transaction with status '${transaction.service_status}'. Only pending bookings can be cancelled.`,
+        });
+      }
+    }
+
+    const { data: updated, error: updateError } = await supabase
+      .from('transactions')
+      .update({ service_status: status })
+      .eq('transaction_id', transaction_id)
+      .select()
+      .single();
+
+    if (updateError) {
+      return res.status(500).json({ error: 'Failed to update transaction status.' });
+    }
+
+    // Real-time socket emission & scoped notification
+    const io = req.app && req.app.get('io');
+    if (io) {
+      // Notify both parties of transaction state change
+      io.to(String(transaction.provider_id)).emit('transaction_updated', updated);
+      io.to(String(transaction.requestor_id)).emit('transaction_updated', updated);
+
+      const recipientId = isProvider ? transaction.requestor_id : transaction.provider_id;
+      const statusTitleMap = {
+        accepted: 'Booking Accepted!',
+        completed: 'Service Completed!',
+        cancelled: 'Booking Cancelled',
+      };
+      const statusDescMap = {
+        accepted: `Provider has accepted your booking request (TX-${transaction.transaction_id}).`,
+        completed: `Service (TX-${transaction.transaction_id}) has been marked as completed. Please settle payment via QR.`,
+        cancelled: `Booking (TX-${transaction.transaction_id}) was cancelled.`,
+      };
+
+      io.to(String(recipientId)).emit('new_notification', {
+        id: `tx_${transaction.transaction_id}_${status}_${Date.now()}`,
+        type: 'booking',
+        title: statusTitleMap[status] || 'Booking Update',
+        description: statusDescMap[status] || `Transaction status changed to ${status}.`,
+        timestamp: new Date().toISOString(),
+        read: false,
+        link: '/transactions',
+        target_id: String(transaction.transaction_id),
+      });
+    }
+
+    return res.status(200).json({
+      message: `Transaction status updated to '${status}'.`,
+      transaction: updated,
+    });
+  } catch (error) {
+    console.error('Error updating transaction status:', error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
 module.exports = {
   createTransaction,
   getUserTransactions,
   getTransactionById,
+  updateTransactionStatus,
 };

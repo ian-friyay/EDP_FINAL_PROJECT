@@ -106,11 +106,19 @@ export default function AdminLayout() {
 
             {/* Brand Logo & Name */}
             <Navbar.Brand as={Link} to="/admin/dashboard" className="fw-bold d-flex align-items-center gap-2 m-0 text-white">
+              {/* Full text logo for desktop view */}
               <img
                 src="/logo-transparent.png"
                 alt="SerbisYou"
-                className="logo-white-shadow"
+                className="logo-white-shadow d-none d-lg-inline-block"
                 style={{ height: '32px', objectFit: 'contain', background: 'transparent' }}
+              />
+              {/* Compact hands logo when hamburger is collapsed / mobile view */}
+              <img
+                src="/logo-hands.png"
+                alt="SerbisYou"
+                className="logo-white-shadow d-inline-block d-lg-none"
+                style={{ height: '30px', width: '30px', objectFit: 'contain', background: 'transparent' }}
               />
             </Navbar.Brand>
           </div>
@@ -173,7 +181,7 @@ export default function AdminLayout() {
         >
           <Offcanvas.Header closeButton className="border-bottom" style={{ borderColor: 'rgba(154, 172, 196, 0.4)' }}>
             <Offcanvas.Title className="fw-bold d-flex align-items-center gap-2">
-              <img src="/logo.png" alt="SerbisYou" style={{ height: '24px', objectFit: 'contain' }} />
+              <img src="/logo-hands.png" alt="SerbisYou" className="logo-white-shadow" style={{ height: '28px', width: '28px', objectFit: 'contain' }} />
               <span className="small text-muted">Admin Menu</span>
             </Offcanvas.Title>
           </Offcanvas.Header>

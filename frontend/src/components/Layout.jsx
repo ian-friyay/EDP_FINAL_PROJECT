@@ -89,11 +89,19 @@ export default function Layout() {
 
             {/* Brand Logo & Name */}
             <Navbar.Brand as={Link} to="/dashboard" className="fw-bold d-flex align-items-center gap-2 m-0 text-white">
+              {/* Full logo for desktop */}
               <img
                 src="/logo-transparent.png"
                 alt="SerbisYou"
-                className="logo-white-shadow"
+                className="logo-white-shadow d-none d-lg-inline-block"
                 style={{ height: '32px', objectFit: 'contain', background: 'transparent' }}
+              />
+              {/* Compact hands logo when hamburger is collapsed / mobile view */}
+              <img
+                src="/logo-hands.png"
+                alt="SerbisYou"
+                className="logo-white-shadow d-inline-block d-lg-none"
+                style={{ height: '30px', width: '30px', objectFit: 'contain', background: 'transparent' }}
               />
               <Badge
                 className="ms-1 small fw-bold px-2 py-1 rounded-pill d-none d-sm-inline-block shadow-sm"

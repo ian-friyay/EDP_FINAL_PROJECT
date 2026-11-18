@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, Button, Form, Modal } from 'react-bootstrap';
 import api from '../api/axios';
 import ServicesGrid from '../components/ServicesGrid';
+import { queueOfflineAction } from '../utils/offlineQueue';
 
 const emptyService = {
   service_category: '',
@@ -174,6 +175,21 @@ export default function ServicesPage() {
     setBookingServiceId(service.service_id);
 
     try {
+      // Check if browser is currently offline
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        await queueOfflineAction({
+          endpoint: '/transactions',
+          method: 'post',
+          payload: { service_id: service.service_id },
+          description: `Booking service: ${service.subcategory || service.service_category}`,
+        });
+        setMessage(
+          `Offline Mode: Your booking request has been queued locally in IndexedDB. It will automatically synchronize to the server as soon as connection is restored.`
+        );
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
       const { data } = await api.post('/transactions', {
         service_id: service.service_id,
       });
@@ -182,6 +198,28 @@ export default function ServicesPage() {
       );
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (requestError) {
+      // If a network connection error occurs mid-request, gracefully queue it locally
+      if (
+        (typeof navigator !== 'undefined' && !navigator.onLine) ||
+        requestError.message === 'Network Error' ||
+        !requestError.response
+      ) {
+        try {
+          await queueOfflineAction({
+            endpoint: '/transactions',
+            method: 'post',
+            payload: { service_id: service.service_id },
+            description: `Booking service: ${service.subcategory || service.service_category}`,
+          });
+          setMessage(
+            `Connection issue: Your booking request has been queued locally and will automatically sync once your connection returns.`
+          );
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        } catch (queueErr) {
+          console.error('Failed to queue offline action:', queueErr);
+        }
+      }
       setError(getRequestError(requestError));
     } finally {
       setBookingServiceId(null);

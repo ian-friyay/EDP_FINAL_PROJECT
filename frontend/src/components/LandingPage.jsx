@@ -52,12 +52,25 @@ export default function LandingPage() {
       <Navbar className="neu-navbar border-bottom py-3 sticky-top" expand="lg">
         <Container fluid className="px-3 px-sm-4 px-lg-5">
           <Navbar.Brand as={Link} to="/" className="d-flex align-items-center p-0" style={{ marginTop: '-3px' }}>
+            {/* Full text logo for desktop view */}
             <img
               src="/logo-transparent.png"
               alt="SerbisYou"
-              className="logo-white-shadow"
+              className="logo-white-shadow d-none d-lg-inline-block"
               style={{
                 height: '42px',
+                objectFit: 'contain',
+                background: 'transparent',
+              }}
+            />
+            {/* Compact hands logo when collapsed / hamburger mobile view */}
+            <img
+              src="/logo-hands.png"
+              alt="SerbisYou"
+              className="logo-white-shadow d-inline-block d-lg-none"
+              style={{
+                height: '36px',
+                width: '36px',
                 objectFit: 'contain',
                 background: 'transparent',
               }}

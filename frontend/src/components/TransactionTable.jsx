@@ -1,33 +1,6 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, Table, Badge } from 'react-bootstrap';
-
-const dummyTransactions = [
-  {
-    transaction_id: 1,
-    provider_name: 'Juan Cruz',
-    amount_topay: 500,
-    total_topay: 530,
-    service_status: 'pending',
-    created_at: '2026-02-10T10:00:00',
-  },
-  {
-    transaction_id: 2,
-    provider_name: 'Maria Santos',
-    amount_topay: 1200,
-    total_topay: 1265,
-    service_status: 'completed',
-    created_at: '2026-02-08T09:00:00',
-  },
-  {
-    transaction_id: 3,
-    provider_name: 'Pedro Reyes',
-    amount_topay: 800,
-    total_topay: 845,
-    service_status: 'accepted',
-    created_at: '2026-02-11T14:00:00',
-  },
-];
+import { Button, Table, Badge, ButtonGroup } from 'react-bootstrap';
 
 const statusVariants = {
   pending: 'warning',
@@ -42,21 +15,21 @@ const formatAmount = (amount) =>
     currency: 'PHP',
   });
 
-function TransactionTable({ transactions = dummyTransactions }) {
+function TransactionTable({ transactions = [], currentUserId, onStatusUpdate }) {
   const sortedTransactions = useMemo(() => {
     const rows = Array.isArray(transactions) ? [...transactions] : [];
     const activeRows = rows.filter(
-      (transaction) => transaction.service_status !== 'completed'
+      (transaction) => transaction.service_status !== 'completed' && transaction.service_status !== 'cancelled'
     );
-    const completedRows = rows.filter(
-      (transaction) => transaction.service_status === 'completed'
+    const finishedRows = rows.filter(
+      (transaction) => transaction.service_status === 'completed' || transaction.service_status === 'cancelled'
     );
 
     const newestFirst = (first, second) =>
-      new Date(second.created_at).getTime() -
-      new Date(first.created_at).getTime();
+      new Date(second.created_at || 0).getTime() -
+      new Date(first.created_at || 0).getTime();
 
-    return [...activeRows.sort(newestFirst), ...completedRows.sort(newestFirst)];
+    return [...activeRows.sort(newestFirst), ...finishedRows.sort(newestFirst)];
   }, [transactions]);
 
   return (
@@ -65,12 +38,12 @@ function TransactionTable({ transactions = dummyTransactions }) {
         <thead>
           <tr>
             <th>#</th>
-            <th>Provider</th>
+            <th>Service &amp; Counterparty</th>
             <th className="d-none d-md-table-cell">Amount</th>
             <th>Total To Pay</th>
             <th>Status</th>
             <th className="d-none d-sm-table-cell">Date</th>
-            <th>Action</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -85,46 +58,96 @@ function TransactionTable({ transactions = dummyTransactions }) {
               </td>
             </tr>
           ) : (
-            sortedTransactions.map((transaction) => (
-              <tr key={transaction.transaction_id}>
-                <td className="fw-semibold text-muted">
-                  {transaction.transaction_id}
-                </td>
-                <td>
-                  <div className="fw-semibold" style={{ color: 'var(--neu-text)' }}>{transaction.provider_name}</div>
-                  <small className="text-muted">Provider</small>
-                </td>
-                <td className="d-none d-md-table-cell">{formatAmount(transaction.amount_topay)}</td>
-                <td className="fw-bold" style={{ color: '#063a8f' }}>
-                  {formatAmount(transaction.total_topay)}
-                </td>
-                <td>
-                  <Badge
-                    bg={statusVariants[transaction.service_status] || 'secondary'}
-                    className="rounded-pill px-2 py-1"
-                  >
-                    {transaction.service_status}
-                  </Badge>
-                </td>
-                <td className="d-none d-sm-table-cell">
-                  <small className="text-muted">
-                    {transaction.created_at
-                      ? new Date(transaction.created_at).toLocaleString('en-PH')
-                      : '-'}
-                  </small>
-                </td>
-                <td>
-                  <Button
-                    as={Link}
-                    to={`/transactions/${transaction.transaction_id}/qr`}
-                    className="neu-btn-outline px-3 py-1"
-                    size="sm"
-                  >
-                    View QR
-                  </Button>
-                </td>
-              </tr>
-            ))
+            sortedTransactions.map((transaction) => {
+              const isProvider = String(transaction.provider_id) === String(currentUserId);
+              const isRequestor = String(transaction.requestor_id) === String(currentUserId);
+
+              return (
+                <tr key={transaction.transaction_id}>
+                  <td className="fw-semibold text-muted">
+                    #{transaction.transaction_id}
+                  </td>
+                  <td>
+                    <div className="fw-semibold" style={{ color: 'var(--neu-text)' }}>
+                      {transaction.service_name || 'Campus Service'}
+                    </div>
+                    <small className="text-muted d-block">
+                      {isProvider
+                        ? `Requestor: ${transaction.requestor_name || transaction.requestor_id}`
+                        : `Provider: ${transaction.provider_name || transaction.provider_id}`}
+                    </small>
+                  </td>
+                  <td className="d-none d-md-table-cell">{formatAmount(transaction.amount_topay)}</td>
+                  <td className="fw-bold" style={{ color: '#063a8f' }}>
+                    {formatAmount(transaction.total_topay)}
+                  </td>
+                  <td>
+                    <Badge
+                      bg={statusVariants[transaction.service_status] || 'secondary'}
+                      className="rounded-pill px-2 py-1 text-capitalize"
+                    >
+                      {transaction.service_status}
+                    </Badge>
+                  </td>
+                  <td className="d-none d-sm-table-cell">
+                    <small className="text-muted">
+                      {transaction.created_at
+                        ? new Date(transaction.created_at).toLocaleString('en-PH')
+                        : '-'}
+                    </small>
+                  </td>
+                  <td>
+                    <div className="d-flex align-items-center gap-2 flex-wrap">
+                      {/* Provider Action: Accept Pending Booking */}
+                      {isProvider && transaction.service_status === 'pending' && onStatusUpdate && (
+                        <Button
+                          variant="success"
+                          size="sm"
+                          className="px-2 py-1 fw-semibold"
+                          onClick={() => onStatusUpdate(transaction.transaction_id, 'accepted')}
+                        >
+                          ✓ Accept
+                        </Button>
+                      )}
+
+                      {/* Provider Action: Complete Accepted Booking */}
+                      {isProvider && transaction.service_status === 'accepted' && onStatusUpdate && (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className="px-2 py-1 fw-semibold neu-btn-primary"
+                          onClick={() => onStatusUpdate(transaction.transaction_id, 'completed')}
+                        >
+                          Mark Completed
+                        </Button>
+                      )}
+
+                      {/* Cancel Action (Pending only) */}
+                      {transaction.service_status === 'pending' && onStatusUpdate && (
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          className="px-2 py-1"
+                          onClick={() => onStatusUpdate(transaction.transaction_id, 'cancelled')}
+                        >
+                          Cancel
+                        </Button>
+                      )}
+
+                      {/* QR Settlement View */}
+                      <Button
+                        as={Link}
+                        to={`/transactions/${transaction.transaction_id}/qr`}
+                        className="neu-btn-outline px-2 py-1"
+                        size="sm"
+                      >
+                        QR Code
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })
           )}
         </tbody>
       </Table>

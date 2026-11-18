@@ -95,7 +95,7 @@ export default function Sidebar({
       {/* Mobile Offcanvas Header (auto-hidden on lg and wider) */}
       <Offcanvas.Header closeButton className="d-lg-none neu-sidebar-header px-3 py-3">
         <Offcanvas.Title className="fw-bold text-primary d-flex align-items-center gap-2">
-          <img src="/logo.png" alt="SerbisYou" style={{ height: '24px', objectFit: 'contain' }} />
+          <img src="/logo-hands.png" alt="SerbisYou" className="logo-white-shadow" style={{ height: '30px', width: '30px', objectFit: 'contain' }} />
           <span>SerbisYou Navigation</span>
         </Offcanvas.Title>
       </Offcanvas.Header>
