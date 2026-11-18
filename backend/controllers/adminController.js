@@ -647,6 +647,16 @@ const createAdminAdvertisement = async (req, res) => {
     return res.status(201).json({ message: 'Advertisement created.', data: newAd });
 };
 
+const updateAdminAdvertisementStatus = async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body || {};
+    const ad = adminAdvertisementsStore.find((a) => String(a.id) === String(id));
+    if (ad) {
+        ad.status = status;
+    }
+    return res.status(200).json({ message: `Advertisement marked as ${status}.` });
+};
+
 const deleteAdminAdvertisement = async (req, res) => {
     const { id } = req.params;
     adminAdvertisementsStore = adminAdvertisementsStore.filter((a) => a.id !== id);
@@ -675,5 +685,6 @@ module.exports = {
     deleteAdminReview,
     getAdminAdvertisements,
     createAdminAdvertisement,
+    updateAdminAdvertisementStatus,
     deleteAdminAdvertisement
 };

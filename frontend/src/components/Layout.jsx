@@ -4,6 +4,7 @@ import {
   Navbar,
   Nav,
   Container,
+  Button,
   Badge,
   NavDropdown,
 } from 'react-bootstrap';
@@ -54,19 +55,6 @@ export default function Layout() {
     };
   }, []);
 
-  useEffect(() => {
-    const handleUserChange = () => {
-      try {
-        const stored = window.localStorage.getItem('user');
-        if (stored) setCurrentUser(JSON.parse(stored));
-      } catch {
-        // ignore
-      }
-    };
-    window.addEventListener('serbisyou_user_changed', handleUserChange);
-    return () => window.removeEventListener('serbisyou_user_changed', handleUserChange);
-  }, []);
-
   const handleSignOut = () => {
     window.localStorage.removeItem('token');
     window.localStorage.removeItem('user_id');
@@ -92,16 +80,11 @@ export default function Layout() {
   const isProvider = String(user.user_type || '').toLowerCase() === 'provider';
   const displayName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.user_id || 'User';
   const initial = (user.first_name || displayName || 'U')[0]?.toUpperCase();
-  const isAdmin = Boolean(
-    (user.department && user.designation) ||
-    user.user_type === 'Admin' ||
-    user.role === 'admin'
-  );
 
   return (
     <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: 'var(--neu-bg)' }}>
       {/* 1. Top Navbar */}
-      <Navbar className="neu-navbar py-2 px-3 flex-shrink-0" style={{ zIndex: 1030 }}>
+      <Navbar className="neu-navbar sticky-top py-2 px-3">
         <Container fluid className="p-0">
           <div className="d-flex align-items-center">
             {/* The Logo itself is the interactive sidebar toggle button (no hamburger icon) */}
@@ -171,6 +154,9 @@ export default function Layout() {
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
                 <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
               </svg>
+              <Badge bg="danger" pill className="position-absolute top-0 start-100 translate-middle small">
+                3
+              </Badge>
             </Nav.Link>
 
             {/* User Dropdown without redundant role badge */}
@@ -183,18 +169,9 @@ export default function Layout() {
                   <span className="d-none d-md-inline small fw-semibold">
                     {displayName}
                   </span>
-                  {user.profile_picture || user.profile_image ? (
-                    <img
-                      src={user.profile_picture || user.profile_image}
-                      alt={displayName}
-                      className="rounded-circle border border-white border-opacity-50"
-                      style={{ width: '32px', height: '32px', objectFit: 'cover' }}
-                    />
-                  ) : (
-                    <span className="neu-avatar">
-                      {initial}
-                    </span>
-                  )}
+                  <span className="neu-avatar">
+                    {initial}
+                  </span>
                 </span>
               }
             >
@@ -212,23 +189,12 @@ export default function Layout() {
               <NavDropdown.Item as={Link} to="/settings">
                 Account Settings &amp; Profile
               </NavDropdown.Item>
-              {isProvider ? (
-                <NavDropdown.Item as={Link} to="/services">
-                  My Offered Services
-                </NavDropdown.Item>
-              ) : (
-                <NavDropdown.Item as={Link} to="/services">
-                  Browse Services
-                </NavDropdown.Item>
-              )}
+              <NavDropdown.Item as={Link} to="/services">
+                {isProvider ? 'My Offered Services' : 'Browse Services'}
+              </NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/transactions">
                 {isProvider ? 'Client Bookings' : 'Availed Bookings'}
               </NavDropdown.Item>
-              {isAdmin && (
-                <NavDropdown.Item as={Link} to="/admin" className="fw-semibold text-primary">
-                  🛡️ Admin Console
-                </NavDropdown.Item>
-              )}
               <NavDropdown.Divider />
               <NavDropdown.Item as="button" type="button" className="text-danger" onClick={handleSignOut}>
                 Sign Out

@@ -261,53 +261,6 @@ body {
    SIDEBAR & COLLAPSIBLE DESKTOP SHELL
    ═══════════════════════════════════════════════════════════ */
 
-@media (max-width: 991.98px) {
-  .neu-sidebar-col {
-    display: contents !important;
-  }
-  .neu-main {
-    flex: 1 1 100% !important;
-    max-width: 100% !important;
-    width: 100% !important;
-    height: 100% !important;
-    overflow-y: auto !important;
-  }
-}
-
-@media (min-width: 992px) {
-  .neu-sidebar-col {
-    position: relative !important;
-    height: 100% !important;
-    overflow-y: auto !important;
-    width: 280px !important;
-    min-width: 280px !important;
-    max-width: 280px !important;
-    flex: 0 0 280px !important;
-  }
-
-  .neu-main {
-    flex: 1 1 0% !important;
-    max-width: calc(100% - 280px) !important;
-    min-width: 0 !important;
-    height: 100% !important;
-    overflow-y: auto !important;
-  }
-
-  .neu-sidebar-col::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  .neu-sidebar-col::-webkit-scrollbar-thumb {
-    background: rgba(154, 172, 196, 0.4);
-    border-radius: 4px;
-  }
-
-  .neu-sidebar {
-    min-height: 100% !important;
-    height: 100% !important;
-  }
-}
-
 .neu-sidebar {
   background: var(--neu-bg) !important;
   border-right: none !important;
@@ -943,19 +896,12 @@ body {
    ═══════════════════════════════════════════════════════════ */
 
 .neu-filter-bar {
-  position: -webkit-sticky !important;
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 100 !important;
-  background: rgba(224, 231, 240, 0.95) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.7) !important;
+  background: var(--neu-bg);
+  border: none !important;
   border-radius: var(--neu-radius-lg) !important;
-  box-shadow: 0 8px 24px rgba(154, 172, 196, 0.35) !important;
+  box-shadow: var(--neu-shadow-flat) !important;
   padding: 1.25rem 1.5rem !important;
   margin-bottom: 1.5rem !important;
-  transition: all 0.2s ease;
 }
 
 /* ═══════════════════════════════════════════════════════════
