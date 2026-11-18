@@ -57,6 +57,12 @@ export default function AuthPage({ mode }) {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isResending, setIsResending] = useState(false);
 
+  // Sign-In Two-Factor Authentication (2FA) States
+  const [login2faPending, setLogin2faPending] = useState(false);
+  const [loginOtp, setLoginOtp] = useState('');
+  const [loginDevOtp, setLoginDevOtp] = useState('');
+  const [loginUserEmail, setLoginUserEmail] = useState('');
+
   // Form states
   const [message, setMessage] = useState(location.state?.message || '');
   const [error, setError] = useState('');
@@ -468,6 +474,18 @@ export default function AuthPage({ mode }) {
         password,
         rememberMe,
       });
+
+      // Two-Factor Authentication (2FA) Challenge
+      if (data.requires_2fa) {
+        setLogin2faPending(true);
+        setLoginUserEmail(data.email || email.trim());
+        setLoginDevOtp(data.devOtp || '');
+        setLoginOtp('');
+        setResendCooldown(60);
+        setMessage(data.message || 'We sent a 6-digit sign-in code to your email.');
+        return;
+      }
+
       if (typeof data.token !== 'string' || !data.token) {
         throw new Error('Authentication token missing from response.');
       }
@@ -495,6 +513,68 @@ export default function AuthPage({ mode }) {
       setError(err.response?.data?.error || err.message || 'Failed to sign in.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Handle Verify Login 2FA OTP
+  const handleVerifyLoginOtp = async (event) => {
+    event.preventDefault();
+    setError('');
+    setMessage('');
+
+    if (!loginOtp || loginOtp.trim().length !== 6) {
+      setError('Please enter the 6-digit verification code.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { data } = await api.post('/auth/verify-login-otp', {
+        email: loginUserEmail,
+        otp: loginOtp.trim(),
+        rememberMe,
+      });
+
+      if (!data.token || !data.user) {
+        throw new Error('Sign-in credentials missing from verification response.');
+      }
+
+      window.localStorage.setItem('token', data.token);
+      window.localStorage.setItem('user_id', data.user.user_id);
+      window.localStorage.setItem('user', JSON.stringify(data.user));
+
+      if (rememberMe) {
+        window.localStorage.setItem('serbisyou_remember_me', 'true');
+        window.localStorage.setItem('serbisyou_remembered_email', loginUserEmail);
+      } else {
+        window.localStorage.removeItem('serbisyou_remember_me');
+        window.localStorage.removeItem('serbisyou_remembered_email');
+      }
+
+      const isAdmin = data.user?.user_type === 'Admin' || (data.user?.department && data.user?.designation);
+      const destination = isAdmin ? '/admin/dashboard' : (location.state?.from?.pathname || '/dashboard');
+      navigate(destination, { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Invalid or expired verification code.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle Resend Login 2FA OTP
+  const handleResendLoginOtp = async () => {
+    if (resendCooldown > 0 || isResending) return;
+    setIsResending(true);
+    setError('');
+    try {
+      const { data } = await api.post('/auth/resend-login-otp', { email: loginUserEmail });
+      setMessage(data.message || 'A new sign-in code has been sent.');
+      if (data.devOtp) setLoginDevOtp(data.devOtp);
+      setResendCooldown(60);
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Failed to resend sign-in code.');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -565,6 +645,7 @@ export default function AuthPage({ mode }) {
   };
 
   const getPageTitle = () => {
+    if (login2faPending) return 'Two-Factor Sign-In';
     if (verificationPending) return 'Email Verification';
     if (!isSignUp) return 'Welcome Back';
     if (role === 'admin') return 'Register Platform Administrator';
@@ -610,14 +691,14 @@ export default function AuthPage({ mode }) {
         <div
           className="neu-card p-4 p-md-5 w-100"
           style={{
-            maxWidth: isSignUp && !verificationPending ? '780px' : '520px',
+            maxWidth: isSignUp && !verificationPending && !login2faPending ? '780px' : '520px',
             boxShadow: '0 20px 50px rgba(10, 25, 47, 0.28), var(--neu-shadow-flat-lg)',
             backgroundColor: 'rgba(235, 240, 246, 0.94)',
             backdropFilter: 'blur(12px)',
           }}
         >
           {/* Navigation & Back Buttons Bar */}
-          {!verificationPending && (
+          {!verificationPending && !login2faPending && (
             <div className="d-flex justify-content-between align-items-center mb-4">
               {isSignUp ? (
                 <>
@@ -718,7 +799,9 @@ export default function AuthPage({ mode }) {
             {getPageTitle()}
           </h2>
           <p className="text-muted small mb-4">
-            {verificationPending
+            {login2faPending
+              ? `Enter the 6-digit verification code sent to ${loginUserEmail}.`
+              : verificationPending
               ? `Enter the 6-digit confirmation code sent to ${email}.`
               : isSignUp
                 ? role === 'admin'
@@ -764,8 +847,84 @@ export default function AuthPage({ mode }) {
             </div>
           )}
 
-          {/* OTP Verification Screen */}
-          {verificationPending ? (
+          {/* Sign-In Two-Factor Authentication (2FA) Screen */}
+          {login2faPending ? (
+            <Form onSubmit={handleVerifyLoginOtp}>
+              <div className="neu-card-inset p-4 text-center mb-4">
+                <div className="mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" fill="#063a8f" viewBox="0 0 16 16" className="opacity-80">
+                    <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM5 8h6a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/>
+                  </svg>
+                </div>
+                <h5 className="fw-bold mb-2" style={{ color: 'var(--neu-text)' }}>
+                  Sign-In Verification Code
+                </h5>
+                <p className="text-muted small mb-3">
+                  Check your inbox at <strong className="text-dark">{loginUserEmail}</strong> for your 6-digit 2FA security code.
+                </p>
+
+                {loginDevOtp && (
+                  <div className="alert alert-info py-2 px-3 small rounded-3 mb-3 border-0 text-center font-monospace">
+                    <strong>[Dev Mode OTP]</strong> <code>{loginDevOtp}</code>
+                  </div>
+                )}
+
+                <Form.Control
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  placeholder="• • • • • •"
+                  className="neu-input text-center font-monospace fs-2 fw-bold mx-auto mb-2"
+                  style={{ maxWidth: '280px', letterSpacing: '8px' }}
+                  value={loginOtp}
+                  onChange={(e) => setLoginOtp(e.target.value.replace(/\D/g, ''))}
+                  required
+                  autoFocus
+                />
+                <small className="text-muted d-block">
+                  Code expires in 10 minutes.
+                </small>
+              </div>
+
+              <div className="d-grid gap-2">
+                <Button
+                  type="submit"
+                  className="neu-btn-primary rounded-pill py-2 fw-bold"
+                  disabled={isSubmitting || loginOtp.length !== 6}
+                >
+                  {isSubmitting ? 'Verifying Code...' : 'Verify & Enter Dashboard'}
+                </Button>
+
+                <div className="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                  <Button
+                    variant="link"
+                    className="neu-btn-ghost rounded-pill px-3 py-1 small text-decoration-none"
+                    onClick={() => {
+                      setLogin2faPending(false);
+                      setError('');
+                      setMessage('');
+                    }}
+                  >
+                    ← Back to Login
+                  </Button>
+
+                  <Button
+                    variant="link"
+                    className="neu-btn-ghost rounded-pill px-3 py-1 small text-decoration-none"
+                    disabled={resendCooldown > 0 || isResending}
+                    onClick={handleResendLoginOtp}
+                  >
+                    {isResending
+                      ? 'Sending code...'
+                      : resendCooldown > 0
+                        ? `Resend in ${resendCooldown}s`
+                        : "Resend Code"}
+                  </Button>
+                </div>
+              </div>
+            </Form>
+          ) : verificationPending ? (
             <Form onSubmit={handleSubmit}>
               <div className="neu-card-inset p-4 text-center mb-4">
                 <div className="mb-3">
@@ -1673,7 +1832,7 @@ export default function AuthPage({ mode }) {
             </Form>
           )}
 
-          {!verificationPending && (
+          {!verificationPending && !login2faPending && (
             <div className="text-center mt-4 pt-3 border-top" style={{ borderColor: 'rgba(154, 172, 196, 0.35)' }}>
               <span className="text-muted small">
                 {isSignUp ? 'Already have an account? ' : 'New to SerbisYou? '}

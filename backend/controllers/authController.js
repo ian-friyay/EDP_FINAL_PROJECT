@@ -6,6 +6,77 @@ const supabase = require('../db');
 
 const userFields = 'user_id, first_name, last_name, username, contact_number, email, region, province, city, barangay, user_type, department, designation, password, is_active';
 
+const renderOtpEmailHtml = (otp, title = 'Sign-In Verification Code', subtitle = 'Use this code to complete your sign-in to SerbisYou') => {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SerbisYou Security Code</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #eef2f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #eef2f6; padding: 40px 15px;">
+    <tr>
+      <td align="center">
+        <table width="100%" style="max-width: 520px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(10, 25, 47, 0.08); border: 1px solid #e2e8f0;" border="0" cellspacing="0" cellpadding="0">
+          <!-- Branded Navy Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0A192F 0%, #063a8f 100%); padding: 32px 30px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: 0.5px;">SerbisYou</h1>
+              <p style="margin: 6px 0 0 0; color: #cbd5e1; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;">Mindoro State University Marketplace</p>
+            </td>
+          </tr>
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 36px 32px 28px 32px; text-align: center;">
+              <h2 style="margin: 0 0 10px 0; color: #0f172a; font-size: 20px; font-weight: 700;">${title}</h2>
+              <p style="margin: 0 0 24px 0; color: #64748b; font-size: 14px; line-height: 1.5;">${subtitle}</p>
+              
+              <!-- Prominent OTP Code Container -->
+              <div style="background-color: #f8fafc; border: 2px dashed #063a8f; border-radius: 12px; padding: 18px 24px; margin: 0 auto 24px auto; display: inline-block;">
+                <span style="font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 800; color: #063a8f; letter-spacing: 10px; display: block; margin-left: 10px;">
+                  ${otp}
+                </span>
+              </div>
+
+              <!-- Expiry Note -->
+              <p style="margin: 0 0 20px 0; color: #475569; font-size: 13px;">
+                ⏱️ This verification code is valid for <strong>10 minutes</strong>.
+              </p>
+
+              <!-- Security Notice -->
+              <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 12px 16px; text-align: left; margin-bottom: 24px;">
+                <p style="margin: 0; color: #92400e; font-size: 12px; line-height: 1.5;">
+                  🔒 <strong>Security Notice:</strong> Never share this code with anyone. SerbisYou campus staff and administrators will never ask for your verification code or password.
+                </p>
+              </div>
+
+              <p style="margin: 0; color: #94a3b8; font-size: 12px;">
+                If you did not attempt to sign in or verify your account, please secure your password immediately.
+              </p>
+            </td>
+          </tr>
+          <!-- University Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; padding: 20px 30px; text-align: center; border-top: 1px solid #e2e8f0;">
+              <p style="margin: 0; color: #64748b; font-size: 12px;">
+                Mindoro State University (MinSU) • Student Services Platform
+              </p>
+              <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 11px;">
+                &copy; ${new Date().getFullYear()} SerbisYou. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `;
+};
+
 const sendOtpEmail = async (email, otp, subject = 'Your SerbisYou Verification Code') => {
     const emailUser = process.env.EMAIL_USER;
     const emailPassword = process.env.EMAIL_PASS;
@@ -43,7 +114,7 @@ const sendOtpEmail = async (email, otp, subject = 'Your SerbisYou Verification C
             to: email,
             subject,
             text: `Your 6-digit verification code is: ${otp}. It will expire in 10 minutes.`,
-            html: `<p>Your SerbisYou verification code is <strong>${otp}</strong>.</p><p>It expires in 10 minutes.</p>`
+            html: renderOtpEmailHtml(otp, subject, 'Use this code to verify your action on SerbisYou')
         });
         return { devMode: false };
     } catch (error) {
@@ -712,31 +783,111 @@ const login = async (req, res) => {
             return res.status(401).json({ error: 'Invalid email or password.' });
         }
 
+        // Two-Factor Authentication (2FA): Generate and send 6-digit OTP on sign-in
+        const otp = crypto.randomInt(0, 1000000).toString().padStart(6, '0');
+        const otpHash = await bcrypt.hash(otp, 10);
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+        const { error: saveVerificationError } = await supabase
+            .from('email_verifications')
+            .upsert({
+                user_id: user.user_id,
+                otp_hash: otpHash,
+                expires_at: expiresAt,
+                failed_attempts: 0
+            }, { onConflict: 'user_id' });
+
+        if (saveVerificationError) {
+            console.error('Sign-in OTP save failed:', saveVerificationError.message);
+            return res.status(500).json({ error: 'Could not generate sign-in verification code.' });
+        }
+
+        console.log(`[AUTH 2FA SIGN-IN] Generated OTP for ${user.email}: ${otp}`);
+
+        let emailResult = { devMode: false };
+        try {
+            emailResult = await sendOtpEmail(user.email, otp, 'Your SerbisYou Sign-In Verification Code');
+        } catch (mailErr) {
+            console.warn('Sign-in OTP email delivery warning:', mailErr.message);
+        }
+
+        return res.status(200).json({
+            requires_2fa: true,
+            message: 'A 6-digit sign-in verification code has been sent to your email.',
+            email: user.email,
+            user_id: user.user_id,
+            devOtp: (emailResult.devMode || process.env.NODE_ENV !== 'production') ? otp : undefined
+        });
+    } catch (error) {
+        console.error('Login failed:', error.message);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+};
+
+const verifyLoginOtp = async (req, res) => {
+    try {
+        const { email, otp, rememberMe } = req.body || {};
+        if (!email || !otp || typeof otp !== 'string' || !/^\d{6}$/.test(otp.trim())) {
+            return res.status(400).json({ error: 'A valid email and 6-digit OTP code are required.' });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+        const { data: user, error: userError } = await supabase
+            .from('users')
+            .select(userFields)
+            .ilike('email', normalizedEmail)
+            .maybeSingle();
+
+        if (userError || !user || !user.is_active) {
+            return res.status(401).json({ error: 'Invalid or inactive user account.' });
+        }
+
         const { data: verification, error: verificationError } = await supabase
             .from('email_verifications')
-            .select('verified_at')
+            .select('otp_hash, expires_at, failed_attempts')
             .eq('user_id', user.user_id)
             .maybeSingle();
 
-        if (verificationError) {
-            console.error('Login verification lookup failed:', verificationError.message);
-            return res.status(500).json({ error: 'Could not log in.' });
+        if (verificationError || !verification || !verification.otp_hash) {
+            return res.status(400).json({ error: 'No active sign-in verification session found. Please sign in again.' });
         }
-        if (verification && !verification.verified_at) {
-            if (user.is_active) {
-                console.log(`[AUTH AUTO-VERIFY] Auto-verifying active user ${user.user_id}`);
-                await supabase
-                    .from('email_verifications')
-                    .update({ verified_at: new Date().toISOString(), otp_hash: null, expires_at: null })
-                    .eq('user_id', user.user_id);
-            } else {
-                return res.status(403).json({ error: 'Verify your email before logging in.' });
+
+        if (verification.expires_at && Date.now() > Date.parse(verification.expires_at)) {
+            return res.status(400).json({ error: 'The verification code has expired. Please sign in again.' });
+        }
+
+        const isMatch = await bcrypt.compare(otp.trim(), verification.otp_hash);
+        if (!isMatch) {
+            const nextFailed = (verification.failed_attempts || 0) + 1;
+            await supabase
+                .from('email_verifications')
+                .update({ failed_attempts: nextFailed })
+                .eq('user_id', user.user_id);
+
+            if (nextFailed >= 5) {
+                return res.status(429).json({ error: 'Too many invalid attempts. Please sign in again to request a new code.' });
             }
+
+            return res.status(400).json({
+                error: 'Invalid verification code.',
+                attemptsRemaining: 5 - nextFailed
+            });
         }
+
+        // Clear OTP on successful 2FA verification
+        await supabase
+            .from('email_verifications')
+            .update({
+                otp_hash: null,
+                expires_at: null,
+                verified_at: new Date().toISOString(),
+                failed_attempts: 0
+            })
+            .eq('user_id', user.user_id);
 
         const jwtSecret = process.env.JWT_SECRET;
         if (!jwtSecret) {
-            console.error('Login failed: JWT_SECRET is not configured.');
+            console.error('Login 2FA failed: JWT_SECRET is not configured.');
             return res.status(500).json({ error: 'Authentication is not configured.' });
         }
 
@@ -748,11 +899,64 @@ const login = async (req, res) => {
         );
         const { password: _password, ...safeUser } = user;
 
-        console.log(`[AUTH LOGIN SUCCESS] User logged in: ${user.user_id} (${user.email})`);
-        return res.status(200).json({ message: 'Login successful.', token, user: safeUser });
+        console.log(`[AUTH 2FA SUCCESS] User authenticated via OTP: ${user.user_id} (${user.email})`);
+        return res.status(200).json({
+            message: 'Sign-in verified successfully.',
+            token,
+            user: safeUser
+        });
     } catch (error) {
-        console.error('Login failed:', error.message);
-        return res.status(500).json({ error: 'Internal server error.' });
+        console.error('verifyLoginOtp error:', error);
+        return res.status(500).json({ error: 'Internal server error during 2FA verification.' });
+    }
+};
+
+const resendLoginOtp = async (req, res) => {
+    try {
+        const { email } = req.body || {};
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required.' });
+        }
+        const normalizedEmail = email.trim().toLowerCase();
+        const { data: user } = await supabase
+            .from('users')
+            .select('user_id, email, is_active')
+            .ilike('email', normalizedEmail)
+            .maybeSingle();
+
+        if (!user || !user.is_active) {
+            return res.status(404).json({ error: 'Account not found.' });
+        }
+
+        const otp = crypto.randomInt(0, 1000000).toString().padStart(6, '0');
+        const otpHash = await bcrypt.hash(otp, 10);
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+        await supabase
+            .from('email_verifications')
+            .upsert({
+                user_id: user.user_id,
+                otp_hash: otpHash,
+                expires_at: expiresAt,
+                failed_attempts: 0
+            }, { onConflict: 'user_id' });
+
+        let emailResult = { devMode: false };
+        try {
+            emailResult = await sendOtpEmail(user.email, otp, 'Your New SerbisYou Sign-In Verification Code');
+        } catch (err) {
+            console.warn('Resend 2FA OTP error:', err.message);
+        }
+
+        console.log(`[AUTH 2FA RESEND] Resent Sign-In OTP for ${user.email}: ${otp}`);
+
+        return res.status(200).json({
+            message: 'A new 6-digit sign-in verification code has been sent.',
+            devOtp: (emailResult.devMode || process.env.NODE_ENV !== 'production') ? otp : undefined
+        });
+    } catch (err) {
+        console.error('resendLoginOtp error:', err);
+        return res.status(500).json({ error: 'Failed to resend sign-in verification code.' });
     }
 };
 
@@ -762,5 +966,7 @@ module.exports = {
     resendOtp,
     forgotPassword,
     resetPassword,
-    login
+    login,
+    verifyLoginOtp,
+    resendLoginOtp
 };

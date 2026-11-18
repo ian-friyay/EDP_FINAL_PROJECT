@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const supabase = require('./db'); // Imports your Supabase connection
-const { register, verifyOtp, resendOtp, forgotPassword, resetPassword, login } = require('./controllers/authController');
+const { register, verifyOtp, resendOtp, forgotPassword, resetPassword, login, verifyLoginOtp, resendLoginOtp } = require('./controllers/authController');
 const validatePassword = require('./middleware/validatePassword');
 const { requireAuth } = require('./middleware/authMiddleware');
 const { rateLimit } = require('express-rate-limit');
@@ -116,6 +116,8 @@ app.post('/api/auth/resend-otp', otpVerificationLimiter, resendOtp);
 app.post('/api/auth/forgot-password', otpVerificationLimiter, forgotPassword);
 app.post('/api/auth/reset-password', otpVerificationLimiter, validatePassword, resetPassword);
 app.post('/api/auth/login', login);
+app.post('/api/auth/verify-login-otp', otpVerificationLimiter, verifyLoginOtp);
+app.post('/api/auth/resend-login-otp', otpVerificationLimiter, resendLoginOtp);
 
 // Start Server
 const PORT = process.env.PORT || 5000;
