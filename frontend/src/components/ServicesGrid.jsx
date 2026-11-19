@@ -490,83 +490,123 @@ export default function ServicesGrid({
           onHide={() => setActiveModalService(null)}
           size="lg"
           centered
+          scrollable
+          contentClassName="neu-modal-content"
+          style={{ zIndex: 1060 }}
         >
-          <Modal.Header closeButton className="border-bottom px-4 py-3" style={{ background: 'var(--neu-bg-dark)' }}>
-            <Modal.Title className="fw-bold fs-5" style={{ color: 'var(--neu-text)' }}>
-              {activeModalService.subcategory}
+          <Modal.Header closeButton className="border-bottom px-4 py-3" style={{ background: 'var(--neu-bg-dark, #b8c5d6)' }}>
+            <Modal.Title className="fw-bold fs-5" style={{ color: 'var(--neu-text, #15253d)' }}>
+              {activeModalService.subcategory || activeModalService.service_category || 'Service Details'}
             </Modal.Title>
           </Modal.Header>
 
-          <Modal.Body className="p-4" style={{ background: 'var(--neu-bg)' }}>
+          <Modal.Body className="p-4" style={{ background: 'var(--neu-bg, #c8d3e0)', color: 'var(--neu-text, #15253d)', maxHeight: '75vh', overflowY: 'auto' }}>
             {/* Picture Proof Gallery */}
             <div className="mb-4">
-              <h6 className="fw-bold text-uppercase text-muted small mb-2">
+              <h6 className="fw-bold text-uppercase small mb-2" style={{ color: 'var(--neu-text-muted, #475e7a)' }}>
                 Service Proof Gallery
               </h6>
-              <Row className="g-2">
-                {activeModalService.picture_proof &&
-                  activeModalService.picture_proof.map((imgUrl, idx) => (
-                    <Col key={idx} xs={6} md={6}>
-                      <img
-                        src={imgUrl}
-                        alt={`Proof ${idx + 1}`}
-                        className="img-fluid rounded-3 border"
-                        style={{ height: '180px', width: '100%', objectFit: 'cover' }}
-                      />
-                    </Col>
-                  ))}
-              </Row>
+              {(() => {
+                const proofs = Array.isArray(activeModalService.picture_proof)
+                  ? activeModalService.picture_proof.filter(Boolean)
+                  : typeof activeModalService.picture_proof === 'string' && activeModalService.picture_proof.trim()
+                  ? [activeModalService.picture_proof.trim()]
+                  : [];
+
+                if (proofs.length === 0) {
+                  return (
+                    <div
+                      className="p-3 rounded-3 text-center small"
+                      style={{
+                        background: 'var(--neu-bg-dark, #b8c5d6)',
+                        border: '1px dashed rgba(154, 172, 196, 0.4)',
+                        color: 'var(--neu-text-muted, #475e7a)',
+                      }}
+                    >
+                      No picture proof uploaded for this listing yet.
+                    </div>
+                  );
+                }
+
+                return (
+                  <Row className="g-2">
+                    {proofs.map((imgUrl, idx) => (
+                      <Col key={idx} xs={12} sm={6}>
+                        <img
+                          src={imgUrl}
+                          alt={`Proof ${idx + 1}`}
+                          className="img-fluid rounded-3 border w-100"
+                          style={{ height: '180px', objectFit: 'cover' }}
+                          onError={(e) => {
+                            e.target.src = 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fit=crop&q=80';
+                          }}
+                        />
+                      </Col>
+                    ))}
+                  </Row>
+                );
+              })()}
             </div>
 
             {/* Provider Details */}
-            <div className="rounded-3 p-3 mb-4" style={{ background: 'var(--neu-bg-dark)' }}>
+            <div className="rounded-3 p-3 mb-4" style={{ background: 'var(--neu-bg-dark, #b8c5d6)' }}>
               <Row className="g-2 small">
                 <Col sm={6}>
-                  <span className="text-muted">Provider User ID:</span>{' '}
-                  <strong className="font-monospace" style={{ color: 'var(--neu-primary)' }}>
-                    {activeModalService.user_id}
+                  <span style={{ color: 'var(--neu-text-muted, #475e7a)' }}>Provider User ID:</span>{' '}
+                  <strong className="font-monospace" style={{ color: 'var(--neu-primary, #0066FF)' }}>
+                    {activeModalService.user_id || 'N/A'}
                   </strong>
                 </Col>
                 <Col sm={6}>
-                  <span className="text-muted">Category:</span>{' '}
-                  <Badge bg="primary">{activeModalService.service_category}</Badge>
+                  <span style={{ color: 'var(--neu-text-muted, #475e7a)' }}>Category:</span>{' '}
+                  <Badge bg="primary">{activeModalService.service_category || 'General'}</Badge>
                 </Col>
                 <Col sm={6}>
-                  <span className="text-muted">Provider Name:</span>{' '}
-                  <strong>{activeModalService.provider_name}</strong>
+                  <span style={{ color: 'var(--neu-text-muted, #475e7a)' }}>Provider Name:</span>{' '}
+                  <strong style={{ color: 'var(--neu-text, #15253d)' }}>
+                    {activeModalService.provider_name || activeModalService.user_id || 'Student Provider'}
+                  </strong>
                 </Col>
                 <Col sm={6}>
-                  <span className="text-muted">Location:</span>{' '}
-                  <span>{activeModalService.provider_location}</span>
+                  <span style={{ color: 'var(--neu-text-muted, #475e7a)' }}>Location:</span>{' '}
+                  <span style={{ color: 'var(--neu-text, #15253d)' }}>
+                    {activeModalService.provider_location || 'Campus / Metro Manila'}
+                  </span>
                 </Col>
               </Row>
             </div>
 
             {/* Full Service Description */}
             <div className="mb-4">
-              <h6 className="fw-bold text-uppercase text-muted small mb-2">
+              <h6 className="fw-bold text-uppercase small mb-2" style={{ color: 'var(--neu-text-muted, #475e7a)' }}>
                 Service Scope &amp; Description
               </h6>
-              <p className="text-secondary small mb-0">
-                {activeModalService.service_description}
+              <p className="small mb-0" style={{ color: 'var(--neu-text, #15253d)', whiteSpace: 'pre-line' }}>
+                {activeModalService.service_description || 'No description provided for this service listing.'}
               </p>
             </div>
 
             {/* Student Reviews & Ratings Section */}
             {(() => {
-              const modalRating = reviewsData.summaryByService[String(activeModalService.service_id)] ||
-                reviewsData.summaryByProvider[String(activeModalService.user_id)] ||
+              const summariesBySrv = reviewsData?.summaryByService || {};
+              const summariesByPrv = reviewsData?.summaryByProvider || {};
+              const allReviewsList = Array.isArray(reviewsData?.reviews) ? reviewsData.reviews : [];
+
+              const modalRating =
+                summariesBySrv[String(activeModalService.service_id)] ||
+                summariesByPrv[String(activeModalService.user_id)] ||
                 { averageRating: 5.0, reviewCount: 0 };
 
-              const relevantReviews = reviewsData.reviews.filter(
-                (r) => String(r.service_id) === String(activeModalService.service_id) ||
-                       String(r.provider_id) === String(activeModalService.user_id)
+              const relevantReviews = allReviewsList.filter(
+                (r) =>
+                  String(r.service_id) === String(activeModalService.service_id) ||
+                  String(r.provider_id) === String(activeModalService.user_id)
               );
 
               return (
                 <div className="mb-4">
                   <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h6 className="fw-bold text-uppercase text-muted small mb-0">
+                    <h6 className="fw-bold text-uppercase small mb-0" style={{ color: 'var(--neu-text-muted, #475e7a)' }}>
                       Verified Campus Reviews &amp; Ratings
                     </h6>
                     <span
@@ -577,7 +617,7 @@ export default function ServicesGrid({
                         border: '1px solid rgba(245, 158, 11, 0.25)',
                       }}
                     >
-                      <span className="text-warning">★</span> {modalRating.reviewCount > 0 ? modalRating.averageRating.toFixed(1) : '5.0'} / 5.0 ({relevantReviews.length} {relevantReviews.length === 1 ? 'review' : 'reviews'})
+                      <span className="text-warning">★</span> {modalRating.reviewCount > 0 ? Number(modalRating.averageRating).toFixed(1) : '5.0'} / 5.0 ({relevantReviews.length} {relevantReviews.length === 1 ? 'review' : 'reviews'})
                     </span>
                   </div>
 
@@ -588,28 +628,31 @@ export default function ServicesGrid({
                           key={rev.id || rev.review_id}
                           className="p-3 rounded-3"
                           style={{
-                            background: 'var(--neu-bg-dark)',
+                            background: 'var(--neu-bg-dark, #b8c5d6)',
                             border: '1px solid rgba(154, 172, 196, 0.3)',
                           }}
                         >
                           <div className="d-flex justify-content-between align-items-center mb-1">
-                            <strong className="small text-dark">{rev.reviewer_name || rev.reviewer_id}</strong>
+                            <strong className="small" style={{ color: 'var(--neu-text, #15253d)' }}>
+                              {rev.reviewer_name || rev.reviewer_id}
+                            </strong>
                             <span className="text-warning fw-bold small">
                               {'★'.repeat(Math.round(rev.rating || 5))}
-                              <span className="text-muted ms-1 small">({rev.rating}/5)</span>
+                              <span className="ms-1 small" style={{ color: 'var(--neu-text-muted, #475e7a)' }}>({rev.rating}/5)</span>
                             </span>
                           </div>
-                          <p className="small text-secondary mb-1">"{rev.comment}"</p>
-                          <small className="text-muted" style={{ fontSize: '0.72rem' }}>{rev.created_at}</small>
+                          <p className="small mb-1" style={{ color: 'var(--neu-text, #15253d)' }}>"{rev.comment}"</p>
+                          <small style={{ fontSize: '0.72rem', color: 'var(--neu-text-muted, #475e7a)' }}>{rev.created_at}</small>
                         </div>
                       ))}
                     </div>
                   ) : (
                     <div
-                      className="p-3 rounded-3 text-center text-muted small"
+                      className="p-3 rounded-3 text-center small"
                       style={{
-                        background: 'var(--neu-bg-dark)',
+                        background: 'var(--neu-bg-dark, #b8c5d6)',
                         border: '1px dashed rgba(154, 172, 196, 0.4)',
+                        color: 'var(--neu-text-muted, #475e7a)',
                       }}
                     >
                       No student reviews recorded yet for this service listing. Be the first to book and rate!
@@ -620,25 +663,25 @@ export default function ServicesGrid({
             })()}
 
             {/* Financial & Commission Terms */}
-            <div className="border rounded-3 p-3" style={{ background: 'var(--neu-bg-dark)' }}>
-              <h6 className="fw-bold text-uppercase text-muted small mb-2">
+            <div className="border rounded-3 p-3" style={{ background: 'var(--neu-bg-dark, #b8c5d6)' }}>
+              <h6 className="fw-bold text-uppercase small mb-2" style={{ color: 'var(--neu-text-muted, #475e7a)' }}>
                 Transaction Calculation Breakdown
               </h6>
-              <div className="d-flex justify-content-between small text-muted mb-1">
+              <div className="d-flex justify-content-between small mb-1" style={{ color: 'var(--neu-text-muted, #475e7a)' }}>
                 <span>Base Service Rate:</span>
-                <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>₱{(Number(activeModalService.amount_topay) || 0).toFixed(2)}</span>
+                <span className="fw-bold" style={{ color: 'var(--neu-text, #15253d)' }}>₱{(Number(activeModalService.amount_topay) || 0).toFixed(2)}</span>
               </div>
-              <div className="d-flex justify-content-between small text-muted mb-1">
+              <div className="d-flex justify-content-between small mb-1" style={{ color: 'var(--neu-text-muted, #475e7a)' }}>
                 <span>Platform Booking Fee:</span>
-                <span style={{ color: 'var(--neu-text)' }}>₱5.00 Flat</span>
+                <span style={{ color: 'var(--neu-text, #15253d)' }}>₱5.00 Flat</span>
               </div>
-              <div className="d-flex justify-content-between small text-muted mb-1">
+              <div className="d-flex justify-content-between small mb-1" style={{ color: 'var(--neu-text-muted, #475e7a)' }}>
                 <span>Provider Commission (5%):</span>
-                <span className="text-success">₱{((Number(activeModalService.amount_topay) || 0) * 0.05).toFixed(2)}</span>
+                <span className="text-success fw-bold">₱{((Number(activeModalService.amount_topay) || 0) * 0.05).toFixed(2)}</span>
               </div>
               <hr className="my-2" />
               <div className="d-flex justify-content-between align-items-center">
-                <span className="fw-bold" style={{ color: 'var(--neu-text)' }}>Total Requestor to Pay:</span>
+                <span className="fw-bold" style={{ color: 'var(--neu-text, #15253d)' }}>Total Requestor to Pay:</span>
                 <strong className="fs-5" style={{ color: '#063a8f' }}>
                   ₱{((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)}
                 </strong>
@@ -646,7 +689,7 @@ export default function ServicesGrid({
             </div>
           </Modal.Body>
 
-          <Modal.Footer className="border-top px-4 py-3 d-flex justify-content-between flex-wrap gap-2" style={{ background: 'var(--neu-bg-dark)' }}>
+          <Modal.Footer className="border-top px-4 py-3 d-flex justify-content-between flex-wrap gap-2" style={{ background: 'var(--neu-bg-dark, #b8c5d6)' }}>
             <div>
               {!isOwner && (
                 <Button
