@@ -12,11 +12,13 @@ import Sidebar from './Sidebar';
 import OfflineToast from './OfflineToast';
 import NotificationsDropdown from './NotificationsDropdown';
 import api from '../api/axios';
+import { socket } from '../socket';
 
 export default function Layout() {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 992 : false);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const navigate = useNavigate();
 
   const [currentUser, setCurrentUser] = useState(() => {
@@ -54,6 +56,63 @@ export default function Layout() {
       isMounted = false;
     };
   }, []);
+
+  // Fetch conversations to track unread messages count & listen to real-time events
+  useEffect(() => {
+    const fetchUnreadCount = () => {
+      const activeId = currentUser?.user_id || window.localStorage.getItem('user_id');
+      if (!activeId) return;
+
+      api.get('/messages/conversations', {
+        headers: { 'x-user-id': String(activeId) },
+      })
+        .then(({ data }) => {
+          const conversations = Array.isArray(data)
+            ? data
+            : Array.isArray(data?.conversations)
+            ? data.conversations
+            : [];
+          const count = conversations.filter((c) => Boolean(c.isUnread)).length;
+          setUnreadMessagesCount(count);
+        })
+        .catch(() => {});
+    };
+
+    fetchUnreadCount();
+
+    // Socket real-time message and read events
+    const handleReceiveMessage = () => {
+      fetchUnreadCount();
+    };
+
+    const handleMessagesRead = () => {
+      fetchUnreadCount();
+    };
+
+    const handleLocalSeen = () => {
+      fetchUnreadCount();
+    };
+
+    if (!socket.connected) {
+      socket.connect();
+    }
+    const activeUserId = currentUser?.user_id || window.localStorage.getItem('user_id');
+    if (activeUserId) {
+      socket.emit('register', activeUserId);
+    }
+
+    socket.on('receive_message', handleReceiveMessage);
+    socket.on('messages_read', handleMessagesRead);
+    window.addEventListener('serbisyou_messages_seen', handleLocalSeen);
+    window.addEventListener('serbisyou_user_changed', fetchUnreadCount);
+
+    return () => {
+      socket.off('receive_message', handleReceiveMessage);
+      socket.off('messages_read', handleMessagesRead);
+      window.removeEventListener('serbisyou_messages_seen', handleLocalSeen);
+      window.removeEventListener('serbisyou_user_changed', fetchUnreadCount);
+    };
+  }, [currentUser?.user_id]);
 
   const handleSignOut = () => {
     window.localStorage.removeItem('token');
@@ -168,9 +227,11 @@ export default function Layout() {
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
                 <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
               </svg>
-              <Badge bg="danger" pill className="position-absolute top-0 start-100 translate-middle small">
-                3
-              </Badge>
+              {unreadMessagesCount > 0 && (
+                <Badge bg="danger" pill className="position-absolute top-0 start-100 translate-middle small">
+                  {unreadMessagesCount}
+                </Badge>
+              )}
             </Nav.Link>
 
             {/* User Dropdown without redundant role badge */}
@@ -226,6 +287,7 @@ export default function Layout() {
           show={showMobileSidebar}
           onHide={() => setShowMobileSidebar(false)}
           currentUser={user}
+          unreadCount={unreadMessagesCount}
         />
 
         {/* 3. Main Content Area Rendering Child Routes with <Outlet /> */}

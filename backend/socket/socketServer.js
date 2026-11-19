@@ -157,7 +157,8 @@ const initSocket = (server) => {
         } catch {
           // ignore
         }
-        io.to(String(senderId)).emit('messages_read', { by: userId });
+        io.to(String(senderId)).emit('messages_read', { by: userId, partner_id: senderId });
+        io.to(String(userId)).emit('messages_read', { by: userId, partner_id: senderId });
       }
     });
 

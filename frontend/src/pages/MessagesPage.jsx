@@ -319,9 +319,16 @@ export default function MessagesPage() {
         'Content-Type': 'application/json',
         'x-user-id': String(currentUserId),
       },
-    }).catch((readError) => {
-      console.error('Unable to mark conversation as read:', readError);
-    });
+    })
+      .then(() => {
+        if (socket.connected) {
+          socket.emit('mark_read', { user_id: currentUserId, sender_id: conversationId });
+        }
+        window.dispatchEvent(new CustomEvent('serbisyou_messages_seen', { detail: { partnerId: conversationId } }));
+      })
+      .catch((readError) => {
+        console.error('Unable to mark conversation as read:', readError);
+      });
 
     navigate(`/messages/${conversationId}`, {
       state: {

@@ -130,6 +130,22 @@ export default function ChatPage() {
         }
       });
 
+    // Mark messages from this conversation as read
+    fetch(`${API_URL}/api/messages/read/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': String(currentUserId),
+      },
+    })
+      .then(() => {
+        if (socket.connected) {
+          socket.emit('mark_read', { user_id: currentUserId, sender_id: id });
+        }
+        window.dispatchEvent(new CustomEvent('serbisyou_messages_seen', { detail: { partnerId: id } }));
+      })
+      .catch(() => {});
+
     return () => controller.abort();
   }, [id, currentUserId]);
 

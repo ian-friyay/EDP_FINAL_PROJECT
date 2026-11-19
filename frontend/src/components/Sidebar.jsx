@@ -14,6 +14,7 @@ export default function Sidebar({
   collapsed = false,
   setCollapsed = () => {},
   currentUser,
+  unreadCount = 0,
 }) {
   const user = currentUser || {
     user_id: 'MMC-1042',
@@ -71,7 +72,7 @@ export default function Sidebar({
         {
           to: '/messages',
           label: 'Messages',
-          badge: '3',
+          badge: unreadCount > 0 ? String(unreadCount) : null,
           icon: (
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" className="flex-shrink-0">
               <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
@@ -124,7 +125,7 @@ export default function Sidebar({
         {
           to: '/messages',
           label: 'Messages',
-          badge: '3',
+          badge: unreadCount > 0 ? String(unreadCount) : null,
           icon: (
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" className="flex-shrink-0">
               <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />

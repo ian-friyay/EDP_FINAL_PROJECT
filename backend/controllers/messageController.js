@@ -217,6 +217,16 @@ const markAsRead = async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
+    try {
+      const io = req.app && req.app.get('io');
+      if (io) {
+        io.to(String(currentUserId)).emit('messages_read', { by: currentUserId, partner_id: partnerId });
+        io.to(String(partnerId)).emit('messages_read', { by: currentUserId, partner_id: partnerId });
+      }
+    } catch (e) {
+      // ignore socket emission errors
+    }
+
     return res.json({ success: true });
   } catch (error) {
     return res.status(500).json({ error: error.message });
