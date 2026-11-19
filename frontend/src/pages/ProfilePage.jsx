@@ -50,6 +50,34 @@ export default function ProfilePage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  // Reviews and Rating State
+  const [userReviews, setUserReviews] = useState([]);
+  const [userRatingStats, setUserRatingStats] = useState({ averageRating: 5.0, reviewCount: 0 });
+
+  const fetchUserReviews = async (userId) => {
+    try {
+      const res = await api.get('/reviews');
+      const allReviews = res.data?.reviews || [];
+      const uid = String(userId || '');
+      const filtered = allReviews.filter(
+        (r) => String(r.provider_id) === uid || String(r.reviewer_id) === uid
+      );
+      setUserReviews(filtered);
+      if (res.data?.summaryByProvider?.[uid]) {
+        setUserRatingStats(res.data.summaryByProvider[uid]);
+      } else {
+        const provReviews = filtered.filter((r) => String(r.provider_id) === uid);
+        if (provReviews.length > 0) {
+          const total = provReviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0);
+          setUserRatingStats({
+            averageRating: Number((total / provReviews.length).toFixed(1)),
+            reviewCount: provReviews.length,
+          });
+        }
+      }
+    } catch {}
+  };
+
   const fetchProfile = async () => {
     setIsLoading(true);
     setError('');
@@ -67,6 +95,9 @@ export default function ProfilePage() {
         barangay: data.user.barangay || '',
         profile_picture: data.user.profile_picture || '',
       });
+      if (data.user?.user_id) {
+        fetchUserReviews(data.user.user_id);
+      }
     } catch (err) {
       const defaultUser = {
         user_id: 'MMC-1042',
@@ -84,6 +115,7 @@ export default function ProfilePage() {
       };
       setProfile(defaultUser);
       setForm(defaultUser);
+      fetchUserReviews('MMC-1042');
     } finally {
       setIsLoading(false);
     }
@@ -272,6 +304,7 @@ export default function ProfilePage() {
         className="mb-4 neu-tabs"
       >
         <Tab eventKey="details" title="Profile Details" />
+        <Tab eventKey="reviews" title="Reviews & Ratings" />
         <Tab eventKey="verification" title="Provider Verification" />
         <Tab eventKey="security" title="Security & Password" />
         <Tab eventKey="danger" title="Account Management" />
@@ -301,10 +334,21 @@ export default function ProfilePage() {
                 <small className="text-muted font-monospace">{p.user_id || 'MinSU ID'}</small>
               </div>
             </div>
-            <div className="d-flex gap-2 align-items-center">
+            <div className="d-flex gap-2 align-items-center flex-wrap">
               <Badge bg={p.user_type === 'Provider' ? 'success' : 'primary'} className="px-3 py-2 rounded-pill fs-6">
                 {p.user_type ? `${p.user_type} Verified` : 'User Verified'}
               </Badge>
+              <span
+                className="px-3 py-2 rounded-pill small fw-bold d-inline-flex align-items-center gap-1 shadow-xs"
+                style={{
+                  background: 'rgba(245, 158, 11, 0.12)',
+                  color: '#b45309',
+                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                }}
+                title="Verified Campus Rating"
+              >
+                <span className="text-warning">★</span> {userRatingStats.reviewCount > 0 ? userRatingStats.averageRating.toFixed(1) : '5.0'} ({userRatingStats.reviewCount} {userRatingStats.reviewCount === 1 ? 'review' : 'reviews'})
+              </span>
               <Button
                 className={isEditing ? 'neu-btn-ghost px-4' : 'neu-btn-primary px-4'}
                 size="sm"
@@ -541,6 +585,89 @@ export default function ProfilePage() {
                 </div>
               </Col>
             </Row>
+          )}
+        </div>
+      )}
+
+      {/* TAB: Reviews & Ratings */}
+      {activeTab === 'reviews' && (
+        <div className="neu-card p-4 p-md-5">
+          <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom flex-wrap gap-3" style={{ borderColor: 'rgba(154, 172, 196, 0.3)' }}>
+            <div>
+              <h5 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>
+                {p.user_type === 'Provider' ? 'Client Reviews & Service Ratings' : 'My Service Feedback & Ratings'}
+              </h5>
+              <small className="text-muted">
+                {p.user_type === 'Provider'
+                  ? 'Ratings and feedback submitted by student clients who booked and completed your campus services.'
+                  : 'Ratings and feedback you have submitted for completed campus bookings.'}
+              </small>
+            </div>
+            <div
+              className="p-3 rounded-3 d-flex align-items-center gap-3"
+              style={{ background: 'var(--neu-bg-dark)', border: '1px solid rgba(245, 158, 11, 0.35)' }}
+            >
+              <div className="text-center">
+                <div className="fs-3 fw-bold" style={{ color: '#b45309', lineHeight: 1 }}>
+                  {userRatingStats.reviewCount > 0 ? userRatingStats.averageRating.toFixed(1) : '5.0'}
+                </div>
+                <div className="text-warning small mt-1">
+                  {'★'.repeat(Math.round(userRatingStats.reviewCount > 0 ? userRatingStats.averageRating : 5))}
+                </div>
+              </div>
+              <div className="border-start ps-3">
+                <div className="small fw-bold text-dark">Overall Rating</div>
+                <div className="text-muted small">{userReviews.length} total recorded</div>
+              </div>
+            </div>
+          </div>
+
+          {userReviews.length > 0 ? (
+            <Row className="g-3">
+              {userReviews.map((rev) => {
+                const isIncoming = String(rev.provider_id) === String(p.user_id);
+                return (
+                  <Col md={6} key={rev.id || rev.review_id}>
+                    <div
+                      className="p-3 rounded-3 h-100 d-flex flex-column"
+                      style={{
+                        background: 'var(--neu-bg-dark)',
+                        border: '1px solid rgba(154, 172, 196, 0.35)',
+                      }}
+                    >
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                          <strong className="text-dark small d-block">
+                            {isIncoming ? (rev.reviewer_name || rev.reviewer_id) : `To: ${rev.reviewed_student_name || rev.provider_id}`}
+                          </strong>
+                          <span className="badge bg-secondary bg-opacity-25 text-dark font-monospace" style={{ fontSize: '0.68rem' }}>
+                            Booking #{rev.transaction_id || '-'}
+                          </span>
+                        </div>
+                        <span className="text-warning fw-bold small">
+                          {'★'.repeat(Math.round(rev.rating || 5))} <span className="text-muted ms-1 small">({rev.rating}/5)</span>
+                        </span>
+                      </div>
+                      <p className="small text-secondary mb-3 flex-grow-1">"{rev.comment}"</p>
+                      <div className="d-flex justify-content-between align-items-center border-top pt-2">
+                        <span className="badge bg-light text-muted border small" style={{ fontSize: '0.7rem' }}>
+                          Verified Student
+                        </span>
+                        <small className="text-muted" style={{ fontSize: '0.72rem' }}>{rev.created_at}</small>
+                      </div>
+                    </div>
+                  </Col>
+                );
+              })}
+            </Row>
+          ) : (
+            <div className="text-center py-5 text-muted">
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" viewBox="0 0 16 16" className="mb-2 opacity-50">
+                <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
+              </svg>
+              <h6 className="fw-semibold">No reviews recorded yet</h6>
+              <p className="small mb-0">Complete campus service bookings to earn and display verified student ratings!</p>
+            </div>
           )}
         </div>
       )}

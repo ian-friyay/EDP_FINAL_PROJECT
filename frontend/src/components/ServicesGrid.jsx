@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../api/axios';
 import {
   Container,
   Row,
@@ -82,6 +83,21 @@ export default function ServicesGrid({
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [activeModalService, setActiveModalService] = useState(null);
   const [bookingSuccessAlert, setBookingSuccessAlert] = useState(null);
+  const [reviewsData, setReviewsData] = useState({
+    reviews: [],
+    summaryByService: {},
+    summaryByProvider: {},
+  });
+
+  useEffect(() => {
+    api.get('/reviews')
+      .then((res) => {
+        if (res.data) {
+          setReviewsData(res.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const CANONICAL_CATEGORIES = ['Creative', 'Event Support', 'Digital Service'];
 
@@ -333,10 +349,36 @@ export default function ServicesGrid({
                       <small className="text-muted font-monospace">{service.service_id}</small>
                     </div>
 
-                    {/* Subcategory & Title */}
-                    <h5 className="fw-bold mb-2" style={{ color: 'var(--neu-text)' }}>
-                      {service.subcategory}
-                    </h5>
+                    {/* Subcategory & Title with Star Rating */}
+                    {(() => {
+                      const serviceRating = reviewsData.summaryByService[String(service.service_id)] ||
+                        reviewsData.summaryByProvider[String(service.user_id)] ||
+                        { averageRating: 5.0, reviewCount: 0 };
+
+                      return (
+                        <div className="d-flex justify-content-between align-items-start mb-2 gap-2">
+                          <h5 className="fw-bold mb-0" style={{ color: 'var(--neu-text)' }}>
+                            {service.subcategory}
+                          </h5>
+                          <div
+                            className="d-inline-flex align-items-center gap-1 px-2 py-1 rounded-pill flex-shrink-0"
+                            style={{
+                              background: 'rgba(245, 158, 11, 0.12)',
+                              border: '1px solid rgba(245, 158, 11, 0.25)',
+                            }}
+                            title={`Campus Rating: ${serviceRating.averageRating.toFixed(1)} / 5.0 (${serviceRating.reviewCount} reviews)`}
+                          >
+                            <span className="text-warning fw-bold small">★</span>
+                            <span className="fw-bold small" style={{ color: '#b45309', fontSize: '0.82rem' }}>
+                              {serviceRating.reviewCount > 0 ? serviceRating.averageRating.toFixed(1) : '5.0'}
+                            </span>
+                            <span className="text-muted" style={{ fontSize: '0.72rem' }}>
+                              ({serviceRating.reviewCount})
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Service Description */}
                     <p
@@ -509,6 +551,73 @@ export default function ServicesGrid({
                 {activeModalService.service_description}
               </p>
             </div>
+
+            {/* Student Reviews & Ratings Section */}
+            {(() => {
+              const modalRating = reviewsData.summaryByService[String(activeModalService.service_id)] ||
+                reviewsData.summaryByProvider[String(activeModalService.user_id)] ||
+                { averageRating: 5.0, reviewCount: 0 };
+
+              const relevantReviews = reviewsData.reviews.filter(
+                (r) => String(r.service_id) === String(activeModalService.service_id) ||
+                       String(r.provider_id) === String(activeModalService.user_id)
+              );
+
+              return (
+                <div className="mb-4">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h6 className="fw-bold text-uppercase text-muted small mb-0">
+                      Verified Campus Reviews &amp; Ratings
+                    </h6>
+                    <span
+                      className="px-2 py-1 rounded-pill small fw-bold d-inline-flex align-items-center gap-1"
+                      style={{
+                        background: 'rgba(245, 158, 11, 0.12)',
+                        color: '#b45309',
+                        border: '1px solid rgba(245, 158, 11, 0.25)',
+                      }}
+                    >
+                      <span className="text-warning">★</span> {modalRating.reviewCount > 0 ? modalRating.averageRating.toFixed(1) : '5.0'} / 5.0 ({relevantReviews.length} {relevantReviews.length === 1 ? 'review' : 'reviews'})
+                    </span>
+                  </div>
+
+                  {relevantReviews.length > 0 ? (
+                    <div className="d-flex flex-column gap-2" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                      {relevantReviews.map((rev) => (
+                        <div
+                          key={rev.id || rev.review_id}
+                          className="p-3 rounded-3"
+                          style={{
+                            background: 'var(--neu-bg-dark)',
+                            border: '1px solid rgba(154, 172, 196, 0.3)',
+                          }}
+                        >
+                          <div className="d-flex justify-content-between align-items-center mb-1">
+                            <strong className="small text-dark">{rev.reviewer_name || rev.reviewer_id}</strong>
+                            <span className="text-warning fw-bold small">
+                              {'★'.repeat(Math.round(rev.rating || 5))}
+                              <span className="text-muted ms-1 small">({rev.rating}/5)</span>
+                            </span>
+                          </div>
+                          <p className="small text-secondary mb-1">"{rev.comment}"</p>
+                          <small className="text-muted" style={{ fontSize: '0.72rem' }}>{rev.created_at}</small>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div
+                      className="p-3 rounded-3 text-center text-muted small"
+                      style={{
+                        background: 'var(--neu-bg-dark)',
+                        border: '1px dashed rgba(154, 172, 196, 0.4)',
+                      }}
+                    >
+                      No student reviews recorded yet for this service listing. Be the first to book and rate!
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Financial & Commission Terms */}
             <div className="border rounded-3 p-3" style={{ background: 'var(--neu-bg-dark)' }}>

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "rev_001",
+    "review_id": "rev_001",
+    "transaction_id": "12",
+    "service_id": "16",
+    "reviewer_id": "MMC-0001",
+    "reviewer_name": "Jasmine Requestor",
+    "provider_id": "MMC-3046",
+    "reviewed_student_name": "Keizy Lara",
+    "rating": 5,
+    "comment": "Super fast turnaround! The graphic design poster for our campus student organization turned out stunning and high quality.",
+    "created_at": "Nov 18, 2026 03:45 PM",
+    "created_at_iso": "2026-11-18T07:45:00.000Z"
+  },
+  {
+    "id": "rev_002",
+    "review_id": "rev_002",
+    "transaction_id": "13",
+    "service_id": "15",
+    "reviewer_id": "MMC-3045",
+    "reviewer_name": "Adrian Friday",
+    "provider_id": "MMC-3046",
+    "reviewed_student_name": "Keizy Lara",
+    "rating": 5,
+    "comment": "Very creative canvas artwork! Communicated well through campus chat and delivered right on time.",
+    "created_at": "Nov 18, 2026 08:20 PM",
+    "created_at_iso": "2026-11-18T12:20:00.000Z"
+  },
+  {
+    "id": "rev_003",
+    "review_id": "rev_003",
+    "transaction_id": "8",
+    "service_id": "17",
+    "reviewer_id": "MMC-0001",
+    "reviewer_name": "Jasmine Requestor",
+    "provider_id": "MMC-3046",
+    "reviewed_student_name": "Keizy Lara",
+    "rating": 4.5,
+    "comment": "Talented student artist. Professional makeup styling for our university pageant.",
+    "created_at": "Nov 19, 2026 09:15 AM",
+    "created_at_iso": "2026-11-19T01:15:00.000Z"
+  }
+]

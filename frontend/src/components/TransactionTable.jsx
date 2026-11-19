@@ -15,7 +15,14 @@ const formatAmount = (amount) =>
     currency: 'PHP',
   });
 
-function TransactionTable({ transactions = [], currentUserId, onStatusUpdate, onPayWithPayPal }) {
+function TransactionTable({
+  transactions = [],
+  currentUserId,
+  onStatusUpdate,
+  onPayWithPayPal,
+  reviewsMap = {},
+  onOpenReviewModal,
+}) {
   const sortedTransactions = useMemo(() => {
     const rows = Array.isArray(transactions) ? [...transactions] : [];
     const activeRows = rows.filter(
@@ -173,6 +180,56 @@ function TransactionTable({ transactions = [], currentUserId, onStatusUpdate, on
                       >
                         {isProvider ? 'QR Settlement' : 'QR Voucher'}
                       </Button>
+
+                      {/* Review & Rating Action for Completed Bookings */}
+                      {transaction.service_status === 'completed' && (() => {
+                        const existingReview = reviewsMap[String(transaction.transaction_id)];
+
+                        if (!isProvider) {
+                          // Student Requestor: Can leave or view review
+                          return existingReview ? (
+                            <Button
+                              variant="light"
+                              size="sm"
+                              className="px-2 py-1 border d-inline-flex align-items-center gap-1 shadow-xs fw-semibold"
+                              style={{
+                                background: 'rgba(245, 158, 11, 0.12)',
+                                color: '#b45309',
+                                borderColor: 'rgba(245, 158, 11, 0.3)',
+                              }}
+                              onClick={() => onOpenReviewModal && onOpenReviewModal(transaction, existingReview)}
+                              title="Click to view or update your rating"
+                            >
+                              <span style={{ color: '#f59e0b' }}>★</span> {existingReview.rating}.0 Rated
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="warning"
+                              size="sm"
+                              className="px-2 py-1 fw-bold text-dark d-inline-flex align-items-center gap-1 shadow-sm"
+                              style={{
+                                background: '#f59e0b',
+                                borderColor: '#d97706',
+                              }}
+                              onClick={() => onOpenReviewModal && onOpenReviewModal(transaction, null)}
+                            >
+                              <span>★</span> Rate &amp; Review
+                            </Button>
+                          );
+                        } else {
+                          // Student Provider: Can view rating received
+                          return existingReview ? (
+                            <Badge
+                              bg="warning"
+                              text="dark"
+                              className="px-2 py-1 border shadow-xs fw-semibold d-inline-flex align-items-center gap-1"
+                              style={{ background: '#fef3c7', color: '#92400e', borderColor: '#fcd34d' }}
+                            >
+                              <span>★</span> {existingReview.rating}.0 Received
+                            </Badge>
+                          ) : null;
+                        }
+                      })()}
                     </div>
                   </td>
                 </tr>

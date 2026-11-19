@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Container, Spinner, Alert, Button, Modal, Form } from 'react-bootstrap';
 import TransactionTable from '../components/TransactionTable';
 import PayPalModal from '../components/PayPalModal';
+import ReviewModal from '../components/ReviewModal';
 import api from '../api/axios';
 import { socket } from '../socket';
 import { getCurrentUserId } from '../utils/user';
@@ -31,6 +32,12 @@ export default function TransactionsPage() {
   const [selectedPayPalTx, setSelectedPayPalTx] = useState(null);
   const [showPayPalModal, setShowPayPalModal] = useState(false);
 
+  // Review & Rating Modal State for Requestors
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedReviewTx, setSelectedReviewTx] = useState(null);
+  const [selectedExistingReview, setSelectedExistingReview] = useState(null);
+  const [reviewsMap, setReviewsMap] = useState({});
+
   const currentUserId = currentUser?.user_id || getCurrentUserId();
   const isProvider = String(currentUser?.user_type || '').toLowerCase() === 'provider';
 
@@ -46,23 +53,41 @@ export default function TransactionsPage() {
       .catch(() => {});
   }, []);
 
+  const fetchReviews = useCallback(async () => {
+    try {
+      const res = await api.get('/reviews');
+      const list = res.data?.reviews || [];
+      const map = {};
+      list.forEach((r) => {
+        if (r.transaction_id) {
+          map[String(r.transaction_id)] = r;
+        }
+      });
+      setReviewsMap(map);
+    } catch (err) {
+      console.warn('Failed to load reviews:', err);
+    }
+  }, []);
+
   const fetchTransactions = useCallback(async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
     setError(null);
     try {
       const res = await api.get('/transactions');
       setTransactions(res.data.transactions || []);
+      fetchReviews();
     } catch (err) {
       console.warn('Failed to load transactions:', err);
       setError('Unable to load latest transactions from server. Please try refreshing.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [fetchReviews]);
 
   useEffect(() => {
     fetchTransactions(true);
-  }, [fetchTransactions]);
+    fetchReviews();
+  }, [fetchTransactions, fetchReviews]);
 
   // Real-time WebSocket listeners for instant booking lifecycle updates
   useEffect(() => {
@@ -75,16 +100,25 @@ export default function TransactionsPage() {
 
     const handleTransactionChange = () => {
       fetchTransactions(false);
+      fetchReviews();
+    };
+
+    const handleReviewChange = () => {
+      fetchReviews();
     };
 
     socket.on('transaction_created', handleTransactionChange);
     socket.on('transaction_updated', handleTransactionChange);
+    socket.on('review_created', handleReviewChange);
+    socket.on('review_broadcast', handleReviewChange);
 
     return () => {
       socket.off('transaction_created', handleTransactionChange);
       socket.off('transaction_updated', handleTransactionChange);
+      socket.off('review_created', handleReviewChange);
+      socket.off('review_broadcast', handleReviewChange);
     };
-  }, [currentUserId, fetchTransactions]);
+  }, [currentUserId, fetchTransactions, fetchReviews]);
 
   const handleStatusUpdate = async (transactionId, newStatus) => {
     try {
@@ -194,6 +228,12 @@ export default function TransactionsPage() {
             currentUserId={currentUserId}
             onRefresh={() => fetchTransactions(false)}
             onStatusUpdate={handleStatusUpdate}
+            reviewsMap={reviewsMap}
+            onOpenReviewModal={(tx, existingRev) => {
+              setSelectedReviewTx(tx);
+              setSelectedExistingReview(existingRev || null);
+              setShowReviewModal(true);
+            }}
             onPayWithPayPal={(tx) => {
               setSelectedPayPalTx(tx);
               setShowPayPalModal(true);
@@ -201,6 +241,28 @@ export default function TransactionsPage() {
           />
         )}
       </div>
+
+      {/* Student Requestor Review & Rating Modal */}
+      {showReviewModal && selectedReviewTx && (
+        <ReviewModal
+          show={showReviewModal}
+          onHide={() => {
+            setShowReviewModal(false);
+            setSelectedReviewTx(null);
+            setSelectedExistingReview(null);
+          }}
+          transaction={selectedReviewTx}
+          existingReview={selectedExistingReview}
+          onReviewSubmitted={(submittedRev) => {
+            setSuccessMsg(`✓ Review submitted: You gave ${submittedRev.rating} stars for Booking #${submittedRev.transaction_id}!`);
+            setReviewsMap((prev) => ({
+              ...prev,
+              [String(submittedRev.transaction_id)]: submittedRev,
+            }));
+            fetchReviews();
+          }}
+        />
+      )}
 
       {/* Requestor PayPal Checkout Modal */}
       {showPayPalModal && selectedPayPalTx && (

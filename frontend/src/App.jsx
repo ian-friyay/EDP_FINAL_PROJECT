@@ -21,6 +21,7 @@ import AdminReviews from './pages/admin/AdminReviews';
 import AdminAdvertisements from './pages/admin/AdminAdvertisements';
 import AdminSettings from './pages/admin/AdminSettings';
 import OfflineToast from './components/OfflineToast';
+import ReviewModal from './components/ReviewModal';
 import { Row, Col, Badge, Table, Button, Modal, Form, Alert } from 'react-bootstrap';
 import api from './api/axios';
 
@@ -39,18 +40,30 @@ function DashboardPage() {
   const [qrModalSuccess, setQrModalSuccess] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  // Reviews and Rating State
+  const [reviewsData, setReviewsData] = useState({
+    reviews: [],
+    summaryByService: {},
+    summaryByProvider: {},
+  });
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedReviewTx, setSelectedReviewTx] = useState(null);
+  const [selectedExistingReview, setSelectedExistingReview] = useState(null);
+
   const reloadDashboardData = async () => {
     try {
-      const [servicesRes, myServicesRes, transactionsRes, profileRes] = await Promise.all([
+      const [servicesRes, myServicesRes, transactionsRes, profileRes, reviewsRes] = await Promise.all([
         api.get('/services').catch(() => ({ data: { services: [] } })),
         api.get('/services/my-services').catch(() => ({ data: { services: [] } })),
         api.get('/transactions').catch(() => ({ data: { transactions: [] } })),
         api.get('/profile/me').catch(() => ({ data: { user: null } })),
+        api.get('/reviews').catch(() => ({ data: { reviews: [] } })),
       ]);
       setServices(servicesRes.data?.services || []);
       setMyServices(myServicesRes.data?.services || []);
       setTransactions(transactionsRes.data?.transactions || []);
       setUserProfile(profileRes.data?.user || null);
+      if (reviewsRes.data) setReviewsData(reviewsRes.data);
     } catch {}
   };
 
@@ -89,7 +102,8 @@ function DashboardPage() {
       api.get('/services/my-services').catch(() => ({ data: { services: [] } })),
       api.get('/transactions').catch(() => ({ data: { transactions: [] } })),
       api.get('/profile/me').catch(() => ({ data: { user: null } })),
-    ]).then(([servicesRes, myServicesRes, transactionsRes, profileRes]) => {
+      api.get('/reviews').catch(() => ({ data: { reviews: [] } })),
+    ]).then(([servicesRes, myServicesRes, transactionsRes, profileRes, reviewsRes]) => {
       if (isMounted) {
         const liveServices = servicesRes.data?.services || [];
         const liveMyServices = myServicesRes.data?.services || [];
@@ -98,6 +112,7 @@ function DashboardPage() {
         setMyServices(liveMyServices);
         setTransactions(liveTransactions);
         setUserProfile(profileRes.data?.user || null);
+        if (reviewsRes.data) setReviewsData(reviewsRes.data);
         setIsLoading(false);
       }
     });
@@ -164,6 +179,18 @@ function DashboardPage() {
     (t) => (t.service_status === 'accepted' || t.service_status === 'pending') && t.provider_id === currentUserId && t.qr_code
   );
 
+  const providerRating = reviewsData.summaryByProvider?.[String(currentUserId)] || {
+    averageRating: 5.0,
+    reviewCount: 0,
+  };
+  const providerReceivedReviews = (reviewsData.reviews || []).filter(
+    (r) => String(r.provider_id) === String(currentUserId)
+  );
+  const requestorReviewsMap = {};
+  (reviewsData.reviews || []).forEach((r) => {
+    if (r.transaction_id) requestorReviewsMap[String(r.transaction_id)] = r;
+  });
+
   const displayName = userProfile
     ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.username || userProfile.user_id
     : storedUser
@@ -215,7 +242,7 @@ function DashboardPage() {
       {/* Role-Specific Metrics Row */}
       {isProvider ? (
         <Row className="g-3 mb-4">
-          <Col sm={6} xl={3}>
+          <Col sm={6} lg={4} xl>
             <div className="neu-metric-card h-100">
               <div className="text-muted small text-uppercase fw-semibold mb-1">Total Service Revenue</div>
               <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>
@@ -224,25 +251,40 @@ function DashboardPage() {
               <div className="small text-muted mt-1">From completed client bookings</div>
             </div>
           </Col>
-          <Col sm={6} xl={3}>
+          <Col sm={6} lg={4} xl>
             <div className="neu-metric-card h-100">
               <div className="text-muted small text-uppercase fw-semibold mb-1">My Active Listings</div>
               <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>{providerActiveServicesCount}</div>
               <div className="small text-muted mt-1">Live listings accepting bookings</div>
             </div>
           </Col>
-          <Col sm={6} xl={3}>
+          <Col sm={6} lg={4} xl>
             <div className="neu-metric-card h-100">
               <div className="text-muted small text-uppercase fw-semibold mb-1">Completed Bookings</div>
               <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>{providerCompleted.length}</div>
               <div className="small text-muted mt-1">Successfully delivered services</div>
             </div>
           </Col>
-          <Col sm={6} xl={3}>
+          <Col sm={6} lg={4} xl>
             <div className="neu-metric-card h-100">
-              <div className="text-muted small text-uppercase fw-semibold mb-1">Ongoing / Pending Orders</div>
+              <div className="text-muted small text-uppercase fw-semibold mb-1">Ongoing Orders</div>
               <div className="fs-3 fw-bold" style={{ color: '#063a8f' }}>{providerOngoingCount}</div>
               <div className="small text-muted mt-1">Orders requiring action or delivery</div>
+            </div>
+          </Col>
+          <Col sm={12} lg={4} xl>
+            <div className="neu-metric-card h-100" style={{ border: '1px solid rgba(245, 158, 11, 0.35)' }}>
+              <div className="d-flex justify-content-between align-items-center mb-1">
+                <div className="text-muted small text-uppercase fw-semibold">Campus Rating</div>
+                <span className="text-warning fs-5">★</span>
+              </div>
+              <div className="fs-3 fw-bold" style={{ color: '#b45309' }}>
+                {providerRating.reviewCount > 0 ? providerRating.averageRating.toFixed(1) : '5.0'}
+                <span className="fs-6 text-muted fw-normal"> / 5.0</span>
+              </div>
+              <div className="small text-muted mt-1">
+                {providerRating.reviewCount} client {providerRating.reviewCount === 1 ? 'review' : 'reviews'}
+              </div>
             </div>
           </Col>
         </Row>
@@ -304,6 +346,7 @@ function DashboardPage() {
                 <th className="py-3 px-3 text-uppercase small fw-bold d-none d-md-table-cell" style={{ color: 'var(--neu-text)' }}>Booking Fee</th>
                 <th className="py-3 px-3 text-uppercase small fw-bold" style={{ color: 'var(--neu-text)' }}>Total</th>
                 <th className="py-3 px-3 text-uppercase small fw-bold" style={{ color: 'var(--neu-text)' }}>Status</th>
+                <th className="py-3 px-3 text-uppercase small fw-bold text-end pe-3" style={{ color: 'var(--neu-text)' }}>Rating / Feedback</th>
               </tr>
             </thead>
             <tbody>
@@ -340,12 +383,47 @@ function DashboardPage() {
                           {tx.service_status || 'pending'}
                         </Badge>
                       </td>
+                      <td className="px-3 text-end pe-3">
+                        {tx.service_status === 'completed' ? (
+                          requestorReviewsMap[String(tx.transaction_id)] ? (
+                            <span
+                              className="px-2 py-1 rounded-pill small fw-bold d-inline-flex align-items-center gap-1"
+                              style={{
+                                background: 'rgba(245, 158, 11, 0.12)',
+                                color: '#b45309',
+                                border: '1px solid rgba(245, 158, 11, 0.25)',
+                              }}
+                              title="Reviewed"
+                            >
+                              <span className="text-warning">★</span> {requestorReviewsMap[String(tx.transaction_id)].rating}.0 Rated
+                            </span>
+                          ) : !isProvider ? (
+                            <Button
+                              variant="warning"
+                              size="sm"
+                              className="btn-sm py-1 px-2 fw-bold text-dark d-inline-flex align-items-center gap-1 shadow-xs"
+                              style={{ fontSize: '0.75rem', background: '#f59e0b', borderColor: '#d97706' }}
+                              onClick={() => {
+                                setSelectedReviewTx(tx);
+                                setSelectedExistingReview(null);
+                                setShowReviewModal(true);
+                              }}
+                            >
+                              <span>★</span> Rate &amp; Review
+                            </Button>
+                          ) : (
+                            <span className="text-muted small">Completed</span>
+                          )
+                        ) : (
+                          <span className="text-muted small">-</span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} className="text-center py-4 text-muted small">
+                  <td colSpan={8} className="text-center py-4 text-muted small">
                     No transactions found yet. Explore services in the marketplace to get started!
                   </td>
                 </tr>
@@ -354,6 +432,83 @@ function DashboardPage() {
           </Table>
         </div>
       </div>
+
+      {/* Provider Client Reviews & Testimonials Section */}
+      {isProvider && (
+        <div className="neu-card mt-4">
+          <div className="d-flex justify-content-between align-items-center border-bottom p-3 p-md-4" style={{ borderColor: 'rgba(154, 172, 196, 0.3)' }}>
+            <div className="d-flex align-items-center gap-2">
+              <span className="text-warning fs-5">★</span>
+              <h5 className="fw-bold mb-0" style={{ color: 'var(--neu-text)' }}>
+                Client Reviews &amp; Ratings ({providerReceivedReviews.length})
+              </h5>
+            </div>
+            <span
+              className="px-3 py-1 rounded-pill small fw-bold d-inline-flex align-items-center gap-1"
+              style={{
+                background: 'rgba(245, 158, 11, 0.12)',
+                color: '#b45309',
+                border: '1px solid rgba(245, 158, 11, 0.25)',
+              }}
+            >
+              ★ {providerRating.averageRating.toFixed(1)} / 5.0 Platform Rating
+            </span>
+          </div>
+          <div className="p-3 p-md-4">
+            {providerReceivedReviews.length > 0 ? (
+              <Row className="g-3">
+                {providerReceivedReviews.slice(0, 4).map((rev) => (
+                  <Col md={6} key={rev.id || rev.review_id}>
+                    <div
+                      className="p-3 rounded-3 h-100"
+                      style={{
+                        background: 'var(--neu-bg-dark)',
+                        border: '1px solid rgba(154, 172, 196, 0.35)',
+                      }}
+                    >
+                      <div className="d-flex justify-content-between align-items-center mb-1">
+                        <strong className="text-dark small">{rev.reviewer_name || rev.reviewer_id}</strong>
+                        <span className="text-warning fw-bold small">
+                          {'★'.repeat(Math.round(rev.rating || 5))} <span className="text-muted ms-1 small">({rev.rating}/5)</span>
+                        </span>
+                      </div>
+                      <p className="small text-secondary mb-2 fst-italic">"{rev.comment}"</p>
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span className="badge bg-light text-muted border small font-monospace">
+                          Booking #{rev.transaction_id || '-'}
+                        </span>
+                        <small className="text-muted" style={{ fontSize: '0.72rem' }}>{rev.created_at}</small>
+                      </div>
+                    </div>
+                  </Col>
+                ))}
+              </Row>
+            ) : (
+              <div className="text-center py-4 text-muted small">
+                No client reviews received yet. Deliver great campus services to earn top reviews!
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Review Modal for Requestors */}
+      {showReviewModal && selectedReviewTx && (
+        <ReviewModal
+          show={showReviewModal}
+          onHide={() => {
+            setShowReviewModal(false);
+            setSelectedReviewTx(null);
+            setSelectedExistingReview(null);
+          }}
+          transaction={selectedReviewTx}
+          existingReview={selectedExistingReview}
+          onReviewSubmitted={(submittedRev) => {
+            setSuccessMsg(`✓ Review submitted: You gave ${submittedRev.rating} stars for Booking #${submittedRev.transaction_id}!`);
+            reloadDashboardData();
+          }}
+        />
+      )}
 
       {/* QR Scanner / Verification Engine Modal */}
       <Modal show={showScannerModal} onHide={() => setShowScannerModal(false)} centered size="lg">
