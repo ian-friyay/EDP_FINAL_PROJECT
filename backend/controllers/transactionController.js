@@ -32,7 +32,7 @@ const createTransaction = async (req, res) => {
 
     const { data: service, error: serviceError } = await supabase
       .from('services')
-      .select('service_id, user_id, amount_topay, service_category, subcategory, service_description, rate_unit, service_status, is_deleted')
+      .select('service_id, user_id, amount_topay, service_category, subcategory, service_description, service_status, is_deleted')
       .eq('service_id', normalizedServiceId)
       .single();
 
@@ -50,6 +50,16 @@ const createTransaction = async (req, res) => {
     if (!service || service.is_deleted) {
       return res.status(404).json({ error: 'Service not found.' });
     }
+
+    // Determine rate_unit from description or field
+    let detectedRateUnit = 'per_service';
+    if (service.service_description) {
+      const match = service.service_description.match(/\[Rate:\s*(per_hour|per_day|per_service)\]/i);
+      if (match) {
+        detectedRateUnit = match[1].toLowerCase();
+      }
+    }
+    service.rate_unit = detectedRateUnit;
 
     if (service.service_status !== 'active') {
       return res.status(400).json({
@@ -133,13 +143,7 @@ const createTransaction = async (req, res) => {
       commission_fee,
       service_status: 'pending',
       qr_code,
-      notes: combinedNotes,
-      booking_date: booking_date || scheduled_date || null,
-      start_time: start_time || null,
-      end_time: end_time || null,
     };
-    if (rendezvous_location) insertPayload.rendezvous_location = rendezvous_location;
-    if (scheduled_date) insertPayload.scheduled_date = scheduled_date;
 
     let { data: transaction, error: insertError } = await supabase
       .from('transactions')
@@ -147,43 +151,22 @@ const createTransaction = async (req, res) => {
       .select()
       .single();
 
-    // If columns do not exist yet in Supabase schema cache, retry without extra columns
-    if (insertError && (insertError.code === 'PGRST204' || insertError.message?.includes('column') || insertError.message?.includes('rendezvous_location'))) {
-      const fallbackPayload = {
-        provider_id,
-        requestor_id,
-        service_id: normalizedServiceId,
-        amount_topay,
-        booking_fee,
-        total_topay,
-        commission_fee,
-        service_status: 'pending',
-        qr_code,
-      };
-
-      const retryResult = await supabase
-        .from('transactions')
-        .insert([fallbackPayload])
-        .select()
-        .single();
-
-      transaction = retryResult.data;
-      insertError = retryResult.error;
-
-      if (transaction) {
-        transaction.notes = notes ? String(notes).trim() : null;
-        transaction.booking_date = booking_date || scheduled_date || null;
-        transaction.start_time = start_time || null;
-        transaction.end_time = end_time || null;
-        if (rendezvous_location) transaction.rendezvous_location = rendezvous_location;
-      }
-    }
-
     if (insertError) {
+      console.error('Failed to insert transaction in Supabase:', insertError);
       return res.status(500).json({
         error: 'Failed to create transaction.',
         details: insertError.message,
       });
+    }
+
+    if (transaction) {
+      transaction.notes = notes ? String(notes).trim() : null;
+      transaction.booking_date = booking_date || scheduled_date || null;
+      transaction.start_time = start_time || null;
+      transaction.end_time = end_time || null;
+      if (rendezvous_location) transaction.rendezvous_location = rendezvous_location;
+      transaction.service_name = service.subcategory || service.service_category || 'Service';
+      transaction.service_category = service.service_category || '';
     }
 
     // Real-time notification & event emission via Socket.io
@@ -205,8 +188,27 @@ const createTransaction = async (req, res) => {
         target_id: String(transaction.transaction_id),
       };
 
+      // Real-time alerts to Provider
       io.to(String(provider_id)).emit('transaction_created', transaction);
       io.to(String(provider_id)).emit('new_notification', notifPayload);
+
+      // Real-time alerts to Admin Portal & Dashboard
+      io.to('admin').emit('transaction_created', transaction);
+      io.to('admin').emit('admin_new_transaction', transaction);
+      io.emit('transaction_created', transaction);
+    }
+
+    // Persist notification for Provider
+    try {
+      await createNotification(
+        provider_id,
+        'booking',
+        'New Service Booking Request',
+        `Student ${requestor_id} requested your service #${normalizedServiceId} (${service.subcategory || service.service_category}) for ₱${total_topay}.`,
+        '/transactions'
+      );
+    } catch (notifErr) {
+      // Non-fatal if notifications table has restrictions
     }
 
     return res.status(201).json({
@@ -224,15 +226,21 @@ const createTransaction = async (req, res) => {
 const getUserTransactions = async (req, res) => {
   try {
     const userId = req.user && req.user.user_id;
+    const userType = req.user && req.user.user_type;
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized. Please log in again.' });
     }
 
-    const { data: transactions, error } = await supabase
+    let query = supabase
       .from('transactions')
       .select('*')
-      .or(`provider_id.eq.${userId},requestor_id.eq.${userId}`)
       .order('transaction_id', { ascending: false });
+
+    if (userType !== 'Admin') {
+      query = query.or(`provider_id.eq.${userId},requestor_id.eq.${userId}`);
+    }
+
+    const { data: transactions, error } = await query;
 
     if (error) {
       console.error('Failed to fetch transactions:', error);
@@ -277,6 +285,7 @@ const getUserTransactions = async (req, res) => {
 const getTransactionById = async (req, res) => {
   try {
     const userId = req.user && req.user.user_id;
+    const userType = req.user && req.user.user_type;
     const { transaction_id } = req.params;
 
     if (!userId) {
@@ -293,7 +302,7 @@ const getTransactionById = async (req, res) => {
       return res.status(404).json({ error: 'Transaction not found.' });
     }
 
-    if (transaction.provider_id !== userId && transaction.requestor_id !== userId) {
+    if (transaction.provider_id !== userId && transaction.requestor_id !== userId && userType !== 'Admin') {
       return res.status(403).json({ error: 'Unauthorized to view this transaction.' });
     }
 

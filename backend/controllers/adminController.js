@@ -37,7 +37,7 @@ const getDashboardStats = async (req, res) => {
             supabase
                 .from('transactions')
                 .select('booking_fee, commission_fee, total_topay')
-                .eq('transaction_status', 'completed')
+                .eq('service_status', 'completed')
         ]);
 
         const totalRegisteredUsers = users.count || 0;
@@ -567,7 +567,7 @@ let adminAdvertisementsStore = [
 const getAdminServices = async (req, res) => {
     try {
         const [servicesRes, usersRes] = await Promise.all([
-            supabase.from('services').select('*').eq('is_deleted', false).order('created_at', { ascending: false }),
+            supabase.from('services').select('*').eq('is_deleted', false).order('service_id', { ascending: false }),
             supabase.from('users').select('user_id, first_name, last_name, username')
         ]);
 
@@ -608,29 +608,43 @@ const deleteAdminService = async (req, res) => {
 
 const getAdminTransactions = async (req, res) => {
     try {
-        const [txRes, usersRes] = await Promise.all([
-            supabase.from('transactions').select('*').order('created_at', { ascending: false }),
-            supabase.from('users').select('user_id, first_name, last_name, username')
+        const [txRes, usersRes, servicesRes] = await Promise.all([
+            supabase.from('transactions').select('*').order('transaction_id', { ascending: false }),
+            supabase.from('users').select('user_id, first_name, last_name, username'),
+            supabase.from('services').select('service_id, service_category, subcategory, service_description')
         ]);
 
+        if (txRes.error) {
+            console.error('getAdminTransactions error:', txRes.error);
+            throw txRes.error;
+        }
+
         const usersMap = new Map((usersRes.data || []).map((u) => [u.user_id, `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || u.user_id]));
+        const servicesMap = new Map((servicesRes.data || []).map((s) => [s.service_id, s.subcategory || s.service_category || 'Campus Service']));
 
         const enriched = (txRes.data || []).map((t) => ({
             id: t.transaction_id,
             transaction_id: t.transaction_id,
+            requestor_id: t.requestor_id,
+            provider_id: t.provider_id,
+            service_id: t.service_id,
             requestor_name: usersMap.get(t.requestor_id) || t.requestor_id,
             provider_name: usersMap.get(t.provider_id) || t.provider_id,
-            service_name: t.service_name || 'Service',
+            service_name: servicesMap.get(t.service_id) || t.service_name || 'Campus Service',
             amount_topay: Number(t.amount_topay) || 0,
+            booking_fee: Number(t.booking_fee) || 5,
             commission_fee: Number(t.commission_fee) || ((Number(t.amount_topay) || 0) * 0.05),
             total_topay: Number(t.total_topay) || ((Number(t.amount_topay) || 0) + (Number(t.booking_fee) || 5)),
             status: t.service_status || 'pending',
-            booking_date: t.booking_date,
-            created_at: t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Nov 17, 2026'
+            booking_date: t.booking_date || null,
+            notes: t.notes || null,
+            qr_code: t.qr_code || null,
+            created_at: t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Nov 19, 2026'
         }));
 
         return res.status(200).json({ data: enriched });
     } catch (err) {
+        console.error('Failed to fetch admin transactions:', err);
         return res.status(500).json({ error: 'Failed to fetch transactions.' });
     }
 };
