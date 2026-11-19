@@ -1,6 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const webpush = require('web-push');
+let webpush = null;
+try {
+  webpush = require('web-push');
+} catch (e) {
+  console.warn('[Push Service] web-push optional require notice:', e.message);
+}
 const supabase = require('../supabaseClient');
 
 const DATA_DIR = path.join(__dirname, '../data');
@@ -11,10 +16,12 @@ const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BMG2rutU1yCj8qDcNp1SvI
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'UTTmrtfjTQ8Ay7tag-4K76B1yhOjv5_1R0iXCGje4PU';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:adriandadoviernes@gmail.com';
 
-try {
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-} catch (err) {
-  console.warn('[WebPush VAPID Warning]', err.message);
+if (webpush) {
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  } catch (err) {
+    console.warn('[WebPush VAPID Warning]', err.message);
+  }
 }
 
 /**
