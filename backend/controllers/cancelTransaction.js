@@ -75,6 +75,23 @@ const cancelTransaction = async (req, res) => {
       });
     }
 
+    const io = req.app && req.app.get('io');
+    if (io) {
+      io.to(String(transaction.provider_id)).emit('transaction_updated', cancelledTransaction);
+      io.to(String(transaction.requestor_id)).emit('transaction_updated', cancelledTransaction);
+      const otherUserId = userId === transaction.provider_id ? transaction.requestor_id : transaction.provider_id;
+      io.to(String(otherUserId)).emit('new_notification', {
+        id: `tx_${transaction_id}_cancelled_${Date.now()}`,
+        type: 'booking',
+        title: 'Booking Cancelled',
+        description: `Booking #${transaction_id} was cancelled.`,
+        timestamp: new Date().toISOString(),
+        read: false,
+        link: '/transactions',
+        target_id: String(transaction_id),
+      });
+    }
+
     return res.status(200).json({
       message: 'Transaction cancelled successfully.',
       transaction: cancelledTransaction,

@@ -355,6 +355,22 @@ const acceptTransaction = async (req, res) => {
       `/transactions/${transactionId}/qr`
     );
 
+    const io = req.app && req.app.get('io');
+    if (io) {
+      io.to(String(transaction.provider_id)).emit('transaction_updated', updated);
+      io.to(String(transaction.requestor_id)).emit('transaction_updated', updated);
+      io.to(String(transaction.requestor_id)).emit('new_notification', {
+        id: `tx_${transactionId}_accepted_${Date.now()}`,
+        type: 'booking',
+        title: 'Booking Accepted!',
+        description: `Provider accepted your booking #${transactionId}.`,
+        timestamp: new Date().toISOString(),
+        read: false,
+        link: '/transactions',
+        target_id: String(transactionId),
+      });
+    }
+
     return res.status(200).json({
       message: 'Transaction accepted successfully.',
       transaction: updated,
@@ -420,6 +436,22 @@ const completeTransaction = async (req, res) => {
       `Booking #${transactionId} has been marked as completed. Please leave a review!`,
       `/transactions`
     );
+
+    const io = req.app && req.app.get('io');
+    if (io) {
+      io.to(String(transaction.provider_id)).emit('transaction_updated', updated);
+      io.to(String(transaction.requestor_id)).emit('transaction_updated', updated);
+      io.to(String(targetUserId)).emit('new_notification', {
+        id: `tx_${transactionId}_completed_${Date.now()}`,
+        type: 'booking',
+        title: 'Service Completed!',
+        description: `Booking #${transactionId} has been marked as completed.`,
+        timestamp: new Date().toISOString(),
+        read: false,
+        link: '/transactions',
+        target_id: String(transactionId),
+      });
+    }
 
     return res.status(200).json({
       message: 'Transaction completed successfully.',
@@ -520,6 +552,22 @@ const verifyQrCode = async (req, res) => {
       `Provider verified your booking #${transaction.transaction_id} via QR code.`,
       `/transactions`
     );
+
+    const io = req.app && req.app.get('io');
+    if (io) {
+      io.to(String(transaction.provider_id)).emit('transaction_updated', updated);
+      io.to(String(transaction.requestor_id)).emit('transaction_updated', updated);
+      io.to(String(transaction.requestor_id)).emit('new_notification', {
+        id: `tx_${transaction.transaction_id}_qr_completed_${Date.now()}`,
+        type: 'booking',
+        title: 'QR Code Verified - Service Completed!',
+        description: `Provider verified your booking #${transaction.transaction_id} via QR code.`,
+        timestamp: new Date().toISOString(),
+        read: false,
+        link: '/transactions',
+        target_id: String(transaction.transaction_id),
+      });
+    }
 
     return res.status(200).json({
       message: 'QR Code verified successfully! Booking marked as completed.',
