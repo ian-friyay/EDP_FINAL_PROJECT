@@ -1,10 +1,12 @@
 const supabase = require('../db');
 
-// Strict SerbisYou Service Taxonomy
+// Strict SerbisYou Service Taxonomy matching Registration & Campus Service Hub
 const ALLOWED_TAXONOMY = {
+    'Creative': ['Graphic Designer', 'Art Painter'],
     'Creatives': ['Graphic Designer', 'Art Painter'],
-    'Event Support': ['Makeup Artist', 'Event Host'],
-    'Digital Service': ['Photographer', 'Video Editor']
+    'Event Support': ['Make-up artist', 'Makeup Artist', 'Event Hosts', 'Event Host'],
+    'Digital Service': ['Photographers', 'Photographer', 'Video Editors', 'Video Editor'],
+    'Digital Services': ['Photographers', 'Photographer', 'Video Editors', 'Video Editor']
 };
 
 const isValidPictureProof = (pictureProof) => {

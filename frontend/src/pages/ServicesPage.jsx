@@ -7,12 +7,31 @@ import AdBanner from '../components/AdBanner';
 import { queueOfflineAction } from '../utils/offlineQueue';
 import { compressImage } from '../utils/imageCompressor';
 
+// Standard SerbisYou Campus Categories and Subcategories
+export const SERVICE_CATEGORIES = {
+  'Creative': {
+    title: 'Creative',
+    description: 'Custom canvas paintings, sketches, digital art, poster design, logos, and visual branding crafted by talented campus artists.',
+    subcategories: ['Graphic Designer', 'Art Painter']
+  },
+  'Event Support': {
+    title: 'Event Support',
+    description: 'Charismatic student hosts, masters of ceremonies, and skilled make-up artists for university functions, ceremonies, and pageants.',
+    subcategories: ['Make-up artist', 'Event Hosts']
+  },
+  'Digital Service': {
+    title: 'Digital Service',
+    description: 'Campus photo shoots, event coverage, cinematic reels, video editing, and digital media production delivered by student specialists.',
+    subcategories: ['Photographers', 'Video Editors']
+  }
+};
+
 const emptyService = {
-  service_category: '',
-  subcategory: '',
-  service_description: '',
+  service_category: 'Creative',
+  subcategory: 'Graphic Designer',
+  service_description: 'Custom canvas paintings, sketches, digital art, poster design, logos, and visual branding crafted by talented campus artists.',
   amount_topay: '',
-  rate_unit: 'per_service',
+  rate_unit: 'per_hour',
   picture_proof: [],
 };
 
@@ -389,26 +408,51 @@ export default function ServicesPage() {
         </Modal.Header>
         <Form onSubmit={handleCreateService}>
           <Modal.Body style={{ background: 'var(--neu-bg)' }}>
-            <Form.Group className="mb-3" controlId="serviceCategory">
-              <Form.Label className="small fw-semibold text-muted">Category</Form.Label>
-              <Form.Control
-                className="neu-input"
-                placeholder="e.g. Creative, Event Support, Digital Service"
-                value={serviceForm.service_category}
-                onChange={(event) => setServiceForm({ ...serviceForm, service_category: event.target.value })}
-                required
-              />
-            </Form.Group>
-            <Form.Group className="mb-3" controlId="serviceSubcategory">
-              <Form.Label className="small fw-semibold text-muted">Service Name / Title</Form.Label>
-              <Form.Control
-                className="neu-input"
-                placeholder="e.g. Graphic Design & Poster Layout"
-                value={serviceForm.subcategory}
-                onChange={(event) => setServiceForm({ ...serviceForm, subcategory: event.target.value })}
-                required
-              />
-            </Form.Group>
+            {/* Category & Subcategory Linked Dropdowns matching MinSU Service Hub & Registration */}
+            <Row className="mb-3 g-2">
+              <Col sm={6}>
+                <Form.Group controlId="serviceCategory">
+                  <Form.Label className="small fw-semibold text-muted">Service Category <span className="text-danger">*</span></Form.Label>
+                  <Form.Select
+                    className="neu-select"
+                    value={serviceForm.service_category || 'Creative'}
+                    onChange={(event) => {
+                      const newCat = event.target.value;
+                      const defaultSub = SERVICE_CATEGORIES[newCat]?.subcategories[0] || '';
+                      const defaultDesc = SERVICE_CATEGORIES[newCat]?.description || '';
+                      const isDefaultOrEmptyDesc = !serviceForm.service_description || Object.values(SERVICE_CATEGORIES).some(c => c.description === serviceForm.service_description);
+                      setServiceForm({
+                        ...serviceForm,
+                        service_category: newCat,
+                        subcategory: defaultSub,
+                        service_description: isDefaultOrEmptyDesc ? defaultDesc : serviceForm.service_description
+                      });
+                    }}
+                    required
+                  >
+                    {Object.keys(SERVICE_CATEGORIES).map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col sm={6}>
+                <Form.Group controlId="serviceSubcategory">
+                  <Form.Label className="small fw-semibold text-muted">Service Specialization <span className="text-danger">*</span></Form.Label>
+                  <Form.Select
+                    className="neu-select"
+                    value={serviceForm.subcategory || (SERVICE_CATEGORIES[serviceForm.service_category]?.subcategories[0] || 'Graphic Designer')}
+                    onChange={(event) => setServiceForm({ ...serviceForm, subcategory: event.target.value })}
+                    required
+                  >
+                    {(SERVICE_CATEGORIES[serviceForm.service_category]?.subcategories || ['Graphic Designer', 'Art Painter']).map((sub) => (
+                      <option key={sub} value={sub}>{sub}</option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+
             <Form.Group className="mb-3" controlId="serviceDescription">
               <Form.Label className="small fw-semibold text-muted">Description</Form.Label>
               <Form.Control
@@ -506,24 +550,47 @@ export default function ServicesPage() {
         </Modal.Header>
         <Form onSubmit={handleUpdateService}>
           <Modal.Body style={{ background: 'var(--neu-bg)' }}>
-            <Form.Group className="mb-3" controlId="editServiceCategory">
-              <Form.Label className="small fw-semibold text-muted">Category</Form.Label>
-              <Form.Control
-                className="neu-input"
-                value={editForm.service_category}
-                onChange={(event) => setEditForm({ ...editForm, service_category: event.target.value })}
-                required
-              />
-            </Form.Group>
-            <Form.Group className="mb-3" controlId="editServiceSubcategory">
-              <Form.Label className="small fw-semibold text-muted">Service Name / Title</Form.Label>
-              <Form.Control
-                className="neu-input"
-                value={editForm.subcategory}
-                onChange={(event) => setEditForm({ ...editForm, subcategory: event.target.value })}
-                required
-              />
-            </Form.Group>
+            {/* Category & Subcategory Linked Dropdowns for Edit */}
+            <Row className="mb-3 g-2">
+              <Col sm={6}>
+                <Form.Group controlId="editServiceCategory">
+                  <Form.Label className="small fw-semibold text-muted">Service Category <span className="text-danger">*</span></Form.Label>
+                  <Form.Select
+                    className="neu-select"
+                    value={editForm.service_category || 'Creative'}
+                    onChange={(event) => {
+                      const newCat = event.target.value;
+                      const defaultSub = SERVICE_CATEGORIES[newCat]?.subcategories[0] || '';
+                      setEditForm({
+                        ...editForm,
+                        service_category: newCat,
+                        subcategory: defaultSub
+                      });
+                    }}
+                    required
+                  >
+                    {Object.keys(SERVICE_CATEGORIES).map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col sm={6}>
+                <Form.Group controlId="editServiceSubcategory">
+                  <Form.Label className="small fw-semibold text-muted">Service Specialization <span className="text-danger">*</span></Form.Label>
+                  <Form.Select
+                    className="neu-select"
+                    value={editForm.subcategory || (SERVICE_CATEGORIES[editForm.service_category]?.subcategories[0] || 'Graphic Designer')}
+                    onChange={(event) => setEditForm({ ...editForm, subcategory: event.target.value })}
+                    required
+                  >
+                    {(SERVICE_CATEGORIES[editForm.service_category]?.subcategories || ['Graphic Designer', 'Art Painter']).map((sub) => (
+                      <option key={sub} value={sub}>{sub}</option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
             <Form.Group className="mb-3" controlId="editServiceDescription">
               <Form.Label className="small fw-semibold text-muted">Description</Form.Label>
               <Form.Control

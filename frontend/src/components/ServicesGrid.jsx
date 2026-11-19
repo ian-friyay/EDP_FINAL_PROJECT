@@ -81,9 +81,14 @@ export default function ServicesGrid({
   const [activeModalService, setActiveModalService] = useState(null);
   const [bookingSuccessAlert, setBookingSuccessAlert] = useState(null);
 
-  // Extract unique categories for the dropdown filter
+  const CANONICAL_CATEGORIES = ['Creative', 'Event Support', 'Digital Service'];
+
+  // Extract unique categories for the dropdown filter, ensuring all MinSU categories are present
   const categories = useMemo(() => {
-    const set = new Set(services.map((s) => s.service_category));
+    const set = new Set([
+      ...CANONICAL_CATEGORIES,
+      ...services.map((s) => s.service_category).filter(Boolean),
+    ]);
     return Array.from(set);
   }, [services]);
 
