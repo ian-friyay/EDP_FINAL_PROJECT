@@ -1,51 +1,7 @@
-const fs = require('fs');
-const path = require('path');
 const supabase = require('../db');
 const { createNotification } = require('./notificationController');
 const { unlockRequestsStore, userCooldowns } = require('../utils/cooldownStore');
 const { sendEmail, sendAccountApprovedEmail } = require('../utils/emailService');
-
-const DATA_DIR = path.join(__dirname, '../data');
-const ADS_FILE = path.join(DATA_DIR, 'advertisements.json');
-const REVIEWS_FILE = path.join(DATA_DIR, 'reviews.json');
-
-const loadReviews = () => {
-    try {
-        if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-        if (fs.existsSync(REVIEWS_FILE)) {
-            const raw = fs.readFileSync(REVIEWS_FILE, 'utf8');
-            const data = JSON.parse(raw);
-            if (Array.isArray(data)) return data;
-        }
-    } catch (e) {}
-    return [];
-};
-
-const saveReviews = (reviews) => {
-    try {
-        if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-        fs.writeFileSync(REVIEWS_FILE, JSON.stringify(reviews, null, 2), 'utf8');
-    } catch (e) {}
-};
-
-const loadAds = () => {
-    try {
-        if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-        if (fs.existsSync(ADS_FILE)) {
-            const raw = fs.readFileSync(ADS_FILE, 'utf8');
-            const data = JSON.parse(raw);
-            if (Array.isArray(data)) return data;
-        }
-    } catch (e) {}
-    return [];
-};
-
-const saveAds = (ads) => {
-    try {
-        if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-        fs.writeFileSync(ADS_FILE, JSON.stringify(ads, null, 2), 'utf8');
-    } catch (e) {}
-};
 
 const checkAdminExists = async (req, res) => {
     try {
@@ -573,6 +529,9 @@ const shareAdminAccess = async (req, res) => {
     }
 };
 
+const { loadFallbackAds, saveFallbackAds } = require('./advertisementController');
+const { loadReviewsFromFile, saveReviewsToFile } = require('./reviewsController');
+
 const getAdminServices = async (req, res) => {
     try {
         const [servicesRes, usersRes] = await Promise.all([
@@ -607,15 +566,10 @@ const getAdminServices = async (req, res) => {
 const deleteAdminService = async (req, res) => {
     try {
         const { id } = req.params;
-        const normalizedId = isNaN(Number(id)) ? id : Number(id);
-        const { error } = await supabase.from('services').update({ is_deleted: true }).eq('service_id', normalizedId);
-        if (error) {
-            console.error('Failed to soft delete service:', error);
-            throw error;
-        }
+        const { error } = await supabase.from('services').update({ is_deleted: true }).eq('service_id', id);
+        if (error) throw error;
         return res.status(200).json({ message: 'Service removed successfully.' });
     } catch (err) {
-        console.error('deleteAdminService error:', err);
         return res.status(500).json({ error: 'Failed to remove service.' });
     }
 };
@@ -664,122 +618,119 @@ const getAdminTransactions = async (req, res) => {
 };
 
 const getAdminReviews = async (req, res) => {
-    const reviews = loadReviews();
-    return res.status(200).json({ data: reviews });
+    try {
+        const { data, error } = await supabase.from('reviews').select('*').order('created_at', { ascending: false });
+        if (!error && Array.isArray(data) && data.length > 0) {
+            return res.status(200).json({ data });
+        }
+    } catch {
+        // Fallback to reviews file
+    }
+    const fileReviews = loadReviewsFromFile();
+    return res.status(200).json({ data: fileReviews });
 };
 
 const deleteAdminReview = async (req, res) => {
+    const { id } = req.params;
     try {
-        const { id } = req.params;
-        const all = loadReviews().filter((r) => String(r.id) !== String(id));
-        saveReviews(all);
-        return res.status(200).json({ message: 'Review deleted successfully.' });
-    } catch (err) {
-        return res.status(500).json({ error: 'Failed to delete review.' });
+        await supabase.from('reviews').delete().or(`review_id.eq.${id},id.eq.${id}`);
+    } catch {
+        // Ignore
     }
+    const current = loadReviewsFromFile();
+    const filtered = current.filter((r) => String(r.id) !== String(id) && String(r.review_id) !== String(id));
+    saveReviewsToFile(filtered);
+    return res.status(200).json({ message: 'Review deleted successfully.' });
 };
 
 const getAdminAdvertisements = async (req, res) => {
     try {
-        let ads = [];
-        try {
-            const { data, error } = await supabase.from('advertisements').select('*').order('created_at', { ascending: false });
-            if (!error && Array.isArray(data) && data.length > 0) {
-                ads = data;
-            }
-        } catch (dbErr) {}
-
-        if (ads.length === 0) {
-            ads = loadAds();
+        const { data, error } = await supabase.from('advertisements').select('*').order('created_at', { ascending: false });
+        if (!error && Array.isArray(data) && data.length > 0) {
+            return res.status(200).json({ data });
         }
-
-        const formatted = ads.map((a) => ({
-            id: a.id || a.ad_id,
-            title: a.title || a.campaign_title || 'Campus Advertisement',
-            description: a.description || '',
-            banner_url: a.banner_url || '/auth-bg.jpg',
-            target_url: a.target_url || '/services',
-            requested_by: a.requested_by || a.advertiser_name || 'Student Sponsor',
-            requested_email: a.requested_email || 'student@minsu.edu.ph',
-            duration: a.duration || (a.duration_days ? `${a.duration_days} Days` : '7 Days (week)'),
-            cost: Number(a.cost || a.computed_cost || 14.00),
-            status: a.status || 'active',
-            payment_status: a.payment_status || 'paid',
-            created_at: a.created_at ? new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Nov 19, 2026'
-        }));
-
-        return res.status(200).json({ data: formatted });
-    } catch (err) {
-        return res.status(500).json({ error: 'Failed to fetch advertisements.' });
+    } catch {
+        // Fallback to advertisements file
     }
+    const ads = loadFallbackAds();
+    return res.status(200).json({ data: ads });
 };
 
 const createAdminAdvertisement = async (req, res) => {
+    const { campaign_title, title, description, requested_by, advertiser_name, requested_email, duration, duration_days, cost, computed_cost, banner_url, target_url } = req.body;
+    const finalTitle = title || campaign_title || 'Campus Promotion';
+    const finalName = advertiser_name || requested_by || 'Student Organization';
+    const finalDays = duration_days || (typeof duration === 'number' ? duration : 14);
+    const finalCost = Number(computed_cost || cost || 28.0);
+    const now = new Date();
+    const endDate = new Date(now.getTime() + finalDays * 24 * 60 * 60 * 1000);
+
+    const newAd = {
+        id: `ad-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        title: finalTitle,
+        campaign_title: finalTitle,
+        description: description || 'Campus spotlight campaign',
+        advertiser_name: finalName,
+        requested_by: finalName,
+        requested_email: requested_email || 'student@minsu.edu.ph',
+        banner_url: banner_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80',
+        target_url: target_url || '/services',
+        duration_days: finalDays,
+        duration: `${finalDays} Days`,
+        computed_cost: finalCost,
+        cost: finalCost,
+        status: 'active',
+        payment_status: 'paid',
+        start_date: now.toISOString().split('T')[0],
+        end_date: endDate.toISOString().split('T')[0],
+        created_at: now.toISOString(),
+        updated_at: now.toISOString()
+    };
+
     try {
-        const { title, campaign_title, requested_by, requested_email, duration, cost, banner_url, description, target_url, custom_days } = req.body;
-        const newAd = {
-            id: `ad-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-            title: title || campaign_title || 'Campus Promotion',
-            campaign_title: title || campaign_title || 'Campus Promotion',
-            description: description || '',
-            banner_url: banner_url || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1200&auto=format&fit=crop&q=80',
-            target_url: target_url || '/services',
-            requested_by: requested_by || 'Administrator',
-            requested_email: requested_email || 'admin@minsu.edu.ph',
-            duration: duration || (custom_days ? `${custom_days} Days` : '14 Days'),
-            duration_days: Number(custom_days) || 14,
-            cost: Number(cost) || 28.00,
-            status: 'active',
-            payment_status: 'paid',
-            created_at: new Date().toISOString(),
-        };
-
-        try {
-            await supabase.from('advertisements').insert([newAd]);
-        } catch (dbErr) {}
-
-        const all = loadAds();
-        all.unshift(newAd);
-        saveAds(all);
-
-        return res.status(201).json({ message: 'Advertisement created.', data: newAd });
-    } catch (err) {
-        return res.status(500).json({ error: 'Failed to create advertisement.' });
+        await supabase.from('advertisements').insert([newAd]);
+    } catch {
+        // Fallback
     }
+
+    const currentAds = loadFallbackAds();
+    currentAds.unshift(newAd);
+    saveFallbackAds(currentAds);
+
+    return res.status(201).json({ message: 'Advertisement created.', data: newAd });
 };
 
 const updateAdminAdvertisementStatus = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { status } = req.body || {};
-        try {
-            await supabase.from('advertisements').update({ status }).eq('id', id);
-        } catch (dbErr) {}
+    const { id } = req.params;
+    const { status } = req.body || {};
 
-        const all = loadAds().map((a) => String(a.id) === String(id) ? { ...a, status } : a);
-        saveAds(all);
-        return res.status(200).json({ message: `Advertisement marked as ${status}.` });
-    } catch (err) {
-        return res.status(500).json({ error: 'Failed to update advertisement.' });
+    try {
+        await supabase.from('advertisements').update({ status, updated_at: new Date().toISOString() }).eq('id', id);
+    } catch {
+        // Fallback
     }
+
+    const currentAds = loadFallbackAds();
+    const updatedList = currentAds.map((a) => String(a.id) === String(id) ? { ...a, status, updated_at: new Date().toISOString() } : a);
+    saveFallbackAds(updatedList);
+
+    return res.status(200).json({ message: `Advertisement marked as ${status}.` });
 };
 
 const deleteAdminAdvertisement = async (req, res) => {
-    try {
-        const { id } = req.params;
-        // Delete from Supabase
-        try {
-            await supabase.from('advertisements').delete().eq('id', id);
-        } catch (dbErr) {}
+    const { id } = req.params;
 
-        // Delete from persistent JSON
-        const all = loadAds().filter((a) => String(a.id) !== String(id));
-        saveAds(all);
-        return res.status(200).json({ message: 'Advertisement deleted.' });
-    } catch (err) {
-        console.error('deleteAdminAdvertisement error:', err);
-        return res.status(500).json({ error: 'Failed to delete advertisement.' });
+    try {
+        await supabase.from('advertisements').delete().eq('id', id);
+    } catch {
+        // Fallback
     }
+
+    const currentAds = loadFallbackAds();
+    const remaining = currentAds.filter((a) => String(a.id) !== String(id));
+    saveFallbackAds(remaining);
+
+    return res.status(200).json({ message: 'Advertisement deleted.' });
 };
 
 module.exports = {
