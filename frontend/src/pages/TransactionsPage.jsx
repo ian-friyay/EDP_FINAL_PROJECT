@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Container, Spinner, Alert, Button, Modal, Form } from 'react-bootstrap';
+import { Container, Spinner, Alert, Button } from 'react-bootstrap';
 import TransactionTable from '../components/TransactionTable';
 import PayPalModal from '../components/PayPalModal';
 import ReviewModal from '../components/ReviewModal';
+import QRScannerModal from '../components/QRScannerModal';
 import api from '../api/axios';
 import { socket } from '../socket';
 import { getCurrentUserId } from '../utils/user';
@@ -163,9 +164,11 @@ export default function TransactionsPage() {
     }
   };
 
-  // Find any accepted bookings for this provider that can be quick-verified
+  // Find any active/pending bookings for this user (either provider or requestor) that can be verified
   const pendingQrBookings = transactions.filter(
-    (t) => (t.service_status === 'accepted' || t.service_status === 'pending') && t.provider_id === currentUser?.user_id && t.qr_code
+    (t) =>
+      (t.service_status === 'accepted' || t.service_status === 'pending') &&
+      (String(t.provider_id) === String(currentUserId) || String(t.requestor_id) === String(currentUserId))
   );
 
   return (
@@ -177,27 +180,26 @@ export default function TransactionsPage() {
           </h2>
           <p className="text-muted mb-0">
             {isProvider
-              ? 'Manage incoming student client booking requests, track completion, and view 5% commission details.'
-              : 'View your scheduled campus service bookings, check status, and settle via QR vouchers.'}
+              ? 'Manage incoming student client booking requests, track completion, and verify settlement QR codes.'
+              : 'View your scheduled campus service bookings, check status, and scan provider verification QR codes.'}
           </p>
         </div>
         <div className="d-flex gap-2 align-items-center flex-wrap">
-          {isProvider && (
-            <Button
-              className="neu-btn-primary btn-sm d-flex align-items-center gap-2 shadow-sm"
-              onClick={() => {
-                setShowScannerModal(true);
-                setQrModalError('');
-                setQrModalSuccess('');
-              }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0v-3Zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5ZM.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5Zm15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5Z"/>
-                <path d="M7 2h2v2H7V2Zm0 3h2v2H7V5ZM7 8h2v2H7V8Zm0 3h2v2H7v-2ZM4 2h2v2H4V2Zm0 3h2v2H4V5ZM4 8h2v2H4V8Zm0 3h2v2H4v-2ZM10 2h2v2h-2V2Zm0 3h2v2h-2V5Zm0 8h2v2h-2v-2Z"/>
-              </svg>
-              Scan / Verify QR Code
-            </Button>
-          )}
+          {/* Scan QR Code Button for BOTH Provider and Requestor */}
+          <Button
+            className="neu-btn-primary btn-sm d-flex align-items-center gap-2 shadow-sm"
+            onClick={() => {
+              setShowScannerModal(true);
+              setQrModalError('');
+              setQrModalSuccess('');
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0v-3Zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5ZM.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5Zm15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5Z"/>
+              <path d="M7 2h2v2H7V2Zm0 3h2v2H7V5ZM7 8h2v2H7V8Zm0 3h2v2H7v-2ZM4 2h2v2H4V2Zm0 3h2v2H4V5ZM4 8h2v2H4V8Zm0 3h2v2H4v-2ZM10 2h2v2h-2V2Zm0 3h2v2h-2V5Zm0 8h2v2h-2v-2Z"/>
+            </svg>
+            Scan / Verify QR Code
+          </Button>
           <Button className="neu-btn-ghost btn-sm" onClick={() => fetchTransactions(true)} disabled={isLoading}>
             {isLoading ? 'Refreshing...' : '↻ Refresh Transactions'}
           </Button>
@@ -278,88 +280,19 @@ export default function TransactionsPage() {
         />
       )}
 
-      {/* Provider QR Scanner / Verification Modal */}
-      <Modal show={showScannerModal} onHide={() => setShowScannerModal(false)} centered size="lg">
-        <Modal.Header closeButton style={{ background: 'var(--neu-bg-dark)', borderBottom: '1px solid rgba(154, 172, 196, 0.3)' }}>
-          <Modal.Title className="fw-bold fs-5" style={{ color: 'var(--neu-text)' }}>
-            Provider QR Verification Engine
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="p-4" style={{ background: 'var(--neu-bg)' }}>
-          {qrModalSuccess && (
-            <Alert variant="success" className="neu-alert mb-3">
-              {qrModalSuccess}
-            </Alert>
-          )}
-
-          {qrModalError && (
-            <Alert variant="danger" className="neu-alert mb-3">
-              {qrModalError}
-            </Alert>
-          )}
-
-          <div className="text-center py-3 mb-3 rounded-3" style={{ background: 'var(--neu-bg-dark)', border: '2px dashed rgba(154, 172, 196, 0.45)' }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" viewBox="0 0 16 16" className="text-primary mb-2">
-              <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0v-3Zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5ZM.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5Zm15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5Z"/>
-              <path d="M7 2h2v2H7V2Zm0 3h2v2H7V5ZM7 8h2v2H7V8Zm0 3h2v2H7v-2ZM4 2h2v2H4V2Zm0 3h2v2H4V5ZM4 8h2v2H4V8Zm0 3h2v2H4v-2ZM10 2h2v2h-2V2Zm0 3h2v2h-2V5Zm0 8h2v2h-2v-2Z"/>
-            </svg>
-            <h6 className="fw-bold mb-1" style={{ color: 'var(--neu-text)' }}>Scan or Enter Customer Booking QR</h6>
-            <p className="text-muted small mb-0">
-              When the client presents their booking QR code, scan or enter the code to verify authenticity and mark the transaction as completed.
-            </p>
-          </div>
-
-          <Form onSubmit={(e) => { e.preventDefault(); handleVerifyQr(); }}>
-            <Form.Group className="mb-3" controlId="qrCodeInput">
-              <Form.Label className="small fw-semibold text-muted">QR Code String</Form.Label>
-              <Form.Control
-                type="text"
-                className="neu-input font-monospace"
-                placeholder="e.g. SERBISYOU-827d0f19-..."
-                value={qrInput}
-                onChange={(e) => setQrInput(e.target.value)}
-              />
-            </Form.Group>
-
-            {pendingQrBookings.length > 0 && (
-              <div className="mb-3">
-                <div className="small fw-semibold text-muted mb-2">Quick Verify Client Codes:</div>
-                <div className="d-flex flex-column gap-2">
-                  {pendingQrBookings.map((b) => (
-                    <div
-                      key={b.transaction_id}
-                      className="d-flex justify-content-between align-items-center p-2 rounded-2"
-                      style={{ background: 'var(--neu-bg-dark)', border: '1px solid rgba(154, 172, 196, 0.3)' }}
-                    >
-                      <div className="overflow-hidden me-2">
-                        <span className="badge bg-secondary me-2">TX-{b.transaction_id}</span>
-                        <code className="small text-truncate d-inline-block" style={{ maxWidth: '300px' }}>{b.qr_code}</code>
-                      </div>
-                      <Button
-                        size="sm"
-                        className="neu-btn-primary btn-sm flex-shrink-0"
-                        onClick={() => handleVerifyQr(b.qr_code)}
-                        disabled={isVerifyingQr}
-                      >
-                        Verify &amp; Complete
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="d-flex justify-content-end gap-2 pt-2 border-top">
-              <Button variant="secondary" className="neu-btn-ghost btn-sm" onClick={() => setShowScannerModal(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" className="neu-btn-primary btn-sm" disabled={isVerifyingQr || !qrInput.trim()}>
-                {isVerifyingQr ? 'Verifying...' : 'Verify Code'}
-              </Button>
-            </div>
-          </Form>
-        </Modal.Body>
-      </Modal>
+      {/* QR Scanner / Camera Verification Modal for Provider & Requestor */}
+      {showScannerModal && (
+        <QRScannerModal
+          show={showScannerModal}
+          onHide={() => setShowScannerModal(false)}
+          onVerify={handleVerifyQr}
+          isVerifying={isVerifyingQr}
+          error={qrModalError}
+          success={qrModalSuccess}
+          pendingBookings={pendingQrBookings}
+          userRole={isProvider ? 'Provider' : 'Requestor'}
+        />
+      )}
     </Container>
   );
 }

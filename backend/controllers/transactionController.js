@@ -529,9 +529,12 @@ const verifyQrCode = async (req, res) => {
       return res.status(404).json({ error: 'Invalid QR Code. No matching booking found.' });
     }
 
-    if (transaction.provider_id !== userId) {
+    const isProvider = String(transaction.provider_id) === String(userId);
+    const isRequestor = String(transaction.requestor_id) === String(userId);
+
+    if (!isProvider && !isRequestor) {
       return res.status(403).json({
-        error: `Unauthorized. This QR code is assigned to provider ${transaction.provider_id}, not your account.`,
+        error: `Unauthorized. This booking belongs to provider ${transaction.provider_id} and requestor ${transaction.requestor_id}, not your account.`,
       });
     }
 
@@ -554,11 +557,14 @@ const verifyQrCode = async (req, res) => {
       return res.status(500).json({ error: 'Failed to verify transaction.', details: updateErr.message });
     }
 
+    const recipientId = isProvider ? transaction.requestor_id : transaction.provider_id;
+    const actorRole = isProvider ? 'Provider' : 'Student Requestor';
+
     createNotification(
-      transaction.requestor_id,
+      recipientId,
       'transaction',
       'QR Code Verified - Service Completed!',
-      `Provider verified your booking #${transaction.transaction_id} via QR code.`,
+      `${actorRole} verified your booking #${transaction.transaction_id} via QR code scan.`,
       `/transactions`
     );
 
@@ -566,11 +572,11 @@ const verifyQrCode = async (req, res) => {
     if (io) {
       io.to(String(transaction.provider_id)).emit('transaction_updated', updated);
       io.to(String(transaction.requestor_id)).emit('transaction_updated', updated);
-      io.to(String(transaction.requestor_id)).emit('new_notification', {
+      io.to(String(recipientId)).emit('new_notification', {
         id: `tx_${transaction.transaction_id}_qr_completed_${Date.now()}`,
         type: 'booking',
         title: 'QR Code Verified - Service Completed!',
-        description: `Provider verified your booking #${transaction.transaction_id} via QR code.`,
+        description: `${actorRole} verified your booking #${transaction.transaction_id} via QR code scan.`,
         timestamp: new Date().toISOString(),
         read: false,
         link: '/transactions',

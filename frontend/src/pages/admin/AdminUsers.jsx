@@ -139,6 +139,7 @@ export default function AdminUsers() {
                   <th style={{ width: '40px' }} className="ps-3">
                     <Form.Check type="checkbox" />
                   </th>
+                  <th className="fw-semibold">Student Account</th>
                   <th className="fw-semibold">Account Status</th>
                   <th className="fw-semibold">Profile Editing</th>
                   <th className="fw-semibold">Student Note / Request</th>
@@ -158,6 +159,24 @@ export default function AdminUsers() {
                       <tr key={u.id || u.user_id}>
                         <td className="ps-3">
                           <Form.Check type="checkbox" />
+                        </td>
+                        <td>
+                          <div className="d-flex align-items-center gap-2">
+                            <div
+                              className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white flex-shrink-0"
+                              style={{ width: '32px', height: '32px', fontSize: '0.75rem', backgroundColor: '#0f172a' }}
+                            >
+                              {((u.name || u.first_name || 'U')[0] || 'U').toUpperCase()}
+                            </div>
+                            <div className="overflow-hidden">
+                              <div className="fw-bold text-dark text-truncate" style={{ fontSize: '0.86rem', maxWidth: '180px' }}>
+                                {u.name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'Student Account'}
+                              </div>
+                              <div className="text-muted text-truncate" style={{ fontSize: '0.73rem', maxWidth: '180px' }}>
+                                {u.email || u.user_id || 'student@serbisyou.ph'} &bull; <span className="badge bg-light text-secondary border">{u.user_type || 'Student'}</span>
+                              </div>
+                            </div>
+                          </div>
                         </td>
                         <td>
                           {u.status === 'active' ? (
@@ -344,7 +363,7 @@ export default function AdminUsers() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} className="text-center text-muted py-4">No users found.</td>
+                    <td colSpan={8} className="text-center text-muted py-4">No users found.</td>
                   </tr>
                 )}
               </tbody>
