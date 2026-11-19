@@ -16,32 +16,7 @@ export default function AdminServices() {
     try {
       const res = await api.get('/admin/services');
       const list = res.data?.data || [];
-      if (list.length === 0) {
-        setServices([
-          {
-            id: 'SRV-101',
-            provider_name: 'Phanie Lubos',
-            category: 'Creative',
-            service_name: 'Graphic Designer',
-            price: 300.0,
-            status: 'active',
-            created_at: 'Nov 17, 2026',
-            description: 'Custom social media layouts, posters, and campus event graphics.',
-          },
-          {
-            id: 'SRV-102',
-            provider_name: 'Kerim Aalke',
-            category: 'Creative',
-            service_name: 'Graphic Designer',
-            price: 400.0,
-            status: 'active',
-            created_at: 'Nov 16, 2026',
-            description: 'High-resolution logo design and layout design using Figma/Photoshop.',
-          },
-        ]);
-      } else {
-        setServices(list);
-      }
+      setServices(list);
     } catch (err) {
       setError('Unable to load services catalog.');
     } finally {

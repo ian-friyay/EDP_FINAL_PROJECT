@@ -1,7 +1,51 @@
+const fs = require('fs');
+const path = require('path');
 const supabase = require('../db');
 const { createNotification } = require('./notificationController');
 const { unlockRequestsStore, userCooldowns } = require('../utils/cooldownStore');
 const { sendEmail, sendAccountApprovedEmail } = require('../utils/emailService');
+
+const DATA_DIR = path.join(__dirname, '../data');
+const ADS_FILE = path.join(DATA_DIR, 'advertisements.json');
+const REVIEWS_FILE = path.join(DATA_DIR, 'reviews.json');
+
+const loadReviews = () => {
+    try {
+        if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+        if (fs.existsSync(REVIEWS_FILE)) {
+            const raw = fs.readFileSync(REVIEWS_FILE, 'utf8');
+            const data = JSON.parse(raw);
+            if (Array.isArray(data)) return data;
+        }
+    } catch (e) {}
+    return [];
+};
+
+const saveReviews = (reviews) => {
+    try {
+        if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+        fs.writeFileSync(REVIEWS_FILE, JSON.stringify(reviews, null, 2), 'utf8');
+    } catch (e) {}
+};
+
+const loadAds = () => {
+    try {
+        if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+        if (fs.existsSync(ADS_FILE)) {
+            const raw = fs.readFileSync(ADS_FILE, 'utf8');
+            const data = JSON.parse(raw);
+            if (Array.isArray(data)) return data;
+        }
+    } catch (e) {}
+    return [];
+};
+
+const saveAds = (ads) => {
+    try {
+        if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+        fs.writeFileSync(ADS_FILE, JSON.stringify(ads, null, 2), 'utf8');
+    } catch (e) {}
+};
 
 const checkAdminExists = async (req, res) => {
     try {
@@ -529,41 +573,6 @@ const shareAdminAccess = async (req, res) => {
     }
 };
 
-// In-memory moderation and advertisement stores matching ITE11_Finalproject
-let adminReviewsStore = [
-    {
-        id: 'REV-0001',
-        reviewer_name: 'Phaniie Phanie',
-        reviewed_student_name: 'Phanie Lubos',
-        rating: 3.5,
-        comment: 'ok na',
-        created_at: 'Nov 17, 2026 04:30 PM'
-    },
-    {
-        id: 'REV-0002',
-        reviewer_name: 'Phaniie Phanie',
-        reviewed_student_name: 'Kerim Aalke',
-        rating: 3.0,
-        comment: 'Oks lang naman',
-        created_at: 'Nov 16, 2026 02:15 PM'
-    }
-];
-
-let adminAdvertisementsStore = [
-    {
-        id: 'AD-0001',
-        banner_url: '/auth-bg.jpg',
-        campaign_title: 'Support Itlogs Campaign Business',
-        requested_by: 'Phanie Phanie',
-        requested_email: 'reymartovedano@gmail.com',
-        duration: '7 Days (week)',
-        cost: 14.00,
-        status: 'active',
-        payment_status: 'paid',
-        created_at: 'Nov 16, 2026 09:12 AM'
-    }
-];
-
 const getAdminServices = async (req, res) => {
     try {
         const [servicesRes, usersRes] = await Promise.all([
@@ -598,10 +607,15 @@ const getAdminServices = async (req, res) => {
 const deleteAdminService = async (req, res) => {
     try {
         const { id } = req.params;
-        const { error } = await supabase.from('services').update({ is_deleted: true }).eq('service_id', id);
-        if (error) throw error;
+        const normalizedId = isNaN(Number(id)) ? id : Number(id);
+        const { error } = await supabase.from('services').update({ is_deleted: true }).eq('service_id', normalizedId);
+        if (error) {
+            console.error('Failed to soft delete service:', error);
+            throw error;
+        }
         return res.status(200).json({ message: 'Service removed successfully.' });
     } catch (err) {
+        console.error('deleteAdminService error:', err);
         return res.status(500).json({ error: 'Failed to remove service.' });
     }
 };
@@ -650,51 +664,122 @@ const getAdminTransactions = async (req, res) => {
 };
 
 const getAdminReviews = async (req, res) => {
-    return res.status(200).json({ data: adminReviewsStore });
+    const reviews = loadReviews();
+    return res.status(200).json({ data: reviews });
 };
 
 const deleteAdminReview = async (req, res) => {
-    const { id } = req.params;
-    adminReviewsStore = adminReviewsStore.filter((r) => r.id !== id);
-    return res.status(200).json({ message: 'Review deleted successfully.' });
+    try {
+        const { id } = req.params;
+        const all = loadReviews().filter((r) => String(r.id) !== String(id));
+        saveReviews(all);
+        return res.status(200).json({ message: 'Review deleted successfully.' });
+    } catch (err) {
+        return res.status(500).json({ error: 'Failed to delete review.' });
+    }
 };
 
 const getAdminAdvertisements = async (req, res) => {
-    return res.status(200).json({ data: adminAdvertisementsStore });
+    try {
+        let ads = [];
+        try {
+            const { data, error } = await supabase.from('advertisements').select('*').order('created_at', { ascending: false });
+            if (!error && Array.isArray(data) && data.length > 0) {
+                ads = data;
+            }
+        } catch (dbErr) {}
+
+        if (ads.length === 0) {
+            ads = loadAds();
+        }
+
+        const formatted = ads.map((a) => ({
+            id: a.id || a.ad_id,
+            title: a.title || a.campaign_title || 'Campus Advertisement',
+            description: a.description || '',
+            banner_url: a.banner_url || '/auth-bg.jpg',
+            target_url: a.target_url || '/services',
+            requested_by: a.requested_by || a.advertiser_name || 'Student Sponsor',
+            requested_email: a.requested_email || 'student@minsu.edu.ph',
+            duration: a.duration || (a.duration_days ? `${a.duration_days} Days` : '7 Days (week)'),
+            cost: Number(a.cost || a.computed_cost || 14.00),
+            status: a.status || 'active',
+            payment_status: a.payment_status || 'paid',
+            created_at: a.created_at ? new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Nov 19, 2026'
+        }));
+
+        return res.status(200).json({ data: formatted });
+    } catch (err) {
+        return res.status(500).json({ error: 'Failed to fetch advertisements.' });
+    }
 };
 
 const createAdminAdvertisement = async (req, res) => {
-    const { campaign_title, requested_by, requested_email, duration, cost, banner_url } = req.body;
-    const newAd = {
-        id: `AD-${Date.now().toString().slice(-4)}`,
-        banner_url: banner_url || '/auth-bg.jpg',
-        campaign_title: campaign_title || 'Campus Promotion',
-        requested_by: requested_by || 'Student Organization',
-        requested_email: requested_email || 'student@minsu.edu.ph',
-        duration: duration || '7 Days (week)',
-        cost: Number(cost) || 14.00,
-        status: 'active',
-        payment_status: 'paid',
-        created_at: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    };
-    adminAdvertisementsStore.unshift(newAd);
-    return res.status(201).json({ message: 'Advertisement created.', data: newAd });
+    try {
+        const { title, campaign_title, requested_by, requested_email, duration, cost, banner_url, description, target_url, custom_days } = req.body;
+        const newAd = {
+            id: `ad-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+            title: title || campaign_title || 'Campus Promotion',
+            campaign_title: title || campaign_title || 'Campus Promotion',
+            description: description || '',
+            banner_url: banner_url || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1200&auto=format&fit=crop&q=80',
+            target_url: target_url || '/services',
+            requested_by: requested_by || 'Administrator',
+            requested_email: requested_email || 'admin@minsu.edu.ph',
+            duration: duration || (custom_days ? `${custom_days} Days` : '14 Days'),
+            duration_days: Number(custom_days) || 14,
+            cost: Number(cost) || 28.00,
+            status: 'active',
+            payment_status: 'paid',
+            created_at: new Date().toISOString(),
+        };
+
+        try {
+            await supabase.from('advertisements').insert([newAd]);
+        } catch (dbErr) {}
+
+        const all = loadAds();
+        all.unshift(newAd);
+        saveAds(all);
+
+        return res.status(201).json({ message: 'Advertisement created.', data: newAd });
+    } catch (err) {
+        return res.status(500).json({ error: 'Failed to create advertisement.' });
+    }
 };
 
 const updateAdminAdvertisementStatus = async (req, res) => {
-    const { id } = req.params;
-    const { status } = req.body || {};
-    const ad = adminAdvertisementsStore.find((a) => String(a.id) === String(id));
-    if (ad) {
-        ad.status = status;
+    try {
+        const { id } = req.params;
+        const { status } = req.body || {};
+        try {
+            await supabase.from('advertisements').update({ status }).eq('id', id);
+        } catch (dbErr) {}
+
+        const all = loadAds().map((a) => String(a.id) === String(id) ? { ...a, status } : a);
+        saveAds(all);
+        return res.status(200).json({ message: `Advertisement marked as ${status}.` });
+    } catch (err) {
+        return res.status(500).json({ error: 'Failed to update advertisement.' });
     }
-    return res.status(200).json({ message: `Advertisement marked as ${status}.` });
 };
 
 const deleteAdminAdvertisement = async (req, res) => {
-    const { id } = req.params;
-    adminAdvertisementsStore = adminAdvertisementsStore.filter((a) => a.id !== id);
-    return res.status(200).json({ message: 'Advertisement deleted.' });
+    try {
+        const { id } = req.params;
+        // Delete from Supabase
+        try {
+            await supabase.from('advertisements').delete().eq('id', id);
+        } catch (dbErr) {}
+
+        // Delete from persistent JSON
+        const all = loadAds().filter((a) => String(a.id) !== String(id));
+        saveAds(all);
+        return res.status(200).json({ message: 'Advertisement deleted.' });
+    } catch (err) {
+        console.error('deleteAdminAdvertisement error:', err);
+        return res.status(500).json({ error: 'Failed to delete advertisement.' });
+    }
 };
 
 module.exports = {

@@ -15,45 +15,7 @@ export default function AdminTransactions() {
     try {
       const res = await api.get('/admin/transactions');
       const list = res.data?.data || [];
-      if (list.length === 0) {
-        setTransactions([
-          {
-            id: 'TRX-0003',
-            transaction_id: 'TRX-0003',
-            requestor_name: 'Phaniie Phanie',
-            provider_name: 'Kerim Aalke',
-            amount_topay: 400.0,
-            commission_fee: 20.0,
-            total_topay: 405.0,
-            status: 'pending',
-            created_at: 'Nov 17, 2026',
-          },
-          {
-            id: 'TRX-0002',
-            transaction_id: 'TRX-0002',
-            requestor_name: 'Phaniie Phanie',
-            provider_name: 'Phanie Lubos',
-            amount_topay: 300.0,
-            commission_fee: 15.0,
-            total_topay: 305.0,
-            status: 'completed',
-            created_at: 'Nov 17, 2026',
-          },
-          {
-            id: 'TRX-0001',
-            transaction_id: 'TRX-0001',
-            requestor_name: 'Phaniie Phanie',
-            provider_name: 'Kerim Aalke',
-            amount_topay: 400.0,
-            commission_fee: 20.0,
-            total_topay: 405.0,
-            status: 'completed',
-            created_at: 'Nov 16, 2026',
-          },
-        ]);
-      } else {
-        setTransactions(list);
-      }
+      setTransactions(list);
     } catch (err) {
       setError('Unable to load transactions.');
     } finally {

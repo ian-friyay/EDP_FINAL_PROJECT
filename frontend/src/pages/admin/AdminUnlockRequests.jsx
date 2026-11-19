@@ -16,43 +16,7 @@ export default function AdminUnlockRequests() {
     try {
       const res = await api.get('/admin/unlock-requests');
       const list = res.data?.data || [];
-      // If store is empty, seed demo requests matching Image 2
-      if (list.length === 0) {
-        setRequests([
-          {
-            id: 'REQ-101',
-            student_name: 'Phaniie Phanie',
-            student_id: 'MMC-0008',
-            request_type: 'Cooldown Unlock',
-            notes: 'Need to change the number again',
-            location: 'Guinobatan, Calapan City, Oriental Mindoro',
-            status: 'approved',
-            created_at: 'Nov 17, 2026 05:54 AM',
-          },
-          {
-            id: 'REQ-102',
-            student_name: 'Phaniie Phanie',
-            student_id: 'MMC-0008',
-            request_type: 'Cooldown Unlock',
-            notes: 'I need to change my number',
-            location: 'Guinobatan, Calapan City, Oriental Mindoro',
-            status: 'approved',
-            created_at: 'Nov 17, 2026 05:48 AM',
-          },
-          {
-            id: 'REQ-103',
-            student_name: 'Phaniie Phanie',
-            student_id: 'MMC-0008',
-            request_type: 'Cooldown Unlock',
-            notes: 'I need to edit some of my account info',
-            location: 'Guinobatan, Calapan City, Oriental Mindoro',
-            status: 'approved',
-            created_at: 'Nov 17, 2026 01:42 AM',
-          },
-        ]);
-      } else {
-        setRequests(list);
-      }
+      setRequests(list);
     } catch (err) {
       setError('Unable to load unlock requests.');
     } finally {

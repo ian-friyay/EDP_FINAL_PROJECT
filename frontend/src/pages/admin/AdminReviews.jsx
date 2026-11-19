@@ -16,28 +16,7 @@ export default function AdminReviews() {
     try {
       const res = await api.get('/admin/reviews');
       const list = res.data?.data || [];
-      if (list.length === 0) {
-        setReviews([
-          {
-            id: 'REV-0001',
-            reviewer_name: 'Phaniie Phanie',
-            reviewed_student_name: 'Phanie Lubos',
-            rating: 3.5,
-            comment: 'ok na',
-            created_at: 'Nov 17, 2026',
-          },
-          {
-            id: 'REV-0002',
-            reviewer_name: 'Phaniie Phanie',
-            reviewed_student_name: 'Kerim Aalke',
-            rating: 3.0,
-            comment: 'Oks lang naman',
-            created_at: 'Nov 16, 2026',
-          },
-        ]);
-      } else {
-        setReviews(list);
-      }
+      setReviews(list);
     } catch (err) {
       setError('Unable to load reviews.');
     } finally {
