@@ -4,6 +4,7 @@ import api from '../api/axios';
 import ServicesGrid from '../components/ServicesGrid';
 import WeatherWidget from '../components/WeatherWidget';
 import AdBanner from '../components/AdBanner';
+import PayPalModal from '../components/PayPalModal';
 import { queueOfflineAction } from '../utils/offlineQueue';
 import { compressImage } from '../utils/imageCompressor';
 
@@ -60,6 +61,11 @@ export default function ServicesPage() {
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('12:00');
   const [bookingNotes, setBookingNotes] = useState('');
+  const [bookingPaymentMethod, setBookingPaymentMethod] = useState('paypal');
+
+  // PayPal Checkout State
+  const [payPalTransaction, setPayPalTransaction] = useState(null);
+  const [showPayPalModal, setShowPayPalModal] = useState(false);
 
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -252,6 +258,7 @@ export default function ServicesPage() {
     setEndTime('12:00');
     setDurationCount(service.rate_unit === 'per_day' ? 1 : (service.rate_unit === 'per_hour' ? 3 : 1));
     setBookingNotes('');
+    setBookingPaymentMethod('paypal');
   };
 
   // Compute duration and service cost dynamically inside booking modal
@@ -285,11 +292,12 @@ export default function ServicesPage() {
     };
   }, [bookingModalService, durationCount]);
 
-  // Execute booking submission with schedule and notes
-  const handleConfirmBooking = async (event) => {
-    event.preventDefault();
+  // Execute booking submission with schedule, notes, and PayPal integration
+  const handleConfirmBooking = async (event, methodOverride = null) => {
+    if (event && event.preventDefault) event.preventDefault();
     if (!bookingModalService) return;
 
+    const chosenMethod = methodOverride || bookingPaymentMethod;
     const service = bookingModalService;
     setError('');
     setMessage('');
@@ -323,9 +331,20 @@ export default function ServicesPage() {
       }
 
       const { data } = await api.post('/transactions', payload);
-      setMessage(
-        `Booking confirmed! Transaction ID: #${data.transaction.transaction_id}. Scheduled for ${bookingDate} (${startTime} to ${endTime}). QR Code generated. Visit Transactions to view.`
-      );
+      const createdTx = data.transaction;
+
+      if (chosenMethod === 'paypal' && createdTx) {
+        // Automatically open the PayPal Checkout Modal
+        setPayPalTransaction(createdTx);
+        setShowPayPalModal(true);
+        setMessage(
+          `Booking created (Txn #${createdTx.transaction_id}). Please complete your payment via PayPal in the popup window.`
+        );
+      } else {
+        setMessage(
+          `Booking confirmed! Transaction ID: #${createdTx?.transaction_id || 'N/A'}. Scheduled for ${bookingDate} (${startTime} to ${endTime}). QR Code voucher generated.`
+        );
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (requestError) {
       if (
@@ -353,6 +372,14 @@ export default function ServicesPage() {
     } finally {
       setBookingServiceId(null);
     }
+  };
+
+  const handlePayPalPaymentSuccess = (updatedTx) => {
+    setMessage(
+      `✓ Payment of ₱${Number(updatedTx.total_topay || (Number(updatedTx.amount_topay) + 5)).toFixed(2)} completed successfully via PayPal! Transaction #${updatedTx.transaction_id} is marked COMPLETED with Paid QR Voucher.`
+    );
+    setShowPayPalModal(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -842,6 +869,56 @@ export default function ServicesPage() {
                 />
               </Form.Group>
 
+              {/* Payment Method Selector */}
+              <div className="mb-3 p-3 rounded-3" style={{ background: 'rgba(255, 255, 255, 0.75)', border: '1px solid rgba(154, 172, 196, 0.35)' }}>
+                <Form.Label className="small fw-semibold text-muted d-block mb-2">
+                  Select Payment Method <span className="text-danger">*</span>
+                </Form.Label>
+                <div className="d-flex flex-column gap-2">
+                  <div
+                    className={`p-2 rounded-3 border d-flex align-items-center justify-content-between transition-all ${bookingPaymentMethod === 'paypal' ? 'bg-primary-subtle border-primary' : 'bg-white'}`}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setBookingPaymentMethod('paypal')}
+                  >
+                    <div className="d-flex align-items-center gap-2">
+                      <Form.Check
+                        type="radio"
+                        name="bookingPaymentMethod"
+                        id="payMethodPayPal"
+                        checked={bookingPaymentMethod === 'paypal'}
+                        onChange={() => setBookingPaymentMethod('paypal')}
+                      />
+                      <label htmlFor="payMethodPayPal" className="mb-0 small fw-bold d-flex align-items-center gap-1" style={{ cursor: 'pointer' }}>
+                        <span style={{ color: '#003087', fontWeight: 800 }}>Pay</span>
+                        <span style={{ color: '#0079C1', fontWeight: 800 }}>Pal</span>
+                        <span className="ms-1 fw-semibold text-dark">Sandbox (Online Payment)</span>
+                      </label>
+                    </div>
+                    <Badge bg="primary" className="fw-normal small">Recommended</Badge>
+                  </div>
+
+                  <div
+                    className={`p-2 rounded-3 border d-flex align-items-center justify-content-between transition-all ${bookingPaymentMethod === 'meetup' ? 'bg-primary-subtle border-primary' : 'bg-white'}`}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setBookingPaymentMethod('meetup')}
+                  >
+                    <div className="d-flex align-items-center gap-2">
+                      <Form.Check
+                        type="radio"
+                        name="bookingPaymentMethod"
+                        id="payMethodMeetup"
+                        checked={bookingPaymentMethod === 'meetup'}
+                        onChange={() => setBookingPaymentMethod('meetup')}
+                      />
+                      <label htmlFor="payMethodMeetup" className="mb-0 small fw-semibold text-dark" style={{ cursor: 'pointer' }}>
+                        <span>Campus Meetup Voucher (Pay on Service Delivery)</span>
+                      </label>
+                    </div>
+                    <Badge bg="secondary" className="fw-normal small">QR Code</Badge>
+                  </div>
+                </div>
+              </div>
+
               {/* Calculated Pricing Summary */}
               <div className="neu-price-box p-3 rounded-3 mt-3">
                 <div className="d-flex justify-content-between text-muted small mb-1">
@@ -883,17 +960,42 @@ export default function ServicesPage() {
               <Button className="neu-btn-ghost" onClick={() => setBookingModalService(null)}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                className="neu-btn-primary px-4 fw-semibold"
-                disabled={bookingServiceId === bookingModalService.service_id}
-              >
-                {bookingServiceId === bookingModalService.service_id ? 'Confirming...' : 'Confirm Booking'}
-              </Button>
+              {bookingPaymentMethod === 'paypal' ? (
+                <Button
+                  type="button"
+                  className="neu-btn-primary px-4 fw-semibold d-inline-flex align-items-center gap-2"
+                  style={{ backgroundColor: '#0070ba', borderColor: '#0070ba' }}
+                  disabled={bookingServiceId === bookingModalService.service_id}
+                  onClick={(e) => handleConfirmBooking(e, 'paypal')}
+                >
+                  <span style={{ color: '#ffffff', fontWeight: 800 }}>Pay</span>
+                  <span style={{ color: '#ffc439', fontWeight: 800 }}>Pal</span>
+                  <span>— Pay ₱{(calculatedServiceCost + 5).toFixed(2)}</span>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  className="neu-btn-primary px-4 fw-semibold"
+                  disabled={bookingServiceId === bookingModalService.service_id}
+                  onClick={(e) => handleConfirmBooking(e, 'meetup')}
+                >
+                  {bookingServiceId === bookingModalService.service_id ? 'Confirming...' : 'Confirm Booking'}
+                </Button>
+              )}
             </Modal.Footer>
           </Form>
         )}
       </Modal>
+
+      {/* 4. PayPal Payment Modal */}
+      {showPayPalModal && payPalTransaction && (
+        <PayPalModal
+          show={showPayPalModal}
+          onHide={() => setShowPayPalModal(false)}
+          transaction={payPalTransaction}
+          onPaymentSuccess={handlePayPalPaymentSuccess}
+        />
+      )}
     </div>
   );
 }

@@ -15,7 +15,7 @@ const formatAmount = (amount) =>
     currency: 'PHP',
   });
 
-function TransactionTable({ transactions = [], currentUserId, onStatusUpdate }) {
+function TransactionTable({ transactions = [], currentUserId, onStatusUpdate, onPayWithPayPal }) {
   const sortedTransactions = useMemo(() => {
     const rows = Array.isArray(transactions) ? [...transactions] : [];
     const activeRows = rows.filter(
@@ -147,6 +147,20 @@ function TransactionTable({ transactions = [], currentUserId, onStatusUpdate }) 
                           onClick={() => onStatusUpdate(transaction.transaction_id, 'cancelled')}
                         >
                           Cancel
+                        </Button>
+                      )}
+
+                      {/* Requestor Action: Pay via PayPal Sandbox */}
+                      {!isProvider && transaction.service_status !== 'completed' && transaction.service_status !== 'cancelled' && onPayWithPayPal && (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className="px-2 py-1 fw-semibold d-inline-flex align-items-center gap-1 shadow-xs"
+                          style={{ backgroundColor: '#0070ba', borderColor: '#0070ba' }}
+                          onClick={() => onPayWithPayPal(transaction)}
+                        >
+                          <span style={{ color: '#fff', fontWeight: 800 }}>Pay</span>
+                          <span style={{ color: '#ffc439', fontWeight: 800 }}>Pal</span>
                         </Button>
                       )}
 

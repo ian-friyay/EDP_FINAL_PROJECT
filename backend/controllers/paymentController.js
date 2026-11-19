@@ -184,22 +184,55 @@ const captureOrder = async (req, res) => {
     const nowIso = new Date().toISOString();
     const qrString = `SERBISYOU-PAID-TRX-${transaction_id}-PAYPAL-${order_id}`;
 
-    // Update in Supabase
+    // Update in Supabase (only using columns that exist in the transactions table)
     try {
-      await supabase
+      const { error: updateErr } = await supabase
         .from('transactions')
         .update({
-          paypal_order_id: order_id,
           service_status: 'completed',
-          payment_status: 'paid',
-          payment_method: 'paypal',
-          service_completion: nowIso,
           commission_fee: commission,
           qr_code: qrString,
         })
         .eq('transaction_id', transaction_id);
-    } catch {
-      // ignore
+      if (updateErr) {
+        console.warn('Supabase transaction payment update warning:', updateErr.message);
+      }
+    } catch (updateErr) {
+      console.warn('Supabase transaction update catch:', updateErr.message);
+    }
+
+    const updatedTransaction = {
+      ...transaction,
+      service_status: 'completed',
+      commission_fee: commission,
+      qr_code: qrString,
+      payment_method: 'paypal',
+      payment_status: 'paid',
+      paypal_order_id: order_id,
+      service_completion: nowIso,
+    };
+
+    // Emit real-time WebSocket events to Provider, Requestor, and Admin
+    const io = req.app && req.app.get('io');
+    if (io) {
+      if (transaction.provider_id) {
+        io.to(String(transaction.provider_id)).emit('transaction_updated', updatedTransaction);
+        io.to(String(transaction.provider_id)).emit('new_notification', {
+          id: `pay_${Date.now()}`,
+          type: 'payment',
+          title: 'Payment Received via PayPal',
+          description: `Payment of ₱${amountTopay.toFixed(2)} received for transaction #${transaction_id} via PayPal!`,
+          timestamp: nowIso,
+          read: false,
+          link: '/transactions',
+        });
+      }
+      if (transaction.requestor_id) {
+        io.to(String(transaction.requestor_id)).emit('transaction_updated', updatedTransaction);
+      }
+      io.to('admin').emit('transaction_updated', updatedTransaction);
+      io.to('admin').emit('admin_transaction_completed', updatedTransaction);
+      io.emit('transaction_updated', updatedTransaction);
     }
 
     // Send notifications to both provider and requestor
@@ -227,16 +260,7 @@ const captureOrder = async (req, res) => {
       status: 'success',
       message: 'Payment captured successfully via PayPal.',
       data: {
-        transaction: {
-          ...transaction,
-          paypal_order_id: order_id,
-          service_status: 'completed',
-          payment_status: 'paid',
-          payment_method: 'paypal',
-          service_completion: nowIso,
-          commission_fee: commission,
-          qr_code: qrString,
-        },
+        transaction: updatedTransaction,
         payment_status: 'COMPLETED',
         order_id,
         commission_deducted: commission,

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Container, Spinner, Alert, Button, Modal, Form } from 'react-bootstrap';
 import TransactionTable from '../components/TransactionTable';
+import PayPalModal from '../components/PayPalModal';
 import api from '../api/axios';
 import { socket } from '../socket';
 import { getCurrentUserId } from '../utils/user';
@@ -25,6 +26,10 @@ export default function TransactionsPage() {
   const [isVerifyingQr, setIsVerifyingQr] = useState(false);
   const [qrModalError, setQrModalError] = useState('');
   const [qrModalSuccess, setQrModalSuccess] = useState('');
+
+  // PayPal Payment Modal State for Requestors
+  const [selectedPayPalTx, setSelectedPayPalTx] = useState(null);
+  const [showPayPalModal, setShowPayPalModal] = useState(false);
 
   const currentUserId = currentUser?.user_id || getCurrentUserId();
   const isProvider = String(currentUser?.user_type || '').toLowerCase() === 'provider';
@@ -189,9 +194,27 @@ export default function TransactionsPage() {
             currentUserId={currentUserId}
             onRefresh={() => fetchTransactions(false)}
             onStatusUpdate={handleStatusUpdate}
+            onPayWithPayPal={(tx) => {
+              setSelectedPayPalTx(tx);
+              setShowPayPalModal(true);
+            }}
           />
         )}
       </div>
+
+      {/* Requestor PayPal Checkout Modal */}
+      {showPayPalModal && selectedPayPalTx && (
+        <PayPalModal
+          show={showPayPalModal}
+          onHide={() => setShowPayPalModal(false)}
+          transaction={selectedPayPalTx}
+          onPaymentSuccess={async (updatedTx) => {
+            setSuccessMsg(`✓ Payment of ₱${Number(updatedTx.total_topay || (Number(updatedTx.amount_topay) + 5)).toFixed(2)} completed successfully via PayPal! Booking #${updatedTx.transaction_id} is marked COMPLETED.`);
+            setShowPayPalModal(false);
+            await fetchTransactions(false);
+          }}
+        />
+      )}
 
       {/* Provider QR Scanner / Verification Modal */}
       <Modal show={showScannerModal} onHide={() => setShowScannerModal(false)} centered size="lg">

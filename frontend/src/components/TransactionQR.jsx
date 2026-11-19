@@ -2,11 +2,13 @@ import { useRef, useEffect, useState } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Card, Button, Stack, Badge, Spinner } from 'react-bootstrap';
 import api from '../api/axios';
+import PayPalModal from './PayPalModal';
 
 function TransactionQR({ transaction_id, size = 200 }) {
   const canvasRef = useRef(null);
   const [txDetails, setTxDetails] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showPayPalModal, setShowPayPalModal] = useState(false);
 
   useEffect(() => {
     if (!transaction_id) return;
@@ -135,6 +137,19 @@ function TransactionQR({ transaction_id, size = 200 }) {
             Present this QR voucher to the student provider when meeting at the designated campus landmark. The provider will scan it to verify and close the service escrow.
           </Card.Text>
 
+          {/* Quick PayPal Pay Option for Unsettled Transactions */}
+          {!isPaid && txDetails && (
+            <Button
+              className="w-100 mb-3 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-sm"
+              style={{ backgroundColor: '#0070ba', borderColor: '#0070ba', color: '#fff' }}
+              onClick={() => setShowPayPalModal(true)}
+            >
+              <span style={{ fontWeight: 800 }}>Pay</span>
+              <span style={{ color: '#ffc439', fontWeight: 800 }}>Pal</span>
+              <span>— Settle ₱{Number(txDetails?.total_topay || txDetails?.amount_topay || 0).toFixed(2)} Online</span>
+            </Button>
+          )}
+
           <Stack direction="horizontal" gap={2} className="justify-content-center">
             <Button className="neu-btn-primary px-4 fw-semibold" onClick={handleDownload}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" className="me-2">
@@ -146,6 +161,19 @@ function TransactionQR({ transaction_id, size = 200 }) {
           </Stack>
         </Card.Body>
       </Card>
+
+      {/* PayPal Sandbox Modal */}
+      {showPayPalModal && txDetails && (
+        <PayPalModal
+          show={showPayPalModal}
+          onHide={() => setShowPayPalModal(false)}
+          transaction={txDetails}
+          onPaymentSuccess={(updatedTx) => {
+            setTxDetails(updatedTx);
+            setShowPayPalModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
