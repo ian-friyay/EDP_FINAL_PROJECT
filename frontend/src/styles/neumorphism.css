@@ -1094,16 +1094,45 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   NOTIFICATIONS DROPDOWN
+   NOTIFICATIONS DROPDOWN (Responsive across all mobile devices)
    ═══════════════════════════════════════════════════════════ */
 
-.neu-notifications-dropdown .dropdown-menu {
-  background: var(--neu-bg) !important;
-  border: none !important;
-  border-radius: var(--neu-radius-lg) !important;
-  box-shadow: var(--neu-shadow-flat-lg) !important;
-  min-width: 320px;
-  padding: 0.5rem !important;
+.notifications-nav-dropdown {
+  position: relative;
+}
+
+.notifications-nav-dropdown .dropdown-menu,
+.serbisyou-notifications-menu {
+  background: #ffffff !important;
+  border: 1px solid rgba(154, 172, 196, 0.3) !important;
+  border-radius: var(--neu-radius-lg, 14px) !important;
+  box-shadow: 0 12px 35px rgba(6, 58, 143, 0.22) !important;
+  width: 360px;
+  max-width: calc(100vw - 16px);
+  padding: 0 !important;
+  z-index: 1060 !important;
+}
+
+/* Mobile & Cellphone Viewport Protection (Never overflows or goes off screen) */
+@media (max-width: 576px) {
+  .notifications-nav-dropdown {
+    position: static;
+  }
+
+  .notifications-nav-dropdown .dropdown-menu,
+  .serbisyou-notifications-menu {
+    position: fixed !important;
+    top: 58px !important;
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 16px) !important;
+    margin: 0 auto !important;
+    transform: none !important;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35) !important;
+    border-radius: 14px !important;
+  }
 }
 
 .neu-notification-item {

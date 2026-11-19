@@ -425,8 +425,8 @@ function NotificationsDropdown({ currentUser }) {
       </Dropdown.Toggle>
 
       <Dropdown.Menu
-        className="shadow-lg border-0 py-0 overflow-hidden"
-        style={{ minWidth: '320px', maxWidth: '380px', borderRadius: '12px' }}
+        className="shadow-lg border-0 py-0 overflow-hidden serbisyou-notifications-menu"
+        style={{ borderRadius: '14px' }}
       >
         <Dropdown.Header className="d-flex justify-content-between align-items-center px-3 py-2 bg-light border-bottom">
           <div className="d-flex align-items-center gap-2">
