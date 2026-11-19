@@ -77,6 +77,7 @@ export default function ServicesGrid({
   onEditService,
   onBookService,
   bookingServiceId,
+  isProviderMode = false,
 }) {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -295,7 +296,22 @@ export default function ServicesGrid({
             const amount = Number(service.amount_topay) || 0;
             const bookingFee = 5.0;
             const totalToPay = amount + bookingFee;
-            const isOwner = Boolean(currentUserId && service.user_id === currentUserId);
+            const effectiveUserId =
+              currentUserId ||
+              window.localStorage.getItem('user_id') ||
+              (() => {
+                try {
+                  const u = JSON.parse(window.localStorage.getItem('user') || '{}');
+                  return u.user_id || u.id;
+                } catch {
+                  return null;
+                }
+              })();
+
+            const isOwner = Boolean(
+              (effectiveUserId && String(service.user_id).toLowerCase() === String(effectiveUserId).toLowerCase()) ||
+              isProviderMode
+            );
             const primaryImage =
               service.picture_proof && service.picture_proof.length > 0
                 ? service.picture_proof[0]
@@ -419,22 +435,37 @@ export default function ServicesGrid({
 
                     {/* Card Actions */}
                     {isOwner ? (
-                      <div className="d-flex gap-2">
+                      <div className="d-flex flex-column gap-2">
+                        <div className="d-flex gap-2">
+                          <Button
+                            className="neu-btn-outline w-50 fw-semibold"
+                            size="sm"
+                            onClick={() => onEditService && onEditService(service)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline-danger"
+                            className="w-50 fw-semibold rounded-pill"
+                            size="sm"
+                            disabled={deletingServiceId === service.service_id}
+                            onClick={() => onDeleteService && onDeleteService(service)}
+                          >
+                            {deletingServiceId === service.service_id ? 'Deleting...' : 'Delete'}
+                          </Button>
+                        </div>
                         <Button
-                          className="neu-btn-outline w-50 fw-semibold"
+                          variant="light"
+                          className="w-100 fw-semibold rounded-pill border"
                           size="sm"
-                          onClick={() => onEditService && onEditService(service)}
+                          style={{
+                            background: 'var(--neu-bg-light, #d4dee9)',
+                            color: 'var(--neu-text, #15253d)',
+                            borderColor: 'rgba(154, 172, 196, 0.4)',
+                          }}
+                          onClick={() => setActiveModalService(service)}
                         >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline-danger"
-                          className="w-50 fw-semibold rounded-pill"
-                          size="sm"
-                          disabled={deletingServiceId === service.service_id}
-                          onClick={() => onDeleteService && onDeleteService(service)}
-                        >
-                          {deletingServiceId === service.service_id ? 'Deleting...' : 'Delete'}
+                          View Details
                         </Button>
                       </div>
                     ) : (
@@ -712,13 +743,26 @@ export default function ServicesGrid({
               <Button className="neu-btn-ghost" onClick={() => setActiveModalService(null)}>
                 Close
               </Button>
-              <Button
-                className="neu-btn-primary px-4 fw-semibold"
-                disabled={bookingServiceId === activeModalService.service_id}
-                onClick={() => handleBookService(activeModalService)}
-              >
-                {bookingServiceId === activeModalService.service_id ? 'Booking...' : `Confirm Booking (₱${((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)})`}
-              </Button>
+              {isOwner ? (
+                <Button
+                  className="neu-btn-primary px-4 fw-semibold"
+                  onClick={() => {
+                    const toEdit = activeModalService;
+                    setActiveModalService(null);
+                    if (onEditService) onEditService(toEdit);
+                  }}
+                >
+                  Edit This Service
+                </Button>
+              ) : (
+                <Button
+                  className="neu-btn-primary px-4 fw-semibold"
+                  disabled={bookingServiceId === activeModalService.service_id}
+                  onClick={() => handleBookService(activeModalService)}
+                >
+                  {bookingServiceId === activeModalService.service_id ? 'Booking...' : `Confirm Booking (₱${((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)})`}
+                </Button>
+              )}
             </div>
           </Modal.Footer>
         </Modal>

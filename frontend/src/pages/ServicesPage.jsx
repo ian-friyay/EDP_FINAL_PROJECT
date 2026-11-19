@@ -425,6 +425,7 @@ export default function ServicesPage() {
           onEditService={handleOpenEdit}
           onBookService={handleOpenBooking}
           bookingServiceId={bookingServiceId}
+          isProviderMode={isProvider}
         />
       )}
 
