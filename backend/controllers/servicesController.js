@@ -36,7 +36,7 @@ const isValidPictureProof = (pictureProof) => {
 const getActiveServices = async (req, res) => {
     const { data, error } = await supabase
         .from('services')
-        .select('*')
+        .select('*, users:user_id(user_id, first_name, last_name, username, city, province)')
         .eq('service_status', 'active')
         .eq('is_deleted', false);
 
@@ -45,7 +45,7 @@ const getActiveServices = async (req, res) => {
         return res.status(500).json({ error: 'Failed to fetch services.' });
     }
 
-    // Normalize rate_unit for each service
+    // Normalize rate_unit and attach provider info for each service
     const enriched = (data || []).map((service) => {
         let rateUnit = service.rate_unit;
         if (!rateUnit && service.service_description) {
@@ -54,8 +54,19 @@ const getActiveServices = async (req, res) => {
                 rateUnit = match[1].toLowerCase();
             }
         }
+
+        const u = service.users;
+        const providerName = u
+            ? `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || service.user_id
+            : service.provider_name || service.user_id;
+        const providerLocation = u
+            ? [u.city, u.province].filter(Boolean).join(', ') || 'Campus Area'
+            : service.provider_location || 'Campus Area';
+
         return {
             ...service,
+            provider_name: providerName,
+            provider_location: providerLocation,
             rate_unit: rateUnit || 'per_service',
             service_description: service.service_description ? service.service_description.replace(/\[Rate:\s*(per_hour|per_day|per_service)\]\s*/i, '').trim() : '',
         };
@@ -186,6 +197,7 @@ const updateService = async (req, res) => {
         service_description,
         amount_topay,
         rate_unit,
+        service_status,
         picture_proof
     } = req.body || {};
 

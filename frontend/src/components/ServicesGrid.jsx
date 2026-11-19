@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Row,
@@ -76,12 +77,26 @@ export default function ServicesGrid({
   onBookService,
   bookingServiceId,
 }) {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [activeModalService, setActiveModalService] = useState(null);
   const [bookingSuccessAlert, setBookingSuccessAlert] = useState(null);
 
   const CANONICAL_CATEGORIES = ['Creative', 'Event Support', 'Digital Service'];
+
+  const handleChatWithProvider = (service) => {
+    if (!service || !service.user_id) return;
+    navigate(`/messages/${service.user_id}`, {
+      state: {
+        id: service.user_id,
+        name: service.provider_name || service.user_id,
+        provider_name: service.provider_name || service.user_id,
+        service_id: service.service_id,
+        subcategory: service.subcategory,
+      },
+    });
+  };
 
   // Extract unique categories for the dropdown filter, ensuring all MinSU categories are present
   const categories = useMemo(() => {
@@ -381,21 +396,39 @@ export default function ServicesGrid({
                         </Button>
                       </div>
                     ) : (
-                      <div className="d-flex gap-2">
+                      <div className="d-flex flex-column gap-2">
+                        <div className="d-flex gap-2">
+                          <Button
+                            className="neu-btn-outline w-50 fw-semibold"
+                            size="sm"
+                            onClick={() => setActiveModalService(service)}
+                          >
+                            View Details
+                          </Button>
+                          <Button
+                            className="neu-btn-primary w-50 fw-semibold"
+                            size="sm"
+                            disabled={bookingServiceId === service.service_id}
+                            onClick={() => handleBookService(service)}
+                          >
+                            {bookingServiceId === service.service_id ? 'Booking...' : 'Book Now'}
+                          </Button>
+                        </div>
                         <Button
-                          className="neu-btn-outline w-50 fw-semibold"
+                          variant="light"
+                          className="w-100 fw-semibold rounded-pill d-flex align-items-center justify-content-center gap-2 border"
                           size="sm"
-                          onClick={() => setActiveModalService(service)}
+                          style={{
+                            background: 'rgba(37, 99, 235, 0.08)',
+                            color: 'var(--neu-primary, #0066FF)',
+                            borderColor: 'rgba(37, 99, 235, 0.25)',
+                          }}
+                          onClick={() => handleChatWithProvider(service)}
                         >
-                          View Details
-                        </Button>
-                        <Button
-                          className="neu-btn-primary w-50 fw-semibold"
-                          size="sm"
-                          disabled={bookingServiceId === service.service_id}
-                          onClick={() => handleBookService(service)}
-                        >
-                          {bookingServiceId === service.service_id ? 'Booking...' : 'Book Now'}
+                          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
+                          </svg>
+                          Chat with Provider
                         </Button>
                       </div>
                     )}
@@ -504,17 +537,37 @@ export default function ServicesGrid({
             </div>
           </Modal.Body>
 
-          <Modal.Footer className="border-top px-4 py-3" style={{ background: 'var(--neu-bg-dark)' }}>
-            <Button className="neu-btn-ghost" onClick={() => setActiveModalService(null)}>
-              Close
-            </Button>
-            <Button
-              className="neu-btn-primary px-4 fw-semibold"
-              disabled={bookingServiceId === activeModalService.service_id}
-              onClick={() => handleBookService(activeModalService)}
-            >
-              {bookingServiceId === activeModalService.service_id ? 'Booking...' : `Confirm Booking (₱${((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)})`}
-            </Button>
+          <Modal.Footer className="border-top px-4 py-3 d-flex justify-content-between flex-wrap gap-2" style={{ background: 'var(--neu-bg-dark)' }}>
+            <div>
+              {!isOwner && (
+                <Button
+                  variant="outline-primary"
+                  className="rounded-pill fw-semibold px-3 d-inline-flex align-items-center gap-2"
+                  size="sm"
+                  onClick={() => {
+                    handleChatWithProvider(activeModalService);
+                    setActiveModalService(null);
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
+                  </svg>
+                  Chat with Provider
+                </Button>
+              )}
+            </div>
+            <div className="d-flex gap-2">
+              <Button className="neu-btn-ghost" onClick={() => setActiveModalService(null)}>
+                Close
+              </Button>
+              <Button
+                className="neu-btn-primary px-4 fw-semibold"
+                disabled={bookingServiceId === activeModalService.service_id}
+                onClick={() => handleBookService(activeModalService)}
+              >
+                {bookingServiceId === activeModalService.service_id ? 'Booking...' : `Confirm Booking (₱${((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)})`}
+              </Button>
+            </div>
           </Modal.Footer>
         </Modal>
       )}
