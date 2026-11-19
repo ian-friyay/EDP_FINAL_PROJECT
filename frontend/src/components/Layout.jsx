@@ -83,14 +83,22 @@ export default function Layout() {
 
   return (
     <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: 'var(--neu-bg)' }}>
-      {/* 1. Top Navbar */}
-      <Navbar className="neu-navbar sticky-top py-2 px-3">
-        <Container fluid className="p-0">
+      {/* 1. Top Navbar: Permanently sticky/fixed at top */}
+      <Navbar className="neu-navbar fixed-top py-2 px-3" style={{ height: '56px', zIndex: 1040 }}>
+        <Container fluid className="p-0 d-flex align-items-center justify-content-between">
           <div className="d-flex align-items-center">
-            {/* The Logo itself is the interactive sidebar toggle button (no hamburger icon) */}
-            <div
-              role="button"
-              tabIndex={0}
+            {/* Dedicated Hamburger Button toggles sidebar on mobile & desktop */}
+            <button
+              type="button"
+              className="btn btn-link text-white p-1 me-2 d-inline-flex align-items-center justify-content-center rounded-2 border-0 shadow-none"
+              style={{
+                width: '38px',
+                height: '38px',
+                background: 'rgba(255, 255, 255, 0.12)',
+                color: '#ffffff',
+                cursor: 'pointer',
+                transition: 'background 0.15s ease',
+              }}
               onClick={() => {
                 if (isMobile) {
                   setShowMobileSidebar(true);
@@ -98,52 +106,58 @@ export default function Layout() {
                   setCollapsed(!collapsed);
                 }
               }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  if (isMobile) setShowMobileSidebar(true);
-                  else setCollapsed(!collapsed);
-                }
-              }}
-              className="d-flex align-items-center gap-2 m-0 text-white"
-              style={{ cursor: 'pointer', userSelect: 'none' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.22)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)')}
+              aria-label="Toggle navigation menu"
               title={isMobile ? 'Open navigation menu' : (collapsed ? 'Expand sidebar' : 'Collapse sidebar')}
             >
-              {/* Full logo for desktop when expanded, compact hands logo when collapsed */}
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+                <path fillRule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
+              </svg>
+            </button>
+
+            {/* Brand Logo: Clean link to /dashboard (does NOT act as hamburger toggle) */}
+            <Link
+              to="/dashboard"
+              className="d-flex align-items-center gap-2 text-decoration-none me-2"
+              title="SerbisYou Home"
+            >
               <img
-                src={collapsed ? '/logo-hands.png' : '/logo-transparent.png'}
+                src="/logo-transparent.png"
                 alt="SerbisYou"
-                className="logo-white-shadow d-none d-lg-inline-block"
+                className="logo-white-shadow d-none d-sm-inline-block"
                 style={{
                   height: '32px',
-                  width: collapsed ? '32px' : 'auto',
-                  maxWidth: '150px',
+                  width: 'auto',
+                  maxWidth: '140px',
                   objectFit: 'contain',
                   background: 'transparent',
-                  transition: 'transform 0.15s ease',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.06)')}
-                onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = '/logo-hands.png';
+                }}
               />
-              {/* Compact hands logo when on mobile view */}
               <img
                 src="/logo-hands.png"
                 alt="SerbisYou"
-                className="logo-white-shadow d-inline-block d-lg-none"
+                className="logo-white-shadow d-inline-block d-sm-none"
                 style={{ height: '30px', width: '30px', objectFit: 'contain', background: 'transparent' }}
               />
-              {/* Strictly Role Badge: Provider or Student (No Marketplace) */}
-              <Badge
-                className="ms-1 small fw-bold px-2 py-1 rounded-pill d-none d-sm-inline-block shadow-sm"
-                style={{
-                  backgroundColor: isProvider ? 'var(--neu-accent, #ff7828)' : '#0066FF',
-                  color: '#ffffff',
-                  fontSize: '0.72rem',
-                  letterSpacing: '0.3px',
-                }}
-              >
-                {isProvider ? 'Provider' : 'Student'}
-              </Badge>
-            </div>
+            </Link>
+
+            {/* Strictly Role Badge: Provider or Student */}
+            <Badge
+              className="ms-1 small fw-bold px-2.5 py-1 rounded-pill d-none d-sm-inline-block shadow-sm"
+              style={{
+                backgroundColor: isProvider ? 'var(--neu-accent, #ff7828)' : '#0066FF',
+                color: '#ffffff',
+                fontSize: '0.72rem',
+                letterSpacing: '0.3px',
+              }}
+            >
+              {isProvider ? 'Provider' : 'Student'}
+            </Badge>
           </div>
 
           {/* Right-side Navbar Actions */}
@@ -205,7 +219,7 @@ export default function Layout() {
       </Navbar>
 
       {/* 2. Responsive Collapsible Layout Body (Sidebar + Dynamic Main Area) */}
-      <div className="d-flex flex-grow-1 position-relative" style={{ minHeight: 'calc(100vh - 56px)' }}>
+      <div className="d-flex flex-grow-1 position-relative" style={{ minHeight: 'calc(100vh - 56px)', paddingTop: '56px' }}>
         <Sidebar
           collapsed={collapsed}
           setCollapsed={setCollapsed}

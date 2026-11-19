@@ -187,64 +187,39 @@ export default function Sidebar({
           collapsed ? 'collapsed' : 'expanded'
         }`}
       >
-        {/* Desktop Header / Collapse Control */}
-        <div
-          className={`d-flex align-items-center mb-3 pb-2 border-bottom ${
-            collapsed ? 'justify-content-center' : 'justify-content-between px-1'
-          }`}
-          style={{ borderColor: 'rgba(154, 172, 196, 0.35)' }}
-        >
-          {!collapsed ? (
-            <>
-              <div className="d-flex align-items-center gap-2 overflow-hidden">
-                <Badge
-                  style={{
-                    backgroundColor: isProvider ? 'var(--neu-accent, #ff7828)' : '#0066FF',
-                    color: '#ffffff',
-                    fontSize: '0.68rem',
-                  }}
-                  className="rounded-pill px-2 py-1"
-                >
-                  {isProvider ? 'Provider' : 'Student'}
-                </Badge>
-                <span className="small fw-bold text-muted text-uppercase" style={{ letterSpacing: '1px' }}>
-                  Menu
-                </span>
-              </div>
-              <div
-                role="button"
-                tabIndex={0}
-                className="p-1 neu-hover-scale d-flex align-items-center justify-content-center"
-                onClick={() => setCollapsed(true)}
-                title="Collapse sidebar"
-                style={{ cursor: 'pointer', transition: 'transform 0.15s ease' }}
+        {/* Desktop Header / Collapse Control (Shown only when expanded; no duplicate logo when collapsed) */}
+        {!collapsed && (
+          <div
+            className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom px-1"
+            style={{ borderColor: 'rgba(154, 172, 196, 0.35)' }}
+          >
+            <div className="d-flex align-items-center gap-2 overflow-hidden">
+              <Badge
+                style={{
+                  backgroundColor: isProvider ? 'var(--neu-accent, #ff7828)' : '#0066FF',
+                  color: '#ffffff',
+                  fontSize: '0.68rem',
+                }}
+                className="rounded-pill px-2 py-1"
               >
-                <img
-                  src="/logo-hands.png"
-                  alt="Collapse sidebar"
-                  className="logo-white-shadow"
-                  style={{ width: '26px', height: '26px', objectFit: 'contain' }}
-                />
-              </div>
-            </>
-          ) : (
-            <div
-              onClick={() => setCollapsed(false)}
-              className="d-flex align-items-center justify-content-center"
-              style={{ cursor: 'pointer', padding: '4px', transition: 'transform 0.15s ease' }}
-              title="Click to expand sidebar"
-              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              <img
-                src="/logo-hands.png"
-                alt="SerbisYou"
-                className="logo-white-shadow"
-                style={{ width: '32px', height: '32px', objectFit: 'contain' }}
-              />
+                {isProvider ? 'Provider' : 'Student'}
+              </Badge>
+              <span className="small fw-bold text-muted text-uppercase" style={{ letterSpacing: '1px' }}>
+                Menu
+              </span>
             </div>
-          )}
-        </div>
+            <button
+              type="button"
+              className="btn btn-link p-1 text-muted d-flex align-items-center justify-content-center text-decoration-none rounded-2 border-0"
+              onClick={() => setCollapsed(true)}
+              title="Collapse sidebar"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                <path fillRule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* User Profile Card */}
         <div className="mb-3">
