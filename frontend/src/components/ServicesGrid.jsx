@@ -309,7 +309,7 @@ export default function ServicesGrid({
               })();
 
             const isOwner = Boolean(
-              (effectiveUserId && String(service.user_id).toLowerCase() === String(effectiveUserId).toLowerCase()) ||
+              (effectiveUserId && String(service.user_id).trim().toLowerCase() === String(effectiveUserId).trim().toLowerCase()) ||
               isProviderMode
             );
             const primaryImage =
@@ -321,7 +321,14 @@ export default function ServicesGrid({
               <Col key={service.service_id}>
                 <div className="neu-card h-100 d-flex flex-column">
                   {/* Service Photo / Picture Proof Thumbnail */}
-                  <div className="position-relative">
+                  <div
+                    className="position-relative"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveModalService(service)}
+                    style={{ cursor: 'pointer' }}
+                    title="Click to view details"
+                  >
                     <img
                       src={primaryImage}
                       alt={service.subcategory || service.service_category}
@@ -440,32 +447,26 @@ export default function ServicesGrid({
                           <Button
                             className="neu-btn-outline w-50 fw-semibold"
                             size="sm"
+                            onClick={() => setActiveModalService(service)}
+                          >
+                            View Details
+                          </Button>
+                          <Button
+                            className="neu-btn-primary w-50 fw-semibold"
+                            size="sm"
                             onClick={() => onEditService && onEditService(service)}
                           >
                             Edit
                           </Button>
-                          <Button
-                            variant="outline-danger"
-                            className="w-50 fw-semibold rounded-pill"
-                            size="sm"
-                            disabled={deletingServiceId === service.service_id}
-                            onClick={() => onDeleteService && onDeleteService(service)}
-                          >
-                            {deletingServiceId === service.service_id ? 'Deleting...' : 'Delete'}
-                          </Button>
                         </div>
                         <Button
-                          variant="light"
-                          className="w-100 fw-semibold rounded-pill border"
+                          variant="outline-danger"
+                          className="w-100 fw-semibold rounded-pill"
                           size="sm"
-                          style={{
-                            background: 'var(--neu-bg-light, #d4dee9)',
-                            color: 'var(--neu-text, #15253d)',
-                            borderColor: 'rgba(154, 172, 196, 0.4)',
-                          }}
-                          onClick={() => setActiveModalService(service)}
+                          disabled={deletingServiceId === service.service_id}
+                          onClick={() => onDeleteService && onDeleteService(service)}
                         >
-                          View Details
+                          {deletingServiceId === service.service_id ? 'Deleting...' : 'Delete Service'}
                         </Button>
                       </div>
                     ) : (
@@ -720,50 +721,76 @@ export default function ServicesGrid({
             </div>
           </Modal.Body>
 
-          <Modal.Footer className="border-top px-4 py-3 d-flex justify-content-between flex-wrap gap-2" style={{ background: 'var(--neu-bg-dark, #b8c5d6)' }}>
-            <div>
-              {!isOwner && (
-                <Button
-                  variant="outline-primary"
-                  className="rounded-pill fw-semibold px-3 d-inline-flex align-items-center gap-2"
-                  size="sm"
-                  onClick={() => {
-                    handleChatWithProvider(activeModalService);
-                    setActiveModalService(null);
-                  }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
-                  </svg>
-                  Chat with Provider
-                </Button>
-              )}
-            </div>
-            <div className="d-flex gap-2">
-              <Button className="neu-btn-ghost" onClick={() => setActiveModalService(null)}>
-                Close
-              </Button>
-              {isOwner ? (
-                <Button
-                  className="neu-btn-primary px-4 fw-semibold"
-                  onClick={() => {
-                    const toEdit = activeModalService;
-                    setActiveModalService(null);
-                    if (onEditService) onEditService(toEdit);
-                  }}
-                >
-                  Edit This Service
-                </Button>
-              ) : (
-                <Button
-                  className="neu-btn-primary px-4 fw-semibold"
-                  disabled={bookingServiceId === activeModalService.service_id}
-                  onClick={() => handleBookService(activeModalService)}
-                >
-                  {bookingServiceId === activeModalService.service_id ? 'Booking...' : `Confirm Booking (₱${((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)})`}
-                </Button>
-              )}
-            </div>
+          <Modal.Footer className="border-top px-4 py-3 d-flex justify-content-between flex-wrap gap-2" style={{ background: 'var(--neu-bg-dark)' }}>
+            {(() => {
+              const modalUserId =
+                currentUserId ||
+                window.localStorage.getItem('user_id') ||
+                (() => {
+                  try {
+                    const u = JSON.parse(window.localStorage.getItem('user') || '{}');
+                    return u.user_id || u.id;
+                  } catch {
+                    return null;
+                  }
+                })();
+
+              const isModalOwner = Boolean(
+                modalUserId &&
+                activeModalService &&
+                String(modalUserId).trim().toLowerCase() === String(activeModalService.user_id).trim().toLowerCase()
+              );
+
+              return (
+                <div className="d-flex align-items-center justify-content-between w-100 flex-wrap gap-2">
+                  <div>
+                    {!isModalOwner && (
+                      <Button
+                        variant="outline-primary"
+                        className="rounded-pill fw-semibold px-3 d-inline-flex align-items-center gap-2"
+                        size="sm"
+                        onClick={() => {
+                          handleChatWithProvider(activeModalService);
+                          setActiveModalService(null);
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
+                        </svg>
+                        Chat with Provider
+                      </Button>
+                    )}
+                  </div>
+                  <div className="d-flex gap-2">
+                    <Button className="neu-btn-ghost" onClick={() => setActiveModalService(null)}>
+                      Close
+                    </Button>
+                    {isModalOwner ? (
+                      <Button
+                        className="neu-btn-primary px-4 fw-semibold"
+                        onClick={() => {
+                          const svc = activeModalService;
+                          setActiveModalService(null);
+                          if (onEditService) onEditService(svc);
+                        }}
+                      >
+                        Edit This Service
+                      </Button>
+                    ) : (
+                      <Button
+                        className="neu-btn-primary px-4 fw-semibold"
+                        disabled={bookingServiceId === activeModalService.service_id}
+                        onClick={() => handleBookService(activeModalService)}
+                      >
+                        {bookingServiceId === activeModalService.service_id
+                          ? 'Booking...'
+                          : `Confirm Booking (₱${((Number(activeModalService.amount_topay) || 0) + 5.0).toFixed(2)})`}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </Modal.Footer>
         </Modal>
       )}

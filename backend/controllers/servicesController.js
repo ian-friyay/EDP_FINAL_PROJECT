@@ -191,6 +191,31 @@ const updateService = async (req, res) => {
         return res.status(400).json({ error: 'A valid service ID is required.' });
     }
 
+    // 1. Fetch existing service to verify ownership and schema
+    const { data: existingService, error: findError } = await supabase
+        .from('services')
+        .select('*')
+        .eq('service_id', serviceId)
+        .eq('is_deleted', false)
+        .maybeSingle();
+
+    if (findError) {
+        console.error('Failed to lookup service for update:', findError);
+        return res.status(500).json({ error: 'Failed to verify service record.' });
+    }
+
+    if (!existingService) {
+        return res.status(404).json({ error: 'Active service not found.' });
+    }
+
+    const currentUserId = String(req.user?.user_id || '').trim().toLowerCase();
+    const serviceOwnerId = String(existingService.user_id || '').trim().toLowerCase();
+    const isAdmin = req.user?.user_type === 'Admin';
+
+    if (currentUserId !== serviceOwnerId && !isAdmin) {
+        return res.status(403).json({ error: 'Unauthorized. You can only edit your own services.' });
+    }
+
     const {
         service_category,
         subcategory,
@@ -210,26 +235,51 @@ const updateService = async (req, res) => {
     }
     if (service_category && typeof service_category === 'string') {
         const cat = service_category.trim();
-        if (!ALLOWED_TAXONOMY[cat]) {
-            return res.status(400).json({ error: `Invalid category. Must be one of: ${Object.keys(ALLOWED_TAXONOMY).join(', ')}.` });
+        if (ALLOWED_TAXONOMY[cat]) {
+            updates.service_category = cat;
+        } else {
+            // Find case-insensitive match
+            const matchedKey = Object.keys(ALLOWED_TAXONOMY).find(
+                (k) => k.toLowerCase() === cat.toLowerCase()
+            );
+            updates.service_category = matchedKey || cat;
         }
-        updates.service_category = cat;
     }
+
+    const activeCategory = updates.service_category || existingService.service_category;
+
     if (subcategory !== undefined) {
         const sub = subcategory ? String(subcategory).trim() : null;
-        if (sub && updates.service_category && !ALLOWED_TAXONOMY[updates.service_category].includes(sub)) {
-            return res.status(400).json({ error: `Invalid subcategory for ${updates.service_category}. Allowed: ${ALLOWED_TAXONOMY[updates.service_category].join(', ')}.` });
+        if (sub && activeCategory && ALLOWED_TAXONOMY[activeCategory]) {
+            const matchesTaxonomy = ALLOWED_TAXONOMY[activeCategory].some(
+                (item) => item.toLowerCase() === sub.toLowerCase()
+            );
+            if (matchesTaxonomy) {
+                // Use canonical taxonomy name if matched
+                const canonical = ALLOWED_TAXONOMY[activeCategory].find(
+                    (item) => item.toLowerCase() === sub.toLowerCase()
+                );
+                updates.subcategory = canonical || sub;
+            } else {
+                updates.subcategory = sub;
+            }
+        } else {
+            updates.subcategory = sub;
         }
-        updates.subcategory = sub;
     }
-    if (service_description && typeof service_description === 'string') updates.service_description = service_description.trim();
+
+    if (service_description !== undefined && typeof service_description === 'string') {
+        updates.service_description = service_description.trim();
+    }
+
     if (amount_topay !== undefined && amount_topay !== null && amount_topay !== '') {
         const num = Number(amount_topay);
         if (!Number.isFinite(num) || num < 0) {
-            return res.status(400).json({ error: 'Invalid service amount.' });
+            return res.status(400).json({ error: 'Invalid service rate amount.' });
         }
         updates.amount_topay = num;
     }
+
     if (picture_proof !== undefined) {
         if (!isValidPictureProof(picture_proof)) {
             return res.status(400).json({ error: 'Invalid picture proof URLs.' });
@@ -238,28 +288,61 @@ const updateService = async (req, res) => {
     }
 
     if (Object.keys(updates).length === 0) {
-        return res.status(400).json({ error: 'No service fields to update.' });
+        return res.status(400).json({ error: 'No service fields provided to update.' });
     }
 
-    const { data, error } = await supabase
+    // 2. Perform database update with fallback for rate_unit column if needed
+    let { data, error } = await supabase
         .from('services')
         .update(updates)
         .eq('service_id', serviceId)
-        .eq('user_id', req.user.user_id)
-        .eq('is_deleted', false)
         .select('*')
         .maybeSingle();
 
+    if (error && (error.code === 'PGRST204' || String(error.message || '').includes('rate_unit'))) {
+        const rawRate = updates.rate_unit || existingService.rate_unit || 'per_service';
+        delete updates.rate_unit;
+        const baseDesc = (updates.service_description !== undefined ? updates.service_description : existingService.service_description || '')
+            .replace(/\[Rate:\s*(per_hour|per_day|per_service)\]\s*/gi, '')
+            .trim();
+        updates.service_description = `[Rate: ${rawRate}] ${baseDesc}`;
+
+        const retryResult = await supabase
+            .from('services')
+            .update(updates)
+            .eq('service_id', serviceId)
+            .select('*')
+            .maybeSingle();
+
+        data = retryResult.data;
+        error = retryResult.error;
+    }
+
     if (error) {
-        console.error('Failed to update service:', error);
-        return res.status(500).json({ error: 'Failed to update service.' });
+        console.error('Failed to update service in Supabase:', error);
+        return res.status(500).json({ error: error.message || 'Failed to update service.' });
     }
 
     if (!data) {
-        return res.status(404).json({ error: 'Active service not found or unauthorized.' });
+        return res.status(404).json({ error: 'Active service could not be updated.' });
     }
 
-    return res.status(200).json({ message: 'Service updated successfully.', service: data });
+    let resolvedRateUnit = data.rate_unit || updates.rate_unit || existingService.rate_unit;
+    if (!resolvedRateUnit && data.service_description) {
+        const match = data.service_description.match(/\[Rate:\s*(per_hour|per_day|per_service)\]/i);
+        if (match) resolvedRateUnit = match[1].toLowerCase();
+    }
+
+    return res.status(200).json({
+        message: 'Service updated successfully.',
+        service: {
+            ...data,
+            rate_unit: resolvedRateUnit || 'per_service',
+            service_description: data.service_description
+                ? data.service_description.replace(/\[Rate:\s*(per_hour|per_day|per_service)\]\s*/i, '').trim()
+                : '',
+        }
+    });
 };
 
 const softDeleteService = async (req, res) => {
@@ -268,12 +351,29 @@ const softDeleteService = async (req, res) => {
         return res.status(400).json({ error: 'A valid service ID is required.' });
     }
 
+    const { data: existingService, error: findError } = await supabase
+        .from('services')
+        .select('service_id, user_id, is_deleted')
+        .eq('service_id', serviceId)
+        .eq('is_deleted', false)
+        .maybeSingle();
+
+    if (findError || !existingService) {
+        return res.status(404).json({ error: 'Active service not found.' });
+    }
+
+    const currentUserId = String(req.user?.user_id || '').trim().toLowerCase();
+    const serviceOwnerId = String(existingService.user_id || '').trim().toLowerCase();
+    const isAdmin = req.user?.user_type === 'Admin';
+
+    if (currentUserId !== serviceOwnerId && !isAdmin) {
+        return res.status(403).json({ error: 'Unauthorized to delete this service.' });
+    }
+
     const { data, error } = await supabase
         .from('services')
         .update({ is_deleted: true })
         .eq('service_id', serviceId)
-        .eq('user_id', req.user.user_id)
-        .eq('is_deleted', false)
         .select('service_id, is_deleted')
         .maybeSingle();
 

@@ -211,10 +211,17 @@ export default function ServicesPage() {
         ? editForm.picture_proof
         : (editForm.picture_proof ? [editForm.picture_proof] : []);
 
+      const chosenCategory = editForm.service_category || editingService.service_category || 'Creative';
+      const chosenSubcategory =
+        editForm.subcategory ||
+        SERVICE_CATEGORIES[chosenCategory]?.subcategories[0] ||
+        editingService.subcategory ||
+        'Graphic Designer';
+
       await api.put(`/services/${encodeURIComponent(editingService.service_id)}`, {
-        service_category: editForm.service_category,
-        subcategory: editForm.subcategory || null,
-        service_description: editForm.service_description,
+        service_category: chosenCategory,
+        subcategory: chosenSubcategory,
+        service_description: (editForm.service_description || '').trim(),
         amount_topay: Number(editForm.amount_topay),
         rate_unit: editForm.rate_unit || 'per_service',
         picture_proof: pictureProof,
@@ -578,6 +585,7 @@ export default function ServicesPage() {
         </Modal.Header>
         <Form onSubmit={handleUpdateService}>
           <Modal.Body style={{ background: 'var(--neu-bg)' }}>
+            {error && <Alert variant="danger" dismissible onClose={() => setError('')} className="neu-alert mb-3">{error}</Alert>}
             {/* Category & Subcategory Linked Dropdowns for Edit */}
             <Row className="mb-3 g-2">
               <Col sm={6}>
