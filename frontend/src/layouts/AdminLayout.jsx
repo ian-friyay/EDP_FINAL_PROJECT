@@ -111,12 +111,19 @@ export default function AdminLayout() {
                 </svg>
                 <span>Students &amp; Accounts</span>
               </div>
-              <Badge
-                pill
-                style={{ backgroundColor: '#fed7aa', color: '#c2410c', fontSize: '0.68rem', fontWeight: 'bold' }}
+              <span
+                className="badge rounded-pill"
+                style={{
+                  backgroundColor: '#ffedd5',
+                  color: '#9a3412',
+                  border: '1px solid #fdba74',
+                  fontSize: '0.72rem',
+                  fontWeight: '700',
+                  padding: '3px 8px',
+                }}
               >
                 {pendingCount}
-              </Badge>
+              </span>
             </Link>
 
             <Link

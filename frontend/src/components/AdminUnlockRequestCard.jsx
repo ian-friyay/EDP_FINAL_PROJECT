@@ -242,13 +242,35 @@ export default function AdminUnlockRequestCard({ user, isCooldownActive, cooldow
                       <span className="fw-bold small" style={{ color: 'var(--neu-text)' }}>
                         {item.request_type?.replace(/_/g, ' ')?.toUpperCase()}
                       </span>
-                      <Badge
-                        bg={item.status === 'pending' ? 'warning' : (item.status === 'approved' ? 'success' : 'danger')}
-                        text={item.status === 'pending' ? 'dark' : 'white'}
-                        className="rounded-pill px-2 py-1 small"
+                      <span
+                        style={{
+                          backgroundColor:
+                            item.status === 'approved'
+                              ? '#f0fdf4'
+                              : item.status === 'rejected' || item.status === 'declined'
+                              ? '#fef2f2'
+                              : '#fffbeb',
+                          color:
+                            item.status === 'approved'
+                              ? '#166534'
+                              : item.status === 'rejected' || item.status === 'declined'
+                              ? '#991b1b'
+                              : '#92400e',
+                          border: `1px solid ${
+                            item.status === 'approved'
+                              ? '#86efac'
+                              : item.status === 'rejected' || item.status === 'declined'
+                              ? '#fca5a5'
+                              : '#fde68a'
+                          }`,
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          padding: '4px 9px',
+                        }}
+                        className="badge rounded-pill"
                       >
-                        {item.status === 'pending' ? '⏳ Pending Review' : (item.status === 'approved' ? '✓ Approved & Unlocked' : '✕ Declined')}
-                      </Badge>
+                        {item.status === 'pending' ? '⏳ Pending Review' : item.status === 'approved' ? '✓ Approved & Unlocked' : '✕ Declined'}
+                      </span>
                     </div>
                     <p className="mb-1 small text-dark" style={{ lineHeight: '1.4' }}>
                       "{item.notes}"

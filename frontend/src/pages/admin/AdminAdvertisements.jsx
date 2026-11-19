@@ -271,13 +271,19 @@ export default function AdminAdvertisements() {
                         <div className="fw-bold" style={{ color: 'var(--neu-text)' }}>
                           ₱{Number(ad.computed_cost || 0).toFixed(2)}
                         </div>
-                        <Badge
-                          bg={isPaid ? 'success' : 'secondary'}
-                          className="rounded-pill px-2 py-0.5 text-uppercase"
-                          style={{ fontSize: '0.68rem' }}
+                        <span
+                          style={{
+                            backgroundColor: isPaid ? '#f0fdf4' : '#fffbeb',
+                            color: isPaid ? '#166534' : '#92400e',
+                            border: `1px solid ${isPaid ? '#86efac' : '#fde68a'}`,
+                            fontSize: '0.72rem',
+                            fontWeight: '600',
+                            padding: '3px 8px',
+                          }}
+                          className="badge rounded-pill text-uppercase d-inline-block"
                         >
                           {isPaid ? '✓ Paid' : 'Pending Payment'}
-                        </Badge>
+                        </span>
                       </td>
 
                       <td className="px-3 small text-muted">
@@ -288,21 +294,41 @@ export default function AdminAdvertisements() {
                       </td>
 
                       <td className="px-3">
-                        <Badge
-                          bg={
-                            status === 'active'
-                              ? 'success'
-                              : status === 'pending'
-                              ? 'warning'
-                              : status === 'rejected'
-                              ? 'danger'
-                              : 'secondary'
-                          }
-                          text={status === 'pending' ? 'dark' : 'white'}
-                          className="rounded-pill px-2.5 py-1 text-capitalize fw-semibold"
+                        <span
+                          style={{
+                            backgroundColor:
+                              status === 'active'
+                                ? '#f0fdf4'
+                                : status === 'pending'
+                                ? '#fffbeb'
+                                : '#fef2f2',
+                            color:
+                              status === 'active'
+                                ? '#166534'
+                                : status === 'pending'
+                                ? '#92400e'
+                                : '#991b1b',
+                            border: `1px solid ${
+                              status === 'active'
+                                ? '#86efac'
+                                : status === 'pending'
+                                ? '#fde68a'
+                                : '#fca5a5'
+                            }`,
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            padding: '4px 9px',
+                          }}
+                          className="badge rounded-pill text-capitalize"
                         >
-                          {status}
-                        </Badge>
+                          {status === 'active'
+                            ? '● Active'
+                            : status === 'pending'
+                            ? '⏳ Pending'
+                            : status === 'rejected'
+                            ? '⊗ Rejected'
+                            : status}
+                        </span>
                       </td>
 
                       <td className="px-3 text-end">

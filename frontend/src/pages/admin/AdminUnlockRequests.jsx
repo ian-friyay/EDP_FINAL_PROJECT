@@ -166,18 +166,19 @@ export default function AdminUnlockRequests() {
                         <div className="text-muted small font-monospace">{req.student_id}</div>
                       </td>
                       <td>
-                        <Badge
+                        <span
                           style={{
-                            backgroundColor: '#fffbeb',
-                            color: '#b45309',
-                            border: '1px solid #fde68a',
-                            fontWeight: '500',
+                            backgroundColor: '#fff7ed',
+                            color: '#9a3412',
+                            border: '1px solid #fdba74',
+                            fontWeight: '600',
                             fontSize: '0.75rem',
+                            padding: '4px 9px',
                           }}
-                          className="rounded-pill px-2 py-1"
+                          className="badge rounded-pill"
                         >
                           {req.request_type || 'Cooldown Unlock'}
-                        </Badge>
+                        </span>
                       </td>
                       <td style={{ maxWidth: '260px' }}>
                         <span className="text-truncate d-inline-block text-secondary" style={{ maxWidth: '240px' }}>
@@ -190,18 +191,19 @@ export default function AdminUnlockRequests() {
                         </span>
                       </td>
                       <td>
-                        <Badge
+                        <span
                           style={{
-                            backgroundColor: req.status === 'approved' ? '#f0fdf4' : '#fffbeb',
-                            color: req.status === 'approved' ? '#16a34a' : '#d97706',
-                            border: `1px solid ${req.status === 'approved' ? '#bbf7d0' : '#fde68a'}`,
+                            backgroundColor: req.status === 'approved' ? '#f0fdf4' : req.status === 'rejected' ? '#fef2f2' : '#fffbeb',
+                            color: req.status === 'approved' ? '#166534' : req.status === 'rejected' ? '#991b1b' : '#92400e',
+                            border: `1px solid ${req.status === 'approved' ? '#86efac' : req.status === 'rejected' ? '#fca5a5' : '#fde68a'}`,
                             fontSize: '0.75rem',
-                            fontWeight: '500',
+                            fontWeight: '600',
+                            padding: '4px 9px',
                           }}
-                          className="rounded-pill px-2 py-1"
+                          className="badge rounded-pill text-capitalize"
                         >
-                          {req.status}
-                        </Badge>
+                          {req.status === 'approved' ? '✓ Approved' : req.status === 'rejected' ? '⊗ Rejected' : '⏳ Pending'}
+                        </span>
                       </td>
                       <td className="text-muted">
                         {req.created_at || 'Nov 17, 2026 05:54 AM'}

@@ -157,18 +157,47 @@ export default function AdminTransactions() {
                       <td className="text-muted">₱{Number(t.commission_fee).toFixed(2)}</td>
                       <td className="fw-semibold text-dark">₱{Number(t.total_topay).toFixed(2)}</td>
                       <td>
-                        <Badge
+                        <span
                           style={{
-                            backgroundColor: t.status === 'completed' ? '#f0fdf4' : '#fffbeb',
-                            color: t.status === 'completed' ? '#16a34a' : '#d97706',
-                            border: `1px solid ${t.status === 'completed' ? '#bbf7d0' : '#fde68a'}`,
+                            backgroundColor:
+                              t.status === 'completed'
+                                ? '#f0fdf4'
+                                : t.status === 'accepted'
+                                ? '#eff6ff'
+                                : t.status === 'cancelled'
+                                ? '#fef2f2'
+                                : '#fffbeb',
+                            color:
+                              t.status === 'completed'
+                                ? '#166534'
+                                : t.status === 'accepted'
+                                ? '#1e40af'
+                                : t.status === 'cancelled'
+                                ? '#991b1b'
+                                : '#92400e',
+                            border: `1px solid ${
+                              t.status === 'completed'
+                                ? '#86efac'
+                                : t.status === 'accepted'
+                                ? '#93c5fd'
+                                : t.status === 'cancelled'
+                                ? '#fca5a5'
+                                : '#fde68a'
+                            }`,
                             fontSize: '0.75rem',
-                            fontWeight: '500',
+                            fontWeight: '600',
+                            padding: '4px 9px',
                           }}
-                          className="rounded-pill px-2 py-1"
+                          className="badge rounded-pill text-capitalize"
                         >
-                          {t.status}
-                        </Badge>
+                          {t.status === 'completed'
+                            ? '✓ Completed'
+                            : t.status === 'accepted'
+                            ? '● Accepted'
+                            : t.status === 'cancelled'
+                            ? '⊗ Cancelled'
+                            : '⏳ Pending'}
+                        </span>
                       </td>
                       <td className="text-muted">{t.created_at}</td>
                       <td className="text-end pe-3">

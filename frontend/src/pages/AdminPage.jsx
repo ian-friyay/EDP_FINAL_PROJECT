@@ -362,26 +362,56 @@ export default function AdminPage() {
                           </Badge>
                         </td>
                         <td>
-                          <Badge
-                            bg={
-                              u.verification_status === 'verified'
-                                ? 'success'
-                                : u.verification_status === 'pending'
-                                ? 'warning'
-                                : u.verification_status === 'rejected'
-                                ? 'danger'
-                                : 'secondary'
-                            }
-                            text={u.verification_status === 'pending' ? 'dark' : 'white'}
-                            className="rounded-pill"
+                          <span
+                            style={{
+                              backgroundColor:
+                                u.verification_status === 'verified'
+                                  ? '#f0fdf4'
+                                  : u.verification_status === 'pending'
+                                  ? '#fffbeb'
+                                  : u.verification_status === 'rejected'
+                                  ? '#fef2f2'
+                                  : '#f1f5f9',
+                              color:
+                                u.verification_status === 'verified'
+                                  ? '#166534'
+                                  : u.verification_status === 'pending'
+                                  ? '#92400e'
+                                  : u.verification_status === 'rejected'
+                                  ? '#991b1b'
+                                  : '#475569',
+                              border: `1px solid ${
+                                u.verification_status === 'verified'
+                                  ? '#86efac'
+                                  : u.verification_status === 'pending'
+                                  ? '#fde68a'
+                                  : u.verification_status === 'rejected'
+                                  ? '#fca5a5'
+                                  : '#cbd5e1'
+                              }`,
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              padding: '4px 9px',
+                            }}
+                            className="badge rounded-pill text-capitalize"
                           >
-                            {u.verification_status || 'unverified'}
-                          </Badge>
+                            {u.verification_status === 'verified' ? '✓ Verified' : u.verification_status === 'pending' ? '⏳ Pending' : (u.verification_status || 'Unverified')}
+                          </span>
                         </td>
                         <td>
-                          <Badge bg={isActive ? 'success' : 'danger'} className="rounded-pill">
-                            {isActive ? 'Active' : 'Suspended'}
-                          </Badge>
+                          <span
+                            style={{
+                              backgroundColor: isActive ? '#f0fdf4' : '#fef2f2',
+                              color: isActive ? '#166534' : '#991b1b',
+                              border: `1px solid ${isActive ? '#86efac' : '#fca5a5'}`,
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              padding: '4px 9px',
+                            }}
+                            className="badge rounded-pill"
+                          >
+                            {isActive ? '● Active' : '⊗ Suspended'}
+                          </span>
                         </td>
                         <td>
                           <Button
@@ -469,30 +499,56 @@ export default function AdminPage() {
                         </td>
                         <td>
                           <div className="fw-bold text-primary">₱{Number(ad.computed_cost || 0).toFixed(2)}</div>
-                          <Badge
-                            bg={ad.payment_status === 'paid' ? 'success' : 'secondary'}
-                            className="rounded-pill"
-                            style={{ fontSize: '0.7rem' }}
+                          <span
+                            style={{
+                              backgroundColor: ad.payment_status === 'paid' ? '#f0fdf4' : '#fffbeb',
+                              color: ad.payment_status === 'paid' ? '#166534' : '#92400e',
+                              border: `1px solid ${ad.payment_status === 'paid' ? '#86efac' : '#fde68a'}`,
+                              fontSize: '0.72rem',
+                              fontWeight: '600',
+                              padding: '3px 8px',
+                            }}
+                            className="badge rounded-pill text-uppercase d-inline-block"
                           >
-                            {ad.payment_status || 'unpaid'}
-                          </Badge>
+                            {ad.payment_status === 'paid' ? '✓ Paid' : (ad.payment_status || 'unpaid')}
+                          </span>
                         </td>
                         <td>
-                          <Badge
-                            bg={
-                              isActive
-                                ? 'success'
-                                : isPending
-                                ? 'warning'
-                                : ad.status === 'rejected'
-                                ? 'danger'
-                                : 'secondary'
-                            }
-                            text={isPending ? 'dark' : 'white'}
-                            className="rounded-pill"
+                          <span
+                            style={{
+                              backgroundColor:
+                                isActive
+                                  ? '#f0fdf4'
+                                  : isPending
+                                  ? '#fffbeb'
+                                  : ad.status === 'rejected'
+                                  ? '#fef2f2'
+                                  : '#f1f5f9',
+                              color:
+                                isActive
+                                  ? '#166534'
+                                  : isPending
+                                  ? '#92400e'
+                                  : ad.status === 'rejected'
+                                  ? '#991b1b'
+                                  : '#475569',
+                              border: `1px solid ${
+                                isActive
+                                  ? '#86efac'
+                                  : isPending
+                                  ? '#fde68a'
+                                  : ad.status === 'rejected'
+                                  ? '#fca5a5'
+                                  : '#cbd5e1'
+                              }`,
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              padding: '4px 9px',
+                            }}
+                            className="badge rounded-pill text-capitalize"
                           >
-                            {ad.status || 'pending'}
-                          </Badge>
+                            {isActive ? '● Active' : isPending ? '⏳ Pending' : ad.status === 'rejected' ? '⊗ Rejected' : (ad.status || 'Pending')}
+                          </span>
                         </td>
                         <td>
                           <div className="d-flex gap-1.5 flex-wrap">

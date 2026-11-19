@@ -139,6 +139,7 @@ export default function AdminUsers() {
                   <th style={{ width: '40px' }} className="ps-3">
                     <Form.Check type="checkbox" />
                   </th>
+                  <th className="fw-semibold">Account Status</th>
                   <th className="fw-semibold">Profile Editing</th>
                   <th className="fw-semibold">Student Note / Request</th>
                   <th className="fw-semibold">ID Photo</th>
@@ -159,30 +160,79 @@ export default function AdminUsers() {
                           <Form.Check type="checkbox" />
                         </td>
                         <td>
-                          {isLocked ? (
-                            <Badge
+                          {u.status === 'active' ? (
+                            <span
+                              className="badge rounded-pill"
                               style={{
-                                backgroundColor: '#fef3c7',
-                                color: '#b45309',
-                                fontWeight: '500',
+                                backgroundColor: '#f0fdf4',
+                                color: '#166534',
+                                border: '1px solid #86efac',
+                                fontWeight: '600',
                                 fontSize: '0.75rem',
+                                padding: '4px 9px',
                               }}
-                              className="rounded-pill px-2 py-1"
+                            >
+                              ● Active
+                            </span>
+                          ) : u.status === 'disabled' || u.status === 'rejected' ? (
+                            <span
+                              className="badge rounded-pill"
+                              style={{
+                                backgroundColor: '#fef2f2',
+                                color: '#991b1b',
+                                border: '1px solid #fca5a5',
+                                fontWeight: '600',
+                                fontSize: '0.75rem',
+                                padding: '4px 9px',
+                              }}
+                            >
+                              ⊗ Disabled
+                            </span>
+                          ) : (
+                            <span
+                              className="badge rounded-pill"
+                              style={{
+                                backgroundColor: '#fffbeb',
+                                color: '#92400e',
+                                border: '1px solid #fde68a',
+                                fontWeight: '600',
+                                fontSize: '0.75rem',
+                                padding: '4px 9px',
+                              }}
+                            >
+                              ⏳ Pending
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          {isLocked ? (
+                            <span
+                              style={{
+                                backgroundColor: '#fff7ed',
+                                color: '#9a3412',
+                                border: '1px solid #fdba74',
+                                fontWeight: '600',
+                                fontSize: '0.75rem',
+                                padding: '4px 9px',
+                              }}
+                              className="badge rounded-pill"
                             >
                               🔒 Locked ({u.profile_cooldown_days}d)
-                            </Badge>
+                            </span>
                           ) : (
-                            <Badge
+                            <span
                               style={{
-                                backgroundColor: '#dcfce7',
-                                color: '#15803d',
-                                fontWeight: '500',
+                                backgroundColor: '#f0fdf4',
+                                color: '#166534',
+                                border: '1px solid #86efac',
+                                fontWeight: '600',
                                 fontSize: '0.75rem',
+                                padding: '4px 9px',
                               }}
-                              className="rounded-pill px-2 py-1"
+                              className="badge rounded-pill"
                             >
                               ✓ Unlocked
-                            </Badge>
+                            </span>
                           )}
                         </td>
                         <td className="text-muted" style={{ maxWidth: '240px' }}>
@@ -206,8 +256,18 @@ export default function AdminUsers() {
                           ) : (
                             <div
                               onClick={() => setPreviewPhoto('/auth-bg.jpg')}
-                              style={{ width: '38px', height: '38px', backgroundColor: '#86efac', borderRadius: '4px', cursor: 'pointer' }}
-                              className="d-flex align-items-center justify-content-center text-white small fw-bold"
+                              style={{
+                                width: '38px',
+                                height: '38px',
+                                backgroundColor: '#065f46',
+                                color: '#ffffff',
+                                border: '1px solid #047857',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontWeight: '700',
+                                fontSize: '0.78rem',
+                              }}
+                              className="d-flex align-items-center justify-content-center"
                             >
                               ID
                             </div>
@@ -217,47 +277,63 @@ export default function AdminUsers() {
                           {u.registered_at || 'Nov 17, 2026 06:02 AM'}
                         </td>
                         <td className="text-end pe-3">
-                          <div className="d-flex align-items-center justify-content-end gap-2 flex-wrap">
+                          <div className="d-flex align-items-center justify-content-end gap-1.5 flex-wrap">
                             {isPending && (
                               <Button
-                                variant="link"
                                 size="sm"
-                                className="p-0 text-success text-decoration-none fw-medium d-inline-flex align-items-center gap-1"
+                                className="px-2 py-0.5 fw-semibold rounded-pill d-inline-flex align-items-center gap-1"
                                 onClick={() => handleApprove(u)}
-                                style={{ fontSize: '0.8rem' }}
+                                style={{
+                                  fontSize: '0.78rem',
+                                  color: '#166534',
+                                  borderColor: '#86efac',
+                                  backgroundColor: '#f0fdf4',
+                                }}
                               >
-                                <span>✓</span> Approve Student
+                                <span>✓</span> Approve
                               </Button>
                             )}
 
                             {isLocked && (
                               <Button
-                                variant="link"
                                 size="sm"
-                                className="p-0 text-decoration-none fw-medium d-inline-flex align-items-center gap-1"
-                                style={{ color: '#d97706', fontSize: '0.8rem' }}
+                                className="px-2 py-0.5 fw-semibold rounded-pill d-inline-flex align-items-center gap-1"
+                                style={{
+                                  backgroundColor: '#fff7ed',
+                                  color: '#9a3412',
+                                  borderColor: '#fdba74',
+                                  fontSize: '0.78rem',
+                                }}
                                 onClick={() => handleUnlockProfile(u)}
                               >
-                                <span>🔓</span> Unlock Editing
+                                <span>🔓</span> Unlock
                               </Button>
                             )}
 
                             <Button
-                              variant="link"
                               size="sm"
-                              className="p-0 text-danger text-decoration-none fw-medium d-inline-flex align-items-center gap-1"
+                              className="px-2 py-0.5 fw-semibold rounded-pill d-inline-flex align-items-center gap-1"
                               onClick={() => handleDisable(u)}
-                              style={{ fontSize: '0.8rem' }}
+                              style={{
+                                backgroundColor: '#fef2f2',
+                                color: '#991b1b',
+                                borderColor: '#fca5a5',
+                                fontSize: '0.78rem',
+                              }}
                             >
-                              <span>⊗</span> Reject / Disable
+                              <span>⊗</span> {u.status === 'active' ? 'Disable' : 'Reject'}
                             </Button>
 
                             <Button
-                              variant="link"
                               size="sm"
-                              className="p-0 text-secondary text-decoration-none fw-medium d-inline-flex align-items-center gap-1"
+                              className="px-2 py-0.5 fw-semibold rounded-pill d-inline-flex align-items-center gap-1"
                               onClick={() => setSelectedUser(u)}
-                              style={{ fontSize: '0.8rem' }}
+                              style={{
+                                backgroundColor: '#f8fafc',
+                                color: '#334155',
+                                borderColor: '#cbd5e1',
+                                fontSize: '0.78rem',
+                              }}
                             >
                               <span>👁</span> View
                             </Button>
@@ -268,7 +344,7 @@ export default function AdminUsers() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={6} className="text-center text-muted py-4">No users found.</td>
+                    <td colSpan={7} className="text-center text-muted py-4">No users found.</td>
                   </tr>
                 )}
               </tbody>
@@ -331,9 +407,21 @@ export default function AdminUsers() {
                 <span className="text-muted">Location:</span>
                 <span>{[selectedUser.barangay, selectedUser.city].filter(Boolean).join(', ') || 'Philippines'}</span>
               </div>
-              <div className="d-flex justify-content-between">
+              <div className="d-flex justify-content-between align-items-center">
                 <span className="text-muted">Account Status:</span>
-                <Badge bg={selectedUser.status === 'active' ? 'success' : 'secondary'}>{selectedUser.status}</Badge>
+                <span
+                  className="badge rounded-pill"
+                  style={{
+                    backgroundColor: selectedUser.status === 'active' ? '#f0fdf4' : selectedUser.status === 'disabled' ? '#fef2f2' : '#fffbeb',
+                    color: selectedUser.status === 'active' ? '#166534' : selectedUser.status === 'disabled' ? '#991b1b' : '#92400e',
+                    border: `1px solid ${selectedUser.status === 'active' ? '#86efac' : selectedUser.status === 'disabled' ? '#fca5a5' : '#fde68a'}`,
+                    fontWeight: 600,
+                    padding: '4px 10px',
+                    fontSize: '0.78rem',
+                  }}
+                >
+                  {selectedUser.status === 'active' ? '● Active' : selectedUser.status === 'disabled' ? '⊗ Disabled' : '⏳ Pending Approval'}
+                </span>
               </div>
             </div>
           </Modal.Body>

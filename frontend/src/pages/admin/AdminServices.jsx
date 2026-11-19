@@ -150,34 +150,36 @@ export default function AdminServices() {
                       </td>
                       <td className="fw-medium text-dark">{s.provider_name}</td>
                       <td>
-                        <Badge
+                        <span
                           style={{
                             backgroundColor: '#eff6ff',
-                            color: '#2563eb',
-                            border: '1px solid #bfdbfe',
-                            fontWeight: '500',
+                            color: '#1e40af',
+                            border: '1px solid #93c5fd',
+                            fontWeight: '600',
                             fontSize: '0.75rem',
+                            padding: '4px 9px',
                           }}
-                          className="rounded-pill px-2 py-1"
+                          className="badge rounded-pill"
                         >
                           {s.category}
-                        </Badge>
+                        </span>
                       </td>
                       <td className="text-secondary">{s.service_name}</td>
                       <td className="fw-semibold text-dark">₱{Number(s.price).toFixed(2)}</td>
                       <td>
-                        <Badge
+                        <span
                           style={{
-                            backgroundColor: '#f0fdf4',
-                            color: '#16a34a',
-                            border: '1px solid #bbf7d0',
-                            fontWeight: '500',
+                            backgroundColor: s.status === 'active' ? '#f0fdf4' : '#fef2f2',
+                            color: s.status === 'active' ? '#166534' : '#991b1b',
+                            border: `1px solid ${s.status === 'active' ? '#86efac' : '#fca5a5'}`,
+                            fontWeight: '600',
                             fontSize: '0.75rem',
+                            padding: '4px 9px',
                           }}
-                          className="rounded-pill px-2 py-1"
+                          className="badge rounded-pill text-capitalize"
                         >
-                          {s.status}
-                        </Badge>
+                          {s.status === 'active' ? '● Active' : '⊗ Inactive'}
+                        </span>
                       </td>
                       <td className="text-muted">{s.created_at}</td>
                       <td className="text-end pe-3">

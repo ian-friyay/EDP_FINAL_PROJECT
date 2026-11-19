@@ -149,13 +149,47 @@ export default function AdminDashboard() {
                     <td className="px-3 text-success">₱{Number(tx.commission_fee || 0).toFixed(2)}</td>
                     <td className="px-3 fw-bold">₱{Number(tx.total_topay || 0).toFixed(2)}</td>
                     <td className="px-3">
-                      <Badge
-                        bg={tx.status === 'completed' ? 'success' : tx.status === 'accepted' ? 'primary' : tx.status === 'cancelled' ? 'danger' : 'warning'}
-                        text={tx.status === 'pending' ? 'dark' : 'white'}
-                        className="rounded-pill"
+                      <span
+                        style={{
+                          backgroundColor:
+                            tx.status === 'completed'
+                              ? '#f0fdf4'
+                              : tx.status === 'accepted'
+                              ? '#eff6ff'
+                              : tx.status === 'cancelled'
+                              ? '#fef2f2'
+                              : '#fffbeb',
+                          color:
+                            tx.status === 'completed'
+                              ? '#166534'
+                              : tx.status === 'accepted'
+                              ? '#1e40af'
+                              : tx.status === 'cancelled'
+                              ? '#991b1b'
+                              : '#92400e',
+                          border: `1px solid ${
+                            tx.status === 'completed'
+                              ? '#86efac'
+                              : tx.status === 'accepted'
+                              ? '#93c5fd'
+                              : tx.status === 'cancelled'
+                              ? '#fca5a5'
+                              : '#fde68a'
+                          }`,
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          padding: '4px 9px',
+                        }}
+                        className="badge rounded-pill text-capitalize"
                       >
-                        {tx.status}
-                      </Badge>
+                        {tx.status === 'completed'
+                          ? '✓ Completed'
+                          : tx.status === 'accepted'
+                          ? '● Accepted'
+                          : tx.status === 'cancelled'
+                          ? '⊗ Cancelled'
+                          : '⏳ Pending'}
+                      </span>
                     </td>
                   </tr>
                 ))
