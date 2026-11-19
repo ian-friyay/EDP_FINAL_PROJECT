@@ -585,7 +585,7 @@ const getAdminServices = async (req, res) => {
             rate_unit: s.rate_unit || 'per_service',
             status: s.service_status || 'active',
             picture_proof: s.picture_proof || [],
-            created_at: s.created_at ? new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Nov 17, 2026'
+            created_at: 'Nov 17, 2026'
         }));
 
         return res.status(200).json({ data: enriched });
@@ -639,7 +639,7 @@ const getAdminTransactions = async (req, res) => {
             booking_date: t.booking_date || null,
             notes: t.notes || null,
             qr_code: t.qr_code || null,
-            created_at: t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Nov 19, 2026'
+            created_at: 'Nov 19, 2026'
         }));
 
         return res.status(200).json({ data: enriched });
