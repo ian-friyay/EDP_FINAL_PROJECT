@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const supabase = require('../supabaseClient');
+const { VAPID_PUBLIC_KEY, saveSubscription, removeSubscription, sendPushToUser } = require('../utils/pushService');
 
 const KNOWN_USERS = {
   'MMC-0001': 'Jasmine Requestor',
@@ -65,6 +66,18 @@ const createNotification = async (userId, type, title, description, link) => {
     }]);
   } catch (err) {
     console.warn('[Notification notice] Could not insert persistent notification:', err.message);
+  }
+
+  // Trigger outside web push to user's devices
+  try {
+    await sendPushToUser(userId, {
+      title,
+      body: description,
+      url: link || '/',
+      tag: `notif-${type || 'system'}`
+    });
+  } catch (pushErr) {
+    console.warn('[Push Notification Notice]', pushErr.message);
   }
 };
 
@@ -340,9 +353,43 @@ const markOneAsRead = async (req, res) => {
   }
 };
 
+const getVapidPublicKey = (req, res) => {
+  return res.json({ publicKey: VAPID_PUBLIC_KEY });
+};
+
+const subscribePush = async (req, res) => {
+  try {
+    const currentUserId = getCurrentUserId(req);
+    const { subscription } = req.body;
+    if (!currentUserId || !subscription) {
+      return res.status(400).json({ error: 'User ID and subscription object are required.' });
+    }
+
+    await saveSubscription(currentUserId, subscription);
+    return res.json({ success: true, message: 'Push notification subscription saved.' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+const unsubscribePush = async (req, res) => {
+  try {
+    const { endpoint } = req.body;
+    if (endpoint) {
+      await removeSubscription(endpoint);
+    }
+    return res.json({ success: true, message: 'Push notification subscription removed.' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   getNotifications,
   markAllAsRead,
   markOneAsRead,
   createNotification,
+  getVapidPublicKey,
+  subscribePush,
+  unsubscribePush,
 };

@@ -40,6 +40,7 @@ export default defineConfig({
         ]
       },
       workbox: {
+        importScripts: ['/sw-push.js'],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
         runtimeCaching: [
           // 1. Service Listings & Categories (StaleWhileRevalidate for offline browsing)

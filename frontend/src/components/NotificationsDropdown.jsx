@@ -3,6 +3,12 @@ import { Badge, Dropdown, Button, Nav } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { socket } from '../socket';
 import { getCurrentUserId, KNOWN_USERS } from '../utils/user';
+import {
+  isPushSupported,
+  getNotificationPermissionState,
+  subscribeUserToPush,
+  unsubscribeUserFromPush,
+} from '../utils/pushNotification';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -40,6 +46,8 @@ function NotificationsDropdown({ currentUser }) {
 
   const [currentUserId, setCurrentUserId] = useState(activeUserId);
   const [notifications, setNotifications] = useState([]);
+  const [isPushEnabled, setIsPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
   const [readIds, setReadIds] = useState(() => {
     try {
       const stored = localStorage.getItem(`serbisyou_read_notifs_${activeUserId}`);
@@ -48,6 +56,35 @@ function NotificationsDropdown({ currentUser }) {
       return new Set();
     }
   });
+
+  useEffect(() => {
+    if (isPushSupported() && getNotificationPermissionState() === 'granted') {
+      setIsPushEnabled(true);
+    }
+  }, []);
+
+  const handleTogglePush = async (e) => {
+    e.stopPropagation();
+    if (!isPushSupported()) {
+      alert('Outside push notifications are not supported by this browser.');
+      return;
+    }
+
+    try {
+      setPushLoading(true);
+      if (isPushEnabled) {
+        await unsubscribeUserFromPush();
+        setIsPushEnabled(false);
+      } else {
+        await subscribeUserToPush(currentUserId);
+        setIsPushEnabled(true);
+      }
+    } catch (err) {
+      alert(err.message || 'Could not update push notification permission.');
+    } finally {
+      setPushLoading(false);
+    }
+  };
 
   // Sync with prop changes
   useEffect(() => {
@@ -333,7 +370,22 @@ function NotificationsDropdown({ currentUser }) {
         style={{ minWidth: '320px', maxWidth: '380px', borderRadius: '12px' }}
       >
         <Dropdown.Header className="d-flex justify-content-between align-items-center px-3 py-2 bg-light border-bottom">
-          <span className="fw-bold text-dark fs-6">Notifications</span>
+          <div className="d-flex align-items-center gap-2">
+            <span className="fw-bold text-dark fs-6">Notifications</span>
+            {isPushSupported() && (
+              <Button
+                variant={isPushEnabled ? 'outline-success' : 'outline-secondary'}
+                size="sm"
+                className="py-0 px-2 rounded-pill fw-semibold"
+                style={{ fontSize: '0.68rem', lineHeight: '1.4' }}
+                onClick={handleTogglePush}
+                disabled={pushLoading}
+                title={isPushEnabled ? 'Outside Push Alerts are ACTIVE' : 'Enable device push alerts'}
+              >
+                {pushLoading ? '...' : (isPushEnabled ? '🔔 Push On' : '🔕 Enable Push')}
+              </Button>
+            )}
+          </div>
           {unreadCount > 0 && (
             <Button
               variant="link"
