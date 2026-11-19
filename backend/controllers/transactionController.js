@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const supabase = require('../db');
 const { createNotification } = require('./notificationController');
+const { sendCellphonePushNotification } = require('../utils/smsPushNotifier');
 
 const BOOKING_FEE = 5;
 const COMMISSION_RATE = 0.05;
@@ -211,6 +212,16 @@ const createTransaction = async (req, res) => {
       // Non-fatal if notifications table has restrictions
     }
 
+    // Direct Mobile Push Notification & SMS to Provider's Cellphone
+    sendCellphonePushNotification({
+      recipientUserId: provider_id,
+      transactionId: transaction.transaction_id,
+      serviceName: service.subcategory || service.service_category,
+      status: 'New Booking Request',
+      amount: total_topay,
+      customMessage: `[SerbisYou Cellphone Alert] New Booking! Student ${requestor_id} booked your service "${service.subcategory || service.service_category}" for ₱${total_topay.toFixed(2)}. Open SerbisYou to view.`,
+    }).catch(() => {});
+
     return res.status(201).json({
       message: 'Transaction created successfully.',
       transaction,
@@ -364,6 +375,16 @@ const acceptTransaction = async (req, res) => {
       `/transactions/${transactionId}/qr`
     );
 
+    // Direct Mobile Push Notification & SMS to Requestor's Cellphone
+    sendCellphonePushNotification({
+      recipientUserId: transaction.requestor_id,
+      transactionId,
+      serviceName: transaction.service_name,
+      status: 'Booking Accepted',
+      amount: transaction.total_topay,
+      customMessage: `[SerbisYou Cellphone Alert] Booking Accepted! Provider ${transaction.provider_id} accepted your booking for "${transaction.service_name}". Amount to settle: ₱${Number(transaction.total_topay).toFixed(2)}.`,
+    }).catch(() => {});
+
     const io = req.app && req.app.get('io');
     if (io) {
       io.to(String(transaction.provider_id)).emit('transaction_updated', updated);
@@ -445,6 +466,16 @@ const completeTransaction = async (req, res) => {
       `Booking #${transactionId} has been marked as completed. Please leave a review!`,
       `/transactions`
     );
+
+    // Direct Mobile Push Notification & SMS to Recipient's Cellphone
+    sendCellphonePushNotification({
+      recipientUserId: targetUserId,
+      transactionId,
+      serviceName: transaction.service_name,
+      status: 'Service Completed',
+      amount: transaction.total_topay,
+      customMessage: `[SerbisYou Cellphone Alert] Service Completed! Booking #${transactionId} for "${transaction.service_name}" is finished. Total: ₱${Number(transaction.total_topay).toFixed(2)}. Rate and review now on SerbisYou.`,
+    }).catch(() => {});
 
     const io = req.app && req.app.get('io');
     if (io) {
@@ -567,6 +598,16 @@ const verifyQrCode = async (req, res) => {
       `${actorRole} verified your booking #${transaction.transaction_id} via QR code scan.`,
       `/transactions`
     );
+
+    // Direct Mobile Push Notification & SMS to Recipient's Cellphone
+    sendCellphonePushNotification({
+      recipientUserId: recipientId,
+      transactionId: transaction.transaction_id,
+      serviceName: transaction.service_name,
+      status: 'QR Code Verified & Completed',
+      amount: transaction.total_topay,
+      customMessage: `[SerbisYou Cellphone Alert] QR Verified! ${actorRole} scanned and verified your booking #${transaction.transaction_id} ("${transaction.service_name}"). Transaction settled!`,
+    }).catch(() => {});
 
     const io = req.app && req.app.get('io');
     if (io) {
@@ -691,6 +732,16 @@ const updateTransactionStatus = async (req, res) => {
         link: '/transactions',
         target_id: String(transaction.transaction_id),
       });
+
+      // Direct Mobile Push Notification & SMS to Recipient's Cellphone
+      sendCellphonePushNotification({
+        recipientUserId,
+        transactionId: transaction.transaction_id,
+        serviceName: transaction.service_name,
+        status,
+        amount: transaction.total_topay,
+        customMessage: `[SerbisYou Cellphone Alert] Booking update: ${statusDescMap[status] || `Transaction status is now ${status}.`}`,
+      }).catch(() => {});
     }
 
     return res.status(200).json({

@@ -8,6 +8,8 @@ import {
   getNotificationPermissionState,
   subscribeUserToPush,
   unsubscribeUserFromPush,
+  dispatchCellphonePushNotification,
+  requestPushPermission,
 } from '../utils/pushNotification';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -165,6 +167,9 @@ function NotificationsDropdown({ currentUser }) {
     registerSocket();
     socket.on('connect', registerSocket);
 
+    // Auto-request mobile device push permission
+    requestPushPermission();
+
     const handleReceiveMessage = (newMessage) => {
       if (!newMessage) return;
       const senderId = newMessage.sender_id ?? newMessage.senderId ?? newMessage.from;
@@ -192,6 +197,14 @@ function NotificationsDropdown({ currentUser }) {
         const filtered = prev.filter((n) => n.id !== notif.id);
         return [notif, ...filtered];
       });
+
+      // Dispatch real push notification & chime to receiver's cellphone
+      dispatchCellphonePushNotification({
+        title: `💬 New message from ${senderName}`,
+        description: newMessage.content || newMessage.message || 'Sent you a message',
+        link: `/messages/${senderId}`,
+        tag: notif.id,
+      });
     };
 
     const handleNewNotification = (notif) => {
@@ -199,6 +212,14 @@ function NotificationsDropdown({ currentUser }) {
       setNotifications((prev) => {
         const filtered = prev.filter((n) => n.id !== notif.id);
         return [notif, ...filtered];
+      });
+
+      // Dispatch real push notification & chime to receiver's cellphone
+      dispatchCellphonePushNotification({
+        title: notif.title || '🔔 SerbisYou Transaction Alert',
+        description: notif.description,
+        link: notif.link || '/transactions',
+        tag: notif.id || `notif_${Date.now()}`,
       });
     };
 
@@ -222,6 +243,40 @@ function NotificationsDropdown({ currentUser }) {
 
         return updated;
       });
+
+      // Dispatch real push notification & chime to receiver's cellphone
+      dispatchCellphonePushNotification({
+        title: bookingNotif.title || '📋 SerbisYou Booking Update',
+        description: bookingNotif.description,
+        link: bookingNotif.link || '/transactions',
+        tag: bookingNotif.id || `custom_${Date.now()}`,
+      });
+    };
+
+    const handleTransactionCreated = (tx) => {
+      if (!tx) return;
+      const isRecipient = String(tx.provider_id) === String(currentUserId);
+      if (isRecipient) {
+        dispatchCellphonePushNotification({
+          title: '🔔 New Service Booking Request!',
+          description: `Student ${tx.requestor_name || tx.requestor_id || 'User'} requested "${tx.service_name || 'Service'}" (₱${Number(tx.total_topay || 0).toFixed(2)}).`,
+          link: '/transactions',
+          tag: `tx_create_${tx.transaction_id}`,
+        });
+      }
+    };
+
+    const handleTransactionUpdated = (tx) => {
+      if (!tx) return;
+      const isParty = String(tx.provider_id) === String(currentUserId) || String(tx.requestor_id) === String(currentUserId);
+      if (isParty) {
+        dispatchCellphonePushNotification({
+          title: `📋 Booking #${tx.transaction_id} Update`,
+          description: `Service "${tx.service_name || 'Booking'}" status is now ${String(tx.service_status || 'updated').toUpperCase()}.`,
+          link: '/transactions',
+          tag: `tx_update_${tx.transaction_id}_${tx.service_status}`,
+        });
+      }
     };
 
     const handleUserChanged = (event) => {
@@ -231,6 +286,8 @@ function NotificationsDropdown({ currentUser }) {
 
     socket.on('receive_message', handleReceiveMessage);
     socket.on('new_notification', handleNewNotification);
+    socket.on('transaction_created', handleTransactionCreated);
+    socket.on('transaction_updated', handleTransactionUpdated);
     window.addEventListener('serbisyou_notification', handleCustomBookingNotif);
     window.addEventListener('serbisyou_user_changed', handleUserChanged);
 
@@ -238,6 +295,8 @@ function NotificationsDropdown({ currentUser }) {
       socket.off('connect', registerSocket);
       socket.off('receive_message', handleReceiveMessage);
       socket.off('new_notification', handleNewNotification);
+      socket.off('transaction_created', handleTransactionCreated);
+      socket.off('transaction_updated', handleTransactionUpdated);
       window.removeEventListener('serbisyou_notification', handleCustomBookingNotif);
       window.removeEventListener('serbisyou_user_changed', handleUserChanged);
     };
