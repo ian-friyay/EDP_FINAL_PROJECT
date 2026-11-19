@@ -218,7 +218,7 @@ export default function TransactionsPage() {
         </Alert>
       )}
 
-      <div className="neu-card">
+      <div className="neu-card mb-5">
         {isLoading && transactions.length === 0 ? (
           <div className="text-center py-5">
             <Spinner animation="border" variant="primary" />

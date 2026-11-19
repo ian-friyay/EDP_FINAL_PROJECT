@@ -289,7 +289,7 @@ export default function ServicesGrid({
           </Button>
         </div>
       ) : (
-        <div className="neu-scroll-list" style={{ maxHeight: '780px', overflowY: 'auto', paddingRight: '8px' }}>
+        <div className="w-100 mb-4">
           <Row xs={1} md={2} lg={3} className="g-4">
           {filteredServices.map((service) => {
             const amount = Number(service.amount_topay) || 0;

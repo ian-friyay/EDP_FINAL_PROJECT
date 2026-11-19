@@ -1145,15 +1145,15 @@ body {
 }
 
 .neu-scroll-list {
-  max-height: 480px;
-  overflow-y: auto;
+  max-height: none;
+  overflow-y: visible;
   overflow-x: hidden;
   padding-right: 4px;
 }
 
 .neu-scroll-table {
-  max-height: 420px;
-  overflow-y: auto;
+  max-height: none;
+  overflow-y: visible;
   overflow-x: auto;
   position: relative;
 }

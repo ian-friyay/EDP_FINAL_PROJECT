@@ -397,7 +397,7 @@ export default function MessagesPage() {
             />
           </div>
 
-          <ListGroup variant="flush" className="bg-transparent d-flex flex-column gap-2 neu-scroll-list" style={{ maxHeight: '550px' }}>
+          <ListGroup variant="flush" className="bg-transparent d-flex flex-column gap-2 mb-4">
             {conversations.length === 0 ? (
               <div className="neu-card border-0 text-center text-muted py-5">
                 No messages yet. Start a conversation by booking a service!

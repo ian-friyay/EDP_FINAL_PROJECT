@@ -394,7 +394,7 @@ export default function SettingsPage() {
                     className="neu-btn-orange rounded-pill px-4 py-2 fw-bold text-white shadow-sm"
                     disabled={saving || isCooldownActive}
                   >
-                    {saving ? 'Saving...' : 'Save Profile Changes'}
+                    {saving ? 'Saving...' : 'Save Changes'}
                   </Button>
                 </div>
               </Form>
@@ -491,7 +491,7 @@ export default function SettingsPage() {
         onConfirm={executeSaveProfile}
         title="Commit Profile Updates?"
         message="Once saved, your profile details and photo will be locked for 30 days in accordance with SerbisYou campus integrity policies."
-        confirmText="Yes, Save and Lock (30 Days)"
+        confirmText="Save Changes"
         confirmVariant="primary"
         loading={saving}
       />
