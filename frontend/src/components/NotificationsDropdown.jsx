@@ -68,7 +68,7 @@ function NotificationsDropdown({ currentUser }) {
   const handleTogglePush = async (e) => {
     e.stopPropagation();
     if (!isPushSupported()) {
-      alert('Outside push notifications are not supported by this browser.');
+      window.dispatchEvent(new CustomEvent('serbisyou_push_permission_help'));
       return;
     }
 
@@ -78,11 +78,15 @@ function NotificationsDropdown({ currentUser }) {
         await unsubscribeUserFromPush();
         setIsPushEnabled(false);
       } else {
-        await subscribeUserToPush(currentUserId);
+        const subRes = await subscribeUserToPush(currentUserId);
+        if (subRes && subRes.status === 'denied') {
+          setIsPushEnabled(false);
+          return;
+        }
         setIsPushEnabled(true);
       }
     } catch (err) {
-      alert(err.message || 'Could not update push notification permission.');
+      window.dispatchEvent(new CustomEvent('serbisyou_push_permission_help'));
     } finally {
       setPushLoading(false);
     }

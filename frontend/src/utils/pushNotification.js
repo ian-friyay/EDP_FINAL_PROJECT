@@ -23,13 +23,19 @@ export const getNotificationPermissionState = () => {
 
 export const subscribeUserToPush = async (userId) => {
   if (!isPushSupported()) {
-    throw new Error('Push notifications are not supported on this browser.');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('serbisyou_push_permission_help'));
+    }
+    return { status: 'unsupported' };
   }
 
   // Request permission
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') {
-    throw new Error('Notification permission was denied.');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('serbisyou_push_permission_help'));
+    }
+    return { status: 'denied', reason: 'blocked' };
   }
 
   // Get active Service Worker registration
@@ -171,7 +177,21 @@ export const dispatchCellphonePushNotification = async ({
   // 2. Trigger cellphone hardware vibration
   triggerCellphoneVibration([250, 100, 250, 100, 300]);
 
-  // 3. Dispatch native device push notification
+  // 3. Dispatch real-time floating in-app push toast banner (works 100% of the time)
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('serbisyou_realtime_push', {
+        detail: {
+          title,
+          description: contentBody,
+          link,
+          tag: tag || `serbisyou-tx-${Date.now()}`,
+        },
+      })
+    );
+  }
+
+  // 4. Dispatch native device push notification if browser allows
   if (typeof window === 'undefined' || !('Notification' in window)) {
     return;
   }

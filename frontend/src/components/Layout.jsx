@@ -11,6 +11,7 @@ import {
 import Sidebar from './Sidebar';
 import OfflineToast from './OfflineToast';
 import NotificationsDropdown from './NotificationsDropdown';
+import RealtimePushToast from './RealtimePushToast';
 import api from '../api/axios';
 import { socket } from '../socket';
 
@@ -306,6 +307,9 @@ export default function Layout() {
 
       {/* PWA Offline & Update Toast Notification */}
       <OfflineToast />
+
+      {/* Real-Time Push Notification Floating Banner & Device Alert */}
+      <RealtimePushToast />
     </div>
   );
 }
